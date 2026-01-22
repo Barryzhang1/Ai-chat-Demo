@@ -9,19 +9,22 @@
    - 注册账号并获取 API Key
 
 2. 配置环境变量
+
    ```bash
    export DEEPSEEK_API_KEY=your_api_key_here
    ```
 
    或者在 `.env` 文件中添加：
-   ```
+
+   ```markdone
    DEEPSEEK_API_KEY=your_api_key_here
    ```
 
 ## API 端点
 
 ### 1. 执行命令
-```
+
+```markdone
 POST /deepseek/execute
 Content-Type: application/json
 
@@ -32,7 +35,8 @@ Content-Type: application/json
 ```
 
 ### 2. 获取建议
-```
+
+```markdone
 POST /deepseek/suggest
 Content-Type: application/json
 
@@ -42,7 +46,8 @@ Content-Type: application/json
 ```
 
 ### 3. 解释代码
-```
+
+```markdone
 POST /deepseek/explain
 Content-Type: application/json
 
@@ -52,7 +57,8 @@ Content-Type: application/json
 ```
 
 ### 4. 检查状态
-```
+
+```markdone
 GET /deepseek/status
 ```
 

@@ -250,7 +250,8 @@ DEEPSEEK_API_KEY=your_deepseek_api_key_here
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080
 ```
 
-**重要**: 
+**重要**:
+
 - 不要将 `.env` 文件提交到版本控制
 - 使用 `.env.example` 作为模板
 - 在生产环境使用安全的密钥管理方案
@@ -471,26 +472,30 @@ npm run format
 ### 手动测试 API
 
 1. **检查状态**
+
 ```bash
 curl http://localhost:3001/deepseek/status
 ```
 
-2. **获取 AI 建议**
+1. **获取 AI 建议**
+
 ```bash
 curl -X POST http://localhost:3001/deepseek/suggest \
   -H "Content-Type: application/json" \
   -d '{"prompt": "如何优化 React 性能？"}'
 ```
 
-3. **解释代码**
+1. **解释代码**
+
 ```bash
 curl -X POST http://localhost:3001/deepseek/explain \
   -H "Content-Type: application/json" \
   -d '{"code": "const debounce = (fn, delay) => { let timer; return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); }; }"}'
 ```
 
-4. **访问 Swagger 文档**
-```
+1. **访问 Swagger 文档**
+
+```markdone
 打开浏览器访问: http://localhost:3001/api
 ```
 
