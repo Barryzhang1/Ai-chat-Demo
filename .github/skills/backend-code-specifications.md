@@ -1,6 +1,6 @@
 ---
 name: backend-code-specifications
-description: 这个skill用于后端项目chatBackEnd生成代码时进行参考，保证在代码生成时有统一规则，在生成或优化chatBackEnd代码时使用，基于NestJS企业级开发最佳实践
+description: 在后端项目chatBackEnd生成代码和修改代码时必须参考这个skills，保证在代码生成时有统一规则
 ---
 
 # NestJS 后端代码规范
@@ -15,6 +15,7 @@ description: 这个skill用于后端项目chatBackEnd生成代码时进行参考
 ## 2. 项目架构与模块组织
 
 ### 2.1 模块化设计原则
+
 - 按功能领域划分模块（Feature Modules），每个模块负责单一业务域，如 `UsersModule`、`AuthModule`、`PostsModule`
 - 使用 `@Module()` 装饰器明确声明模块的 `imports`、`providers`、`controllers`、`exports`
 - 避免循环依赖，必要时使用 `forwardRef()` 解决模块间循环引用
@@ -32,6 +33,7 @@ export class UsersModule {}
 ```
 
 ### 2.2 目录结构最佳实践
+
 ```
 src/
 ├── main.ts                 # 应用入口
@@ -62,6 +64,7 @@ src/
 ## 3. 依赖注入与提供者（Providers）
 
 ### 3.1 依赖注入最佳实践
+
 - 优先使用构造函数注入，避免属性注入（除非有特殊原因如循环依赖）
 - 使用 TypeScript 类型声明依赖，无需手动 `@Inject()`（使用 Token 时除外）
 - 提供者默认为单例（Singleton），需要请求作用域时显式声明 `scope: Scope.REQUEST`
@@ -80,11 +83,12 @@ export class UsersService {
 // 请求作用域示例
 @Injectable({ scope: Scope.REQUEST })
 export class RequestScopedService {
-  constructor(@Inject('REQUEST') private readonly request: Request) {}
+  constructor(@Inject("REQUEST") private readonly request: Request) {}
 }
 ```
 
 ### 3.2 自定义提供者模式
+
 ```typescript
 // 值提供者
 {
@@ -111,13 +115,14 @@ export class RequestScopedService {
 ## 4. 控制器（Controllers）约定
 
 ### 4.1 路由与HTTP方法
+
 - 使用 RESTful 风格路由，资源名用复数形式（`/users`、`/posts`）
 - 控制器装饰器指定基础路径，方法装饰器指定具体路由
 - HTTP方法装饰器：`@Get()`、`@Post()`、`@Put()`、`@Patch()`、`@Delete()`
 - 使用 `:id` 参数占位符，通过 `@Param('id')` 接收
 
 ```typescript
-@Controller('users')
+@Controller("users")
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -126,8 +131,8 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string): Promise<User> {
+  @Get(":id")
+  findOne(@Param("id") id: string): Promise<User> {
     return this.usersService.findOne(+id);
   }
 
@@ -136,23 +141,24 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
-  @Patch(':id')
+  @Patch(":id")
   update(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<User> {
     return this.usersService.update(+id, updateUserDto);
   }
 
-  @Delete(':id')
+  @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string): Promise<void> {
+  remove(@Param("id") id: string): Promise<void> {
     return this.usersService.remove(+id);
   }
 }
 ```
 
 ### 4.2 参数装饰器使用
+
 - `@Body()` - 请求体
 - `@Query()` - 查询参数
 - `@Param()` - 路由参数
@@ -162,6 +168,7 @@ export class UsersController {
 ## 5. 服务层（Services）与业务逻辑
 
 ### 5.1 服务设计原则
+
 - 服务类使用 `@Injectable()` 装饰器标记
 - 业务逻辑完全在服务层实现，控制器仅负责请求/响应处理
 - 服务方法应单一职责，避免过度复杂的长方法
@@ -210,13 +217,21 @@ export class UsersService {
 ## 6. 数据传输对象（DTO）与验证
 
 ### 6.1 DTO 定义规范
+
 - 使用 `class-validator` 进行请求数据验证
 - 为创建、更新操作分别定义 DTO：`CreateXxxDto`、`UpdateXxxDto`
 - 使用 `PartialType()` 辅助函数从创建 DTO 生成更新 DTO
 - DTO 类命名遵循 PascalCase，以 `Dto` 后缀结尾
 
 ```typescript
-import { IsString, IsInt, IsEmail, IsNotEmpty, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsInt,
+  IsEmail,
+  IsNotEmpty,
+  Min,
+  Max,
+} from "class-validator";
 
 export class CreateUserDto {
   @IsString()
@@ -237,24 +252,25 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {}
 ```
 
 ### 6.2 全局验证管道
+
 ```typescript
 // main.ts
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from "@nestjs/common";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,          // 自动移除非白名单属性
+      whitelist: true, // 自动移除非白名单属性
       forbidNonWhitelisted: true, // 发现非白名单属性时抛出错误
-      transform: true,          // 自动类型转换
+      transform: true, // 自动类型转换
       transformOptions: {
         enableImplicitConversion: true,
       },
     }),
   );
-  
+
   await app.listen(3000);
 }
 bootstrap();
@@ -263,6 +279,7 @@ bootstrap();
 ## 7. 错误处理与异常过滤器
 
 ### 7.1 内置异常类使用
+
 - 优先使用 NestJS 内置异常类：`BadRequestException`、`NotFoundException`、`UnauthorizedException`、`ForbiddenException`、`InternalServerErrorException`
 - 异常消息应明确具体，便于前端展示和调试
 - 避免泄露敏感信息（如数据库错误详情）给客户端
@@ -274,13 +291,20 @@ if (!user) {
 }
 
 if (user.email !== requestEmail) {
-  throw new ForbiddenException('You are not allowed to access this resource');
+  throw new ForbiddenException("You are not allowed to access this resource");
 }
 ```
 
 ### 7.2 自定义异常过滤器
+
 ```typescript
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, Logger } from '@nestjs/common';
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  Logger,
+} from "@nestjs/common";
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -298,7 +322,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request.url,
       method: request.method,
-      message: exceptionResponse['message'] || exception.message,
+      message: exceptionResponse["message"] || exception.message,
     };
 
     this.logger.error(
@@ -317,13 +341,14 @@ app.useGlobalFilters(new HttpExceptionFilter());
 ## 8. 守卫（Guards）与授权
 
 ### 8.1 认证守卫
+
 - 守卫用于执行授权逻辑，返回 `boolean` 或 `Promise<boolean>`
 - 使用 `@UseGuards()` 装饰器应用守卫，可在控制器级别或方法级别
 - 守卫执行顺序：全局守卫 → 控制器守卫 → 路由守卫
 
 ```typescript
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
-import { Observable } from 'rxjs';
+import { Injectable, CanActivate, ExecutionContext } from "@nestjs/common";
+import { Observable } from "rxjs";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -342,12 +367,13 @@ export class AuthGuard implements CanActivate {
 }
 
 // 使用守卫
-@Controller('users')
+@Controller("users")
 @UseGuards(AuthGuard)
 export class UsersController {}
 ```
 
 ### 8.2 角色守卫（RBAC）
+
 ```typescript
 import { SetMetadata } from '@nestjs/common';
 
@@ -381,10 +407,16 @@ findAllAdmin() {
 ## 9. 拦截器（Interceptors）与转换
 
 ### 9.1 响应转换拦截器
+
 ```typescript
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+} from "@nestjs/common";
+import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
 
 export interface Response<T> {
   data: T;
@@ -393,10 +425,16 @@ export interface Response<T> {
 }
 
 @Injectable()
-export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<Response<T>> {
+export class TransformInterceptor<T> implements NestInterceptor<
+  T,
+  Response<T>
+> {
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<Response<T>> {
     return next.handle().pipe(
-      map(data => ({
+      map((data) => ({
         data,
         statusCode: context.switchToHttp().getResponse().statusCode,
         timestamp: new Date().toISOString(),
@@ -407,6 +445,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
 ```
 
 ### 9.2 日志拦截器
+
 ```typescript
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -430,16 +469,17 @@ export class LoggingInterceptor implements NestInterceptor {
 ## 10. 配置管理
 
 ### 10.1 使用 ConfigModule
+
 ```typescript
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true,           // 全局可用
-      envFilePath: ['.env.local', '.env'], // 环境文件优先级
-      ignoreEnvFile: process.env.NODE_ENV === 'production', // 生产环境忽略 .env
+      isGlobal: true, // 全局可用
+      envFilePath: [".env.local", ".env"], // 环境文件优先级
+      ignoreEnvFile: process.env.NODE_ENV === "production", // 生产环境忽略 .env
     }),
   ],
 })
@@ -447,6 +487,7 @@ export class AppModule {}
 ```
 
 ### 10.2 类型安全的配置
+
 ```typescript
 import { registerAs } from '@nestjs/config';
 
@@ -468,10 +509,17 @@ constructor(
 ## 11. 数据库集成（TypeORM/Prisma）
 
 ### 11.1 TypeORM 实体定义
-```typescript
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-@Entity('users')
+```typescript
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from "typeorm";
+
+@Entity("users")
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
@@ -494,6 +542,7 @@ export class User {
 ```
 
 ### 11.2 数据库模块配置
+
 ```typescript
 @Module({
   imports: [
@@ -501,15 +550,15 @@ export class User {
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get('DATABASE_HOST'),
-        port: config.get('DATABASE_PORT'),
-        username: config.get('DATABASE_USER'),
-        password: config.get('DATABASE_PASSWORD'),
-        database: config.get('DATABASE_NAME'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: config.get('NODE_ENV') !== 'production', // 生产环境禁用
-        logging: config.get('NODE_ENV') === 'development',
+        type: "postgres",
+        host: config.get("DATABASE_HOST"),
+        port: config.get("DATABASE_PORT"),
+        username: config.get("DATABASE_USER"),
+        password: config.get("DATABASE_PASSWORD"),
+        database: config.get("DATABASE_NAME"),
+        entities: [__dirname + "/**/*.entity{.ts,.js}"],
+        synchronize: config.get("NODE_ENV") !== "production", // 生产环境禁用
+        logging: config.get("NODE_ENV") === "development",
       }),
     }),
   ],
@@ -520,13 +569,14 @@ export class DatabaseModule {}
 ## 12. 测试策略
 
 ### 12.1 单元测试
-```typescript
-import { Test, TestingModule } from '@nestjs/testing';
-import { UsersService } from './users.service';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { User } from './entities/user.entity';
 
-describe('UsersService', () => {
+```typescript
+import { Test, TestingModule } from "@nestjs/testing";
+import { UsersService } from "./users.service";
+import { getRepositoryToken } from "@nestjs/typeorm";
+import { User } from "./entities/user.entity";
+
+describe("UsersService", () => {
   let service: UsersService;
   let mockRepository: any;
 
@@ -553,12 +603,12 @@ describe('UsersService', () => {
     service = module.get<UsersService>(UsersService);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 
-  it('should return all users', async () => {
-    const users = [{ id: 1, name: 'Test' }];
+  it("should return all users", async () => {
+    const users = [{ id: 1, name: "Test" }];
     mockRepository.find.mockResolvedValue(users);
 
     const result = await service.findAll();
@@ -569,13 +619,14 @@ describe('UsersService', () => {
 ```
 
 ### 12.2 E2E 测试
-```typescript
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from './../src/app.module';
 
-describe('UsersController (e2e)', () => {
+```typescript
+import { Test, TestingModule } from "@nestjs/testing";
+import { INestApplication } from "@nestjs/common";
+import * as request from "supertest";
+import { AppModule } from "./../src/app.module";
+
+describe("UsersController (e2e)", () => {
   let app: INestApplication;
 
   beforeEach(async () => {
@@ -587,11 +638,11 @@ describe('UsersController (e2e)', () => {
     await app.init();
   });
 
-  it('/users (GET)', () => {
+  it("/users (GET)", () => {
     return request(app.getHttpServer())
-      .get('/users')
+      .get("/users")
       .expect(200)
-      .expect('Content-Type', /json/);
+      .expect("Content-Type", /json/);
   });
 
   afterAll(async () => {
@@ -603,36 +654,38 @@ describe('UsersController (e2e)', () => {
 ## 13. TypeScript 与 ESLint 配置
 
 ### 13.1 推荐的 ESLint 配置
+
 ```javascript
 module.exports = {
-  parser: '@typescript-eslint/parser',
+  parser: "@typescript-eslint/parser",
   parserOptions: {
-    project: 'tsconfig.json',
-    sourceType: 'module',
+    project: "tsconfig.json",
+    sourceType: "module",
     tsconfigRootDir: __dirname,
   },
-  plugins: ['@typescript-eslint/eslint-plugin'],
+  plugins: ["@typescript-eslint/eslint-plugin"],
   extends: [
-    'plugin:@typescript-eslint/recommended',
-    'plugin:prettier/recommended',
+    "plugin:@typescript-eslint/recommended",
+    "plugin:prettier/recommended",
   ],
   root: true,
   env: {
     node: true,
     jest: true,
   },
-  ignorePatterns: ['.eslintrc.js'],
+  ignorePatterns: [".eslintrc.js"],
   rules: {
-    '@typescript-eslint/interface-name-prefix': 'off',
-    '@typescript-eslint/explicit-function-return-type': 'off',
-    '@typescript-eslint/explicit-module-boundary-types': 'off',
-    '@typescript-eslint/no-explicit-any': 'warn',
-    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    "@typescript-eslint/interface-name-prefix": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
   },
 };
 ```
 
 ### 13.2 tsconfig.json 配置
+
 ```json
 {
   "compilerOptions": {
@@ -660,41 +713,43 @@ module.exports = {
 ## 14. 文档与 Swagger 集成
 
 ### 14.1 Swagger 配置
+
 ```typescript
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const config = new DocumentBuilder()
-    .setTitle('API Documentation')
-    .setDescription('The API description')
-    .setVersion('1.0')
-    .addTag('users')
+    .setTitle("API Documentation")
+    .setDescription("The API description")
+    .setVersion("1.0")
+    .addTag("users")
     .addBearerAuth()
     .build();
-  
+
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup("api", app, document);
 
   await app.listen(3000);
 }
 ```
 
 ### 14.2 DTO 文档注解
+
 ```typescript
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from "@nestjs/swagger";
 
 export class CreateUserDto {
-  @ApiProperty({ description: 'User name', example: 'John Doe' })
+  @ApiProperty({ description: "User name", example: "John Doe" })
   @IsString()
   name: string;
 
-  @ApiProperty({ description: 'User email', example: 'john@example.com' })
+  @ApiProperty({ description: "User email", example: "john@example.com" })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ description: 'User age', minimum: 18, maximum: 120 })
+  @ApiProperty({ description: "User age", minimum: 18, maximum: 120 })
   @IsInt()
   age: number;
 }
@@ -703,6 +758,7 @@ export class CreateUserDto {
 ## 15. 性能优化与最佳实践
 
 ### 15.1 避免 N+1 查询问题
+
 ```typescript
 // 不推荐：N+1 查询
 const users = await this.userRepository.find();
@@ -711,12 +767,13 @@ for (const user of users) {
 }
 
 // 推荐：使用关系加载
-const users = await this.userRepository.find({ relations: ['posts'] });
+const users = await this.userRepository.find({ relations: ["posts"] });
 ```
 
 ### 15.2 使用缓存（Cache Module）
+
 ```typescript
-import { CacheModule } from '@nestjs/cache-manager';
+import { CacheModule } from "@nestjs/cache-manager";
 
 @Module({
   imports: [
@@ -734,7 +791,7 @@ export class UsersService {
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   async findAll(): Promise<User[]> {
-    const cacheKey = 'all_users';
+    const cacheKey = "all_users";
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) {
       return cached;
@@ -748,13 +805,14 @@ export class UsersService {
 ```
 
 ### 15.3 异步任务队列（BullMQ）
+
 ```typescript
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from "@nestjs/bull";
 
 @Module({
   imports: [
     BullModule.registerQueue({
-      name: 'email',
+      name: "email",
     }),
   ],
   providers: [EmailProcessor],
@@ -764,17 +822,17 @@ export class EmailModule {}
 // 生产者
 @Injectable()
 export class NotificationService {
-  constructor(@InjectQueue('email') private emailQueue: Queue) {}
+  constructor(@InjectQueue("email") private emailQueue: Queue) {}
 
   async sendWelcomeEmail(email: string) {
-    await this.emailQueue.add('welcome', { email });
+    await this.emailQueue.add("welcome", { email });
   }
 }
 
 // 消费者
-@Processor('email')
+@Processor("email")
 export class EmailProcessor {
-  @Process('welcome')
+  @Process("welcome")
   async handleWelcome(job: Job) {
     const { email } = job.data;
     // 发送邮件逻辑
@@ -785,25 +843,28 @@ export class EmailProcessor {
 ## 16. 安全最佳实践
 
 ### 16.1 CORS 配置
+
 ```typescript
 app.enableCors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost:3000',
+  origin: process.env.ALLOWED_ORIGINS?.split(",") || "http://localhost:3000",
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 });
 ```
 
 ### 16.2 Helmet 安全头
+
 ```typescript
-import helmet from 'helmet';
+import helmet from "helmet";
 
 app.use(helmet());
 ```
 
 ### 16.3 速率限制（Throttler）
+
 ```typescript
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from "@nestjs/throttler";
 
 @Module({
   imports: [
@@ -819,21 +880,22 @@ export class AppModule {}
 ## 17. 日志管理
 
 ### 17.1 自定义 Logger
+
 ```typescript
-import { Logger } from '@nestjs/common';
+import { Logger } from "@nestjs/common";
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
   async findAll(): Promise<User[]> {
-    this.logger.log('Fetching all users');
+    this.logger.log("Fetching all users");
     try {
       const users = await this.userRepository.find();
       this.logger.debug(`Found ${users.length} users`);
       return users;
     } catch (error) {
-      this.logger.error('Failed to fetch users', error.stack);
+      this.logger.error("Failed to fetch users", error.stack);
       throw error;
     }
   }
@@ -841,6 +903,7 @@ export class UsersService {
 ```
 
 ### 17.2 日志级别
+
 - `log` - 一般信息
 - `error` - 错误信息
 - `warn` - 警告信息
@@ -850,15 +913,16 @@ export class UsersService {
 ## 18. 微服务架构
 
 ### 18.1 微服务配置
+
 ```typescript
-import { Transport, MicroserviceOptions } from '@nestjs/microservices';
+import { Transport, MicroserviceOptions } from "@nestjs/microservices";
 
 const app = await NestFactory.createMicroservice<MicroserviceOptions>(
   AppModule,
   {
     transport: Transport.TCP,
     options: {
-      host: 'localhost',
+      host: "localhost",
       port: 3001,
     },
   },
@@ -866,6 +930,7 @@ const app = await NestFactory.createMicroservice<MicroserviceOptions>(
 ```
 
 ### 18.2 消息模式
+
 ```typescript
 // 请求-响应模式
 @MessagePattern({ cmd: 'get_user' })
@@ -889,52 +954,5 @@ async handleUserCreated(data: { email: string }) {
 - 定期更新 NestJS 和依赖包版本，关注安全漏洞
 - 团队新成员入职时提供本规范文档，并分配导师进行实践指导
 
-## 20. 常用命令参考
-
-```bash
-# 创建新项目
-nest new project-name
-
-# 生成资源（模块、控制器、服务）
-nest generate resource users
-
-# 生成模块
-nest generate module users
-
-# 生成控制器
-nest generate controller users
-
-# 生成服务
-nest generate service users
-
-# 生成守卫
-nest generate guard auth
-
-# 生成拦截器
-nest generate interceptor logging
-
-# 生成过滤器
-nest generate filter http-exception
-
-# 运行开发服务器
-npm run start:dev
-
-# 运行测试
-npm run test
-
-# 运行 E2E 测试
-npm run test:e2e
-
-# 运行代码检查
-npm run lint
-
-# 构建生产版本
-npm run build
-
-# 运行生产版本
-npm run start:prod
-```
-
----
 
 本规范基于 NestJS 官方文档、GitHub 仓库示例和社区最佳实践整理，旨在为团队提供统一的代码风格和架构指南，确保项目的可维护性、可扩展性和代码质量。

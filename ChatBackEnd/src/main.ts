@@ -1,10 +1,10 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe, Logger, type INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+async function bootstrap(): Promise<void> {
+  const app: INestApplication = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
 
   // 全局验证管道
@@ -45,4 +45,4 @@ async function bootstrap() {
     `Swagger documentation available at: http://localhost:${port}/api`,
   );
 }
-bootstrap();
+void bootstrap();

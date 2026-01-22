@@ -10,8 +10,10 @@ export class ChatService {
   private idCounter = 1;
 
   create(createChatDto: CreateChatDto): Chat {
-    this.logger.log(`Creating new chat message for user: ${createChatDto.userId}`);
-    
+    this.logger.log(
+      `Creating new chat message for user: ${createChatDto.userId}`,
+    );
+
     const chat: Chat = {
       id: String(this.idCounter++),
       message: createChatDto.message,
@@ -20,9 +22,9 @@ export class ChatService {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    
+
     this.chats.push(chat);
-    
+
     // 模拟AI响应
     const aiResponse: Chat = {
       id: String(this.idCounter++),
@@ -32,9 +34,9 @@ export class ChatService {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    
+
     this.chats.push(aiResponse);
-    
+
     return aiResponse;
   }
 
@@ -46,31 +48,31 @@ export class ChatService {
   findOne(id: string): Chat {
     this.logger.log(`Fetching chat message with id: ${id}`);
     const chat = this.chats.find((c) => c.id === id);
-    
+
     if (!chat) {
       throw new NotFoundException(`Chat message with ID ${id} not found`);
     }
-    
+
     return chat;
   }
 
   update(id: string, updateChatDto: UpdateChatDto): Chat {
     this.logger.log(`Updating chat message with id: ${id}`);
     const chat = this.findOne(id);
-    
+
     Object.assign(chat, updateChatDto, { updatedAt: new Date() });
-    
+
     return chat;
   }
 
   remove(id: string): void {
     this.logger.log(`Removing chat message with id: ${id}`);
     const index = this.chats.findIndex((c) => c.id === id);
-    
+
     if (index === -1) {
       throw new NotFoundException(`Chat message with ID ${id} not found`);
     }
-    
+
     this.chats.splice(index, 1);
   }
 }

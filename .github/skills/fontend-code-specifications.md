@@ -90,12 +90,14 @@ description: 这个skill用于fontend项目ChatUI生成代码时进行参考，�
 - 将这份规范与项目 `README`、Onboarding 文档链接，确保新成员能快速上手。# React 前端代码规范
 
 ## 1. 参考资源
+
 - Airbnb JavaScript Style Guide：社区最受欢迎的规范，覆盖从语言基础、命名、缩进、模块到 React 特有的 JSX/props/组件组织规则。[https://github.com/airbnb/javascript](https://github.com/airbnb/javascript)
 - eslint-plugin-react (`plugin:react/recommended`)：提供 JSX 相关的 lint 规则（`jsx-no-duplicate-props`、`jsx-key`、`no-direct-mutation-state` 等），保持组件健壮。[https://github.com/jsx-eslint/eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react)
 - eslint-plugin-react-hooks：官方 Hooks lint，强制遵守 “只在顶层调用 Hooks”、“deps 数组完整” 等原则。[https://github.com/facebook/react/tree/main/packages/eslint-plugin-react-hooks](https://github.com/facebook/react/tree/main/packages/eslint-plugin-react-hooks)
 - React Hooks 规则文档：解释为什么规则存在，便于团队理解 Hook 的设计哲学。[https://beta.reactjs.org/docs/hooks-rules](https://beta.reactjs.org/docs/hooks-rules)
 
 ## 2. JavaScript 基础约定
+
 - 全部使用 `const`/`let`，避免 `var`。
 - 使用箭头函数作为默认的匿名函数写法，单表达式函数允许省略 `{}` 和 `return`。
 - 避免链式赋值、`++/--` 等容易引入副作用的语法。
@@ -103,5 +105,6 @@ description: 这个skill用于fontend项目ChatUI生成代码时进行参考，�
 - 对象/数组推荐使用字面量、解构、展开操作符，确保最小的写入量。
 
 ## 3. React/JSX 约定
+
 - 每个组件文件名与默认导出名称一致，首字母大写。组件之间只能出现一个默认导出。
 - JSX 属性按多行时缩进和换行，与 Aqun? (should be consistent) ... (maybe mention consistent attribute order?). Need mention hooking? We'll adapt.
