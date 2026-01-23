@@ -1,0 +1,88 @@
+.role-select-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.role-select-content {
+  padding: 40px 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.welcome-section {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.welcome-text {
+  font-size: 32px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.welcome-subtitle {
+  font-size: 16px;
+  color: #666;
+}
+
+.role-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.role-card {
+  background: white;
+  border-radius: 16px;
+  padding: 40px 30px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.role-card:active {
+  transform: scale(0.98);
+}
+
+.user-card {
+  border: 2px solid #1677ff;
+}
+
+.user-card:hover {
+  box-shadow: 0 8px 24px rgba(22, 119, 255, 0.2);
+}
+
+.merchant-card {
+  border: 2px solid #00b578;
+}
+
+.merchant-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 181, 120, 0.2);
+}
+
+.role-icon {
+  color: inherit;
+  margin-bottom: 20px;
+}
+
+.user-card .role-icon {
+  color: #1677ff;
+}
+
+.merchant-card .role-icon {
+  color: #00b578;
+}
+
+.role-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.role-description {
+  font-size: 14px;
+  color: #999;
+}

@@ -1,0 +1,195 @@
+.merchant-dashboard {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.dashboard-tabs {
+  height: calc(100vh - 45px);
+}
+
+.tab-content {
+  padding: 16px;
+  overflow-y: auto;
+  height: calc(100vh - 90px);
+}
+
+/* Orders */
+.order-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.order-id {
+  font-weight: bold;
+  color: #333;
+}
+
+.order-items {
+  font-size: 14px;
+  color: #666;
+}
+
+.order-total {
+  font-size: 16px;
+  font-weight: bold;
+  color: #ff6430;
+}
+
+.status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.status.completed {
+  background-color: #e8f5e9;
+  color: #00b578;
+}
+
+.status.pending {
+  background-color: #fff3e0;
+  color: #ff8f00;
+}
+
+/* Inventory */
+.inventory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.inventory-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.inventory-item {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.item-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.item-price {
+  color: #ff6430;
+  font-weight: bold;
+}
+
+.stock {
+  font-size: 14px;
+  color: #00b578;
+}
+
+.stock.low {
+  color: #ff3141;
+}
+
+/* Rankings */
+.rank-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: white;
+}
+
+.rank-1 {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  color: #333;
+}
+
+.rank-2 {
+  background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+  color: #333;
+}
+
+.rank-3 {
+  background: linear-gradient(135deg, #cd7f32 0%, #e8a87c 100%);
+  color: white;
+}
+
+.rank-badge:not(.rank-1):not(.rank-2):not(.rank-3) {
+  background-color: #e5e5e5;
+  color: #666;
+}
+
+.score {
+  font-weight: bold;
+  color: #1677ff;
+}
+
+/* Reports */
+.revenue-card {
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.revenue-amount {
+  font-size: 36px;
+  font-weight: bold;
+  color: #00b578;
+  margin: 16px 0;
+}
+
+.revenue-subtitle {
+  font-size: 14px;
+  color: #666;
+}
+
+.chart-card {
+  margin-bottom: 16px;
+}
+
+.bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bar-label {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.bar-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  height: 24px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1677ff 0%, #69c0ff 100%);
+  transition: width 0.3s ease;
+}
+
+.bar-value {
+  position: absolute;
+  right: 8px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #333;
+}
