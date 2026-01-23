@@ -1,0 +1,1 @@
+#file:fontend-code-generate.agent.md 在这个文件中生成一份生成前端代码的agents，需要使用skills #file:fontend-code-specifications.md 
