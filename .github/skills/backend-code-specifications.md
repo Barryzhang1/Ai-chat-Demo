@@ -1,76 +1,76 @@
 ---
 name: backend-code-specifications
-description: 在后端项目chatBackEnd生成代码和修改代码时必须参考这个skills，保证在代码生成时有统一规则
+description: This document must be referenced when generating or modifying code in the chatBackEnd project to ensure uniform rules during code generation.
 ---
 
-# NestJS 后端代码规范
+# NestJS Backend Code Standards
 
-## 1. 参考资源
+## 1. Reference Resources
 
-- NestJS 官方文档：提供架构、模块、依赖注入、中间件、Guards、Interceptors 等全面指南，是权威参考。链接：https://docs.nestjs.com
-- NestJS 官方仓库：包含大量示例项目（sample/）和集成测试，展示最佳实践。链接：https://github.com/nestjs/nest
-- TypeScript ESLint：NestJS 推荐的 TypeScript 代码检查工具，提供类型安全和代码质量保障。链接：https://typescript-eslint.io
-- Angular 编码规范：NestJS 架构深受 Angular 启发，许多设计模式和组织方式与 Angular 一致。链接：https://angular.dev/style-guide
+- NestJS Official Documentation: Provides a comprehensive guide on architecture, modules, dependency injection, middleware, Guards, Interceptors, etc. It is the authoritative reference. Link: https://docs.nestjs.com
+- NestJS Official Repository: Contains numerous sample projects (sample/) and integration tests, demonstrating best practices. Link: https://github.com/nestjs/nest
+- TypeScript ESLint: The recommended TypeScript code linting tool for NestJS, ensuring type safety and code quality. Link: https://typescript-eslint.io
+- Angular Style Guide: The NestJS architecture is heavily inspired by Angular, and many design patterns and organizational methods are consistent with Angular. Link: https://angular.dev/style-guide
 
-## 2. 项目架构与模块组织
+## 2. Project Architecture and Module Organization
 
-### 2.1 模块化设计原则
+### 2.1 Modular Design Principles
 
-- 按功能领域划分模块（Feature Modules），每个模块负责单一业务域，如 `UsersModule`、`AuthModule`、`PostsModule`
-- 使用 `@Module()` 装饰器明确声明模块的 `imports`、`providers`、`controllers`、`exports`
-- 避免循环依赖，必要时使用 `forwardRef()` 解决模块间循环引用
-- 遵循依赖方向：核心模块（Core）← 共享模块（Shared）← 功能模块（Features）
+- Divide modules by functional areas (Feature Modules), with each module responsible for a single business domain, such as `UsersModule`, `AuthModule`, `PostsModule`.
+- Use the `@Module()` decorator to explicitly declare the module's `imports`, `providers`, `controllers`, and `exports`.
+- Avoid circular dependencies; use `forwardRef()` to resolve circular references between modules when necessary.
+- Follow the dependency direction: Core Modules ← Shared Modules ← Feature Modules.
 
 ```typescript
-// 示例：功能模块结构
+// Example: Feature module structure
 @Module({
   imports: [TypeOrmModule.forFeature([User])],
   controllers: [UsersController],
   providers: [UsersService],
-  exports: [UsersService], // 导出供其他模块使用
+  exports: [UsersService], // Export for use by other modules
 })
 export class UsersModule {}
 ```
 
-### 2.2 目录结构最佳实践
+### 2.2 Directory Structure Best Practices
 
 ```
 src/
-├── main.ts                 # 应用入口
-├── app.module.ts           # 根模块
-├── common/                 # 共享资源
-│   ├── decorators/        # 自定义装饰器
-│   ├── filters/           # 异常过滤器
-│   ├── guards/            # 守卫
-│   ├── interceptors/      # 拦截器
-│   ├── pipes/             # 管道
-│   └── interfaces/        # 通用接口
-├── config/                 # 配置模块
+├── main.ts                 # Application entry point
+├── app.module.ts           # Root module
+├── common/                 # Shared resources
+│   ├── decorators/        # Custom decorators
+│   ├── filters/           # Exception filters
+│   ├── guards/            # Guards
+│   ├── interceptors/      # Interceptors
+│   ├── pipes/             # Pipes
+│   └── interfaces/        # Common interfaces
+├── config/                 # Configuration module
 │   ├── database.config.ts
 │   └── app.config.ts
-├── modules/                # 功能模块
+├── modules/                # Feature modules
 │   ├── users/
-│   │   ├── dto/           # 数据传输对象
-│   │   ├── entities/      # 数据库实体
+│   │   ├── dto/           # Data Transfer Objects
+│   │   ├── entities/      # Database entities
 │   │   ├── users.controller.ts
 │   │   ├── users.service.ts
 │   │   └── users.module.ts
 │   └── auth/
-└── core/                   # 核心模块（单例服务）
+└── core/                   # Core module (singleton services)
     ├── database/
     └── logger/
 ```
 
-## 3. 依赖注入与提供者（Providers）
+## 3. Dependency Injection and Providers
 
-### 3.1 依赖注入最佳实践
+### 3.1 Dependency Injection Best Practices
 
-- 优先使用构造函数注入，避免属性注入（除非有特殊原因如循环依赖）
-- 使用 TypeScript 类型声明依赖，无需手动 `@Inject()`（使用 Token 时除外）
-- 提供者默认为单例（Singleton），需要请求作用域时显式声明 `scope: Scope.REQUEST`
+- Prefer constructor injection; avoid property injection (unless for special reasons like circular dependencies).
+- Use TypeScript type declarations for dependencies, no need for manual `@Inject()` (except when using tokens).
+- Providers are singletons by default; explicitly declare `scope: Scope.REQUEST` for request-scoped providers.
 
 ```typescript
-// 推荐：构造函数注入
+// Recommended: Constructor injection
 @Injectable()
 export class UsersService {
   constructor(
@@ -80,23 +80,23 @@ export class UsersService {
   ) {}
 }
 
-// 请求作用域示例
+// Example of request scope
 @Injectable({ scope: Scope.REQUEST })
 export class RequestScopedService {
   constructor(@Inject("REQUEST") private readonly request: Request) {}
 }
 ```
 
-### 3.2 自定义提供者模式
+### 3.2 Custom Provider Patterns
 
 ```typescript
-// 值提供者
+// Value provider
 {
   provide: 'APP_CONFIG',
   useValue: { apiUrl: 'https://api.example.com' },
 }
 
-// 工厂提供者
+// Factory provider
 {
   provide: 'DATABASE_CONNECTION',
   useFactory: async (config: ConfigService) => {
@@ -105,21 +105,21 @@ export class RequestScopedService {
   inject: [ConfigService],
 }
 
-// 类提供者（带别名）
+// Class provider (with alias)
 {
   provide: 'LOGGER',
   useClass: CustomLogger,
 }
 ```
 
-## 4. 控制器（Controllers）约定
+## 4. Controller Conventions
 
-### 4.1 路由与HTTP方法
+### 4.1 Routing and HTTP Methods
 
-- 使用 RESTful 风格路由，资源名用复数形式（`/users`、`/posts`）
-- 控制器装饰器指定基础路径，方法装饰器指定具体路由
-- HTTP方法装饰器：`@Get()`、`@Post()`、`@Put()`、`@Patch()`、`@Delete()`
-- 使用 `:id` 参数占位符，通过 `@Param('id')` 接收
+- Use RESTful style routing, with resource names in plural form (`/users`, `/posts`).
+- The controller decorator specifies the base path, and method decorators specify the specific route.
+- HTTP method decorators: `@Get()`, `@Post()`, `@Put()`, `@Patch()`, `@Delete()`.
+- Use `:id` as a parameter placeholder, received via `@Param('id')`.
 
 ```typescript
 @Controller("users")
@@ -157,22 +157,22 @@ export class UsersController {
 }
 ```
 
-### 4.2 参数装饰器使用
+### 4.2 Parameter Decorator Usage
 
-- `@Body()` - 请求体
-- `@Query()` - 查询参数
-- `@Param()` - 路由参数
-- `@Headers()` - 请求头
-- `@Req()` / `@Request()` - 完整请求对象（避免过度使用）
+- `@Body()` - Request body
+- `@Query()` - Query parameters
+- `@Param()` - Route parameters
+- `@Headers()` - Request headers
+- `@Req()` / `@Request()` - Full request object (avoid overuse)
 
-## 5. 服务层（Services）与业务逻辑
+## 5. Service Layer and Business Logic
 
-### 5.1 服务设计原则
+### 5.1 Service Design Principles
 
-- 服务类使用 `@Injectable()` 装饰器标记
-- 业务逻辑完全在服务层实现，控制器仅负责请求/响应处理
-- 服务方法应单一职责，避免过度复杂的长方法
-- 使用有意义的方法名：`findAll()`、`findOne()`、`create()`、`update()`、`remove()`
+- Service classes are marked with the `@Injectable()` decorator.
+- Business logic is implemented entirely in the service layer; controllers are only responsible for request/response handling.
+- Service methods should have a single responsibility; avoid overly complex long methods.
+- Use meaningful method names: `findAll()`, `findOne()`, `create()`, `update()`, `remove()`.
 
 ```typescript
 @Injectable()
@@ -200,7 +200,7 @@ export class UsersService {
   }
 
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
-    await this.findOne(id); // 验证存在性
+    await this.findOne(id); // Verify existence
     await this.userRepository.update(id, updateUserDto);
     return this.findOne(id);
   }
@@ -214,14 +214,14 @@ export class UsersService {
 }
 ```
 
-## 6. 数据传输对象（DTO）与验证
+## 6. Data Transfer Objects (DTOs) and Validation
 
-### 6.1 DTO 定义规范
+### 6.1 DTO Definition Standards
 
-- 使用 `class-validator` 进行请求数据验证
-- 为创建、更新操作分别定义 DTO：`CreateXxxDto`、`UpdateXxxDto`
-- 使用 `PartialType()` 辅助函数从创建 DTO 生成更新 DTO
-- DTO 类命名遵循 PascalCase，以 `Dto` 后缀结尾
+- Use `class-validator` for request data validation.
+- Define separate DTOs for create and update operations: `CreateXxxDto`, `UpdateXxxDto`.
+- Use the `PartialType()` helper function to generate an update DTO from a create DTO.
+- DTO class names follow PascalCase and end with the `Dto` suffix.
 
 ```typescript
 import {
@@ -247,11 +247,11 @@ export class CreateUserDto {
   age: number;
 }
 
-// 使用 PartialType 创建更新 DTO
+// Use PartialType to create an update DTO
 export class UpdateUserDto extends PartialType(CreateUserDto) {}
 ```
 
-### 6.2 全局验证管道
+### 6.2 Global Validation Pipe
 
 ```typescript
 // main.ts
@@ -262,9 +262,9 @@ async function bootstrap() {
 
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // 自动移除非白名单属性
-      forbidNonWhitelisted: true, // 发现非白名单属性时抛出错误
-      transform: true, // 自动类型转换
+      whitelist: true, // Automatically remove non-whitelisted properties
+      forbidNonWhitelisted: true, // Throw an error if non-whitelisted properties are found
+      transform: true, // Automatically transform types
       transformOptions: {
         enableImplicitConversion: true,
       },
@@ -276,16 +276,16 @@ async function bootstrap() {
 bootstrap();
 ```
 
-## 7. 错误处理与异常过滤器
+## 7. Error Handling and Exception Filters
 
-### 7.1 内置异常类使用
+### 7.1 Using Built-in Exception Classes
 
-- 优先使用 NestJS 内置异常类：`BadRequestException`、`NotFoundException`、`UnauthorizedException`、`ForbiddenException`、`InternalServerErrorException`
-- 异常消息应明确具体，便于前端展示和调试
-- 避免泄露敏感信息（如数据库错误详情）给客户端
+- Prefer using NestJS built-in exception classes: `BadRequestException`, `NotFoundException`, `UnauthorizedException`, `ForbiddenException`, `InternalServerErrorException`.
+- Exception messages should be clear and specific for frontend display and debugging.
+- Avoid leaking sensitive information (like database error details) to the client.
 
 ```typescript
-// 正确的异常抛出
+// Correct exception throwing
 if (!user) {
   throw new NotFoundException(`User with ID ${id} not found`);
 }
@@ -295,7 +295,7 @@ if (user.email !== requestEmail) {
 }
 ```
 
-### 7.2 自定义异常过滤器
+### 7.2 Custom Exception Filters
 
 ```typescript
 import {
@@ -334,17 +334,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
   }
 }
 
-// 全局注册
+// Register globally
 app.useGlobalFilters(new HttpExceptionFilter());
 ```
 
-## 8. 守卫（Guards）与授权
+## 8. Guards and Authorization
 
-### 8.1 认证守卫
+### 8.1 Authentication Guard
 
-- 守卫用于执行授权逻辑，返回 `boolean` 或 `Promise<boolean>`
-- 使用 `@UseGuards()` 装饰器应用守卫，可在控制器级别或方法级别
-- 守卫执行顺序：全局守卫 → 控制器守卫 → 路由守卫
+- Guards are used to implement authorization logic, returning a `boolean` or `Promise<boolean>`.
+- Use the `@UseGuards()` decorator to apply guards at the controller or method level.
+- Guard execution order: Global Guards → Controller Guards → Route Guards.
 
 ```typescript
 import { Injectable, CanActivate, ExecutionContext } from "@nestjs/common";
@@ -360,19 +360,19 @@ export class AuthGuard implements CanActivate {
   }
 
   private validateRequest(request: any): boolean {
-    // 验证 JWT token 或 session
+    // Validate JWT token or session
     const token = request.headers.authorization;
     return !!token;
   }
 }
 
-// 使用守卫
+// Using the guard
 @Controller("users")
 @UseGuards(AuthGuard)
 export class UsersController {}
 ```
 
-### 8.2 角色守卫（RBAC）
+### 8.2 Role Guard (RBAC)
 
 ```typescript
 import { SetMetadata } from '@nestjs/common';
@@ -396,7 +396,7 @@ export class RolesGuard implements CanActivate {
   }
 }
 
-// 使用示例
+// Usage example
 @Get('admin')
 @Roles('admin')
 findAllAdmin() {
@@ -404,9 +404,9 @@ findAllAdmin() {
 }
 ```
 
-## 9. 拦截器（Interceptors）与转换
+## 9. Interceptors and Transformation
 
-### 9.1 响应转换拦截器
+### 9.1 Response Transformation Interceptor
 
 ```typescript
 import {
@@ -444,7 +444,7 @@ export class TransformInterceptor<T> implements NestInterceptor<
 }
 ```
 
-### 9.2 日志拦截器
+### 9.2 Logging Interceptor
 
 ```typescript
 @Injectable()
@@ -466,9 +466,9 @@ export class LoggingInterceptor implements NestInterceptor {
 }
 ```
 
-## 10. 配置管理
+## 10. Configuration Management
 
-### 10.1 使用 ConfigModule
+### 10.1 Using ConfigModule
 
 ```typescript
 import { Module } from "@nestjs/common";
@@ -477,16 +477,16 @@ import { ConfigModule } from "@nestjs/config";
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // 全局可用
-      envFilePath: [".env.local", ".env"], // 环境文件优先级
-      ignoreEnvFile: process.env.NODE_ENV === "production", // 生产环境忽略 .env
+      isGlobal: true, // Globally available
+      envFilePath: [".env.local", ".env"], // Environment file priority
+      ignoreEnvFile: process.env.NODE_ENV === "production", // Ignore .env in production
     }),
   ],
 })
 export class AppModule {}
 ```
 
-### 10.2 类型安全的配置
+### 10.2 Type-Safe Configuration
 
 ```typescript
 import { registerAs } from '@nestjs/config';
@@ -499,16 +499,16 @@ export default registerAs('database', () => ({
   database: process.env.DATABASE_NAME,
 }));
 
-// 使用配置
+// Using the configuration
 constructor(
   @Inject(databaseConfig.KEY)
   private readonly dbConfig: ConfigType<typeof databaseConfig>,
 ) {}
 ```
 
-## 11. 数据库集成（TypeORM/Prisma）
+## 11. Database Integration (TypeORM/Prisma)
 
-### 11.1 TypeORM 实体定义
+### 11.1 TypeORM Entity Definition
 
 ```typescript
 import {
@@ -541,7 +541,7 @@ export class User {
 }
 ```
 
-### 11.2 数据库模块配置
+### 11.2 Database Module Configuration
 
 ```typescript
 @Module({
@@ -557,7 +557,7 @@ export class User {
         password: config.get("DATABASE_PASSWORD"),
         database: config.get("DATABASE_NAME"),
         entities: [__dirname + "/**/*.entity{.ts,.js}"],
-        synchronize: config.get("NODE_ENV") !== "production", // 生产环境禁用
+        synchronize: config.get("NODE_ENV") !== "production", // Disable in production
         logging: config.get("NODE_ENV") === "development",
       }),
     }),
@@ -566,9 +566,9 @@ export class User {
 export class DatabaseModule {}
 ```
 
-## 12. 测试策略
+## 12. Testing Strategy
 
-### 12.1 单元测试
+### 12.1 Unit Testing
 
 ```typescript
 import { Test, TestingModule } from "@nestjs/testing";
@@ -618,7 +618,7 @@ describe("UsersService", () => {
 });
 ```
 
-### 12.2 E2E 测试
+### 12.2 E2E Testing
 
 ```typescript
 import { Test, TestingModule } from "@nestjs/testing";
@@ -651,9 +651,9 @@ describe("UsersController (e2e)", () => {
 });
 ```
 
-## 13. TypeScript 与 ESLint 配置
+## 13. TypeScript and ESLint Configuration
 
-### 13.1 推荐的 ESLint 配置
+### 13.1 Recommended ESLint Configuration
 
 ```javascript
 module.exports = {
@@ -684,7 +684,7 @@ module.exports = {
 };
 ```
 
-### 13.2 tsconfig.json 配置
+### 13.2 tsconfig.json Configuration
 
 ```json
 {
@@ -710,9 +710,9 @@ module.exports = {
 }
 ```
 
-## 14. 文档与 Swagger 集成
+## 14. Documentation and Swagger Integration
 
-### 14.1 Swagger 配置
+### 14.1 Swagger Configuration
 
 ```typescript
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
@@ -735,7 +735,7 @@ async function bootstrap() {
 }
 ```
 
-### 14.2 DTO 文档注解
+### 14.2 DTO Documentation Annotations
 
 ```typescript
 import { ApiProperty } from "@nestjs/swagger";
@@ -755,22 +755,22 @@ export class CreateUserDto {
 }
 ```
 
-## 15. 性能优化与最佳实践
+## 15. Performance Optimization and Best Practices
 
-### 15.1 避免 N+1 查询问题
+### 15.1 Avoiding the N+1 Query Problem
 
 ```typescript
-// 不推荐：N+1 查询
+// Not recommended: N+1 query
 const users = await this.userRepository.find();
 for (const user of users) {
   user.posts = await this.postRepository.find({ where: { userId: user.id } });
 }
 
-// 推荐：使用关系加载
+// Recommended: Use relation loading
 const users = await this.userRepository.find({ relations: ["posts"] });
 ```
 
-### 15.2 使用缓存（Cache Module）
+### 15.2 Using Caching (Cache Module)
 
 ```typescript
 import { CacheModule } from "@nestjs/cache-manager";
@@ -778,14 +778,14 @@ import { CacheModule } from "@nestjs/cache-manager";
 @Module({
   imports: [
     CacheModule.register({
-      ttl: 5, // 秒
-      max: 100, // 最大缓存项数
+      ttl: 5, // seconds
+      max: 100, // maximum number of items in cache
     }),
   ],
 })
 export class AppModule {}
 
-// 使用缓存
+// Using the cache
 @Injectable()
 export class UsersService {
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
@@ -804,7 +804,7 @@ export class UsersService {
 }
 ```
 
-### 15.3 异步任务队列（BullMQ）
+### 15.3 Asynchronous Task Queues (BullMQ)
 
 ```typescript
 import { BullModule } from "@nestjs/bull";
@@ -819,7 +819,7 @@ import { BullModule } from "@nestjs/bull";
 })
 export class EmailModule {}
 
-// 生产者
+// Producer
 @Injectable()
 export class NotificationService {
   constructor(@InjectQueue("email") private emailQueue: Queue) {}
@@ -829,20 +829,20 @@ export class NotificationService {
   }
 }
 
-// 消费者
+// Consumer
 @Processor("email")
 export class EmailProcessor {
   @Process("welcome")
   async handleWelcome(job: Job) {
     const { email } = job.data;
-    // 发送邮件逻辑
+    // Logic to send email
   }
 }
 ```
 
-## 16. 安全最佳实践
+## 16. Security Best Practices
 
-### 16.1 CORS 配置
+### 16.1 CORS Configuration
 
 ```typescript
 app.enableCors({
@@ -853,7 +853,7 @@ app.enableCors({
 });
 ```
 
-### 16.2 Helmet 安全头
+### 16.2 Helmet for Security Headers
 
 ```typescript
 import helmet from "helmet";
@@ -861,7 +861,7 @@ import helmet from "helmet";
 app.use(helmet());
 ```
 
-### 16.3 速率限制（Throttler）
+### 16.3 Rate Limiting (Throttler)
 
 ```typescript
 import { ThrottlerModule } from "@nestjs/throttler";
@@ -877,9 +877,9 @@ import { ThrottlerModule } from "@nestjs/throttler";
 export class AppModule {}
 ```
 
-## 17. 日志管理
+## 17. Log Management
 
-### 17.1 自定义 Logger
+### 17.1 Custom Logger
 
 ```typescript
 import { Logger } from "@nestjs/common";
@@ -902,17 +902,17 @@ export class UsersService {
 }
 ```
 
-### 17.2 日志级别
+### 17.2 Log Levels
 
-- `log` - 一般信息
-- `error` - 错误信息
-- `warn` - 警告信息
-- `debug` - 调试信息（开发环境）
-- `verbose` - 详细信息
+- `log` - General information
+- `error` - Error information
+- `warn` - Warning information
+- `debug` - Debugging information (development environment)
+- `verbose` - Detailed information
 
-## 18. 微服务架构
+## 18. Microservices Architecture
 
-### 18.1 微服务配置
+### 18.1 Microservice Configuration
 
 ```typescript
 import { Transport, MicroserviceOptions } from "@nestjs/microservices";
@@ -929,30 +929,30 @@ const app = await NestFactory.createMicroservice<MicroserviceOptions>(
 );
 ```
 
-### 18.2 消息模式
+### 18.2 Message Patterns
 
 ```typescript
-// 请求-响应模式
+// Request-response pattern
 @MessagePattern({ cmd: 'get_user' })
 async getUser(data: { id: number }) {
   return this.usersService.findOne(data.id);
 }
 
-// 事件模式
+// Event-based pattern
 @EventPattern('user_created')
 async handleUserCreated(data: { email: string }) {
-  // 处理用户创建事件
+  // Handle user created event
 }
 ```
 
-## 19. 推行建议
+## 19. Adoption Recommendations
 
-- 项目启动时使用 NestJS CLI（`nest new project-name`）确保标准目录结构
-- 使用 `nest generate` 命令生成模块、控制器、服务等，保持命名一致性
-- 强制代码审查（Code Review），检查是否遵循本规范
-- CI/CD 流程中集成 ESLint、Prettier 和单元测试，保证代码质量
-- 定期更新 NestJS 和依赖包版本，关注安全漏洞
-- 团队新成员入职时提供本规范文档，并分配导师进行实践指导
+- Use the NestJS CLI (`nest new project-name`) to start a project to ensure a standard directory structure.
+- Use the `nest generate` command to generate modules, controllers, services, etc., to maintain naming consistency.
+- Enforce Code Reviews to check for compliance with these standards.
+- Integrate ESLint, Prettier, and unit tests into the CI/CD pipeline to ensure code quality.
+- Regularly update NestJS and its dependencies, and monitor for security vulnerabilities.
+- Provide this standards document to new team members during onboarding and assign a mentor for practical guidance.
 
 
-本规范基于 NestJS 官方文档、GitHub 仓库示例和社区最佳实践整理，旨在为团队提供统一的代码风格和架构指南，确保项目的可维护性、可扩展性和代码质量。
+This guide is based on the NestJS official documentation, GitHub repository examples, and community best practices. It aims to provide a unified code style and architectural guide for the team to ensure project maintainability, scalability, and code quality.
