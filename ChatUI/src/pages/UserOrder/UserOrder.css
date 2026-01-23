@@ -9,16 +9,15 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  padding-bottom: 100px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .message {
   display: flex;
-  flex-direction: column;
-  max-width: 80%;
-  animation: slideIn 0.3s ease;
+  animation: slideIn 0.3s ease-out;
 }
 
 @keyframes slideIn {
@@ -32,100 +31,539 @@
   }
 }
 
-.user-message {
-  align-self: flex-end;
+.message.user {
+  justify-content: flex-end;
 }
 
-.assistant-message {
-  align-self: flex-start;
+.message.assistant {
+  justify-content: flex-start;
+}
+
+.message-bubble {
+  max-width: 85%;
+  padding: 12px 16px;
+  border-radius: 12px;
+}
+
+.message.user .message-bubble {
+  background: linear-gradient(135deg, #a4e9c6 0%, #b3a0ff 100%);
+  color: white;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+}
+
+.message.assistant .message-bubble {
+  padding-left: 0;
 }
 
 .message-content {
-  padding: 12px 16px;
-  border-radius: 12px;
-  word-wrap: break-word;
+  line-height: 1.6;
   white-space: pre-wrap;
+  word-break: break-word;
+  font-weight: 400;
 }
 
-.user-message .message-content {
-  background-color: #1677ff;
-  color: white;
+/* 音频播放器 */
+.audio-player {
+  width: 175px;
+  max-width: 280px;
+  height: 40px;
+  outline: none;
 }
 
-.assistant-message .message-content {
-  background-color: white;
+.message-time {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.3);
+  margin-top: 8px;
+  text-align: right;
+}
+
+.message.user .message-time {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* 订单确认卡片 */
+.order-confirm-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+}
+
+.order-confirm-content {
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 15px;
   color: #333;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
+/* 游戏推荐卡片 */
+.game-recommend-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.game-recommend-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.game-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.game-text {
+  flex: 1;
+  font-size: 15px;
+  color: #333;
+  line-height: 1.6;
+}
+
+.game-actions {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white;
+}
+
+/* 菜单列表 */
 .menu-list {
   margin-top: 12px;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.menu-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  background: white;
+}
+
+.restaurant-info {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 8px;
 }
 
-.dish-card {
-  padding: 12px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+.restaurant-icon {
+  font-size: 20px;
 }
 
-.dish-header {
+.restaurant-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* 菜品容器 */
+.dishes-container {
+  background: white;
+}
+
+.dish-item {
   display: flex;
+  padding: 12px 16px;
+  gap: 12px;
+  border-bottom: 1px solid #f5f5f5;
+  background: white;
+}
+
+.dish-item:last-child {
+  border-bottom: none;
+}
+
+.dish-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #f5f5f5;
+}
+
+.dish-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  min-width: 0;
 }
 
 .dish-name {
   font-size: 16px;
-  font-weight: bold;
+  font-weight: 500;
   color: #333;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dish-tags {
+  margin-bottom: 4px;
+}
+
+.tag {
+  display: inline-block;
+  font-size: 12px;
+  color: #666;
+  background: #f5f5f5;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.dish-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .dish-price {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
   color: #ff6430;
 }
 
-.dish-description {
+.dish-quantity {
+  font-size: 14px;
+  color: #999;
+}
+
+/* 菜单底部信息 */
+.menu-footer {
+  padding: 12px 16px;
+  background: #fafafa;
+  border-top: 1px solid #f0f0f0;
+}
+
+.delivery-info,
+.total-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.delivery-info .label,
+.total-info .label {
   font-size: 14px;
   color: #666;
+}
+
+.delivery-info .value {
+  font-size: 13px;
+  color: #999;
+}
+
+.total-info {
+  padding-top: 8px;
+  border-top: 1px solid #e5e5e5;
+  margin-top: 8px;
+}
+
+.total-amount {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ff6430;
 }
 
 .menu-actions {
   display: flex;
   gap: 8px;
-  margin-top: 12px;
-  justify-content: flex-start;
+  padding: 12px 16px;
+  background: white;
+  border-top: 1px solid #f0f0f0;
 }
 
+.menu-actions button {
+  border-radius: 20px;
+}
+
+/* 底部容器 */
+.bottom-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
+  background: transparent;
+  z-index: 100;
+}
+
+/* 输入区域 */
 .input-container {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 12px 16px;
-  background-color: white;
-  border-top: 1px solid #e5e5e5;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
 }
 
-.input-textarea {
-  flex: 1;
-  background-color: #f5f5f5;
-  border-radius: 20px;
-  padding: 8px 16px;
-}
-
-.send-button {
+.voice-button {
   flex-shrink: 0;
-  height: 40px;
   width: 40px;
+  height: 40px;
   border-radius: 50%;
-  padding: 0;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.voice-button:active {
+  opacity: 0.6;
+}
+
+.voice-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.input-wrapper {
+  flex: 1;
+  background: transparent;
+  border-radius: 20px;
+  padding: 2px 8px;
+}
+
+.input-field {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 15px;
+  --placeholder-color: #999;
+}
+
+.input-field input {
+  background: transparent !important;
+}
+
+.right-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  color: #666;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.icon-btn:active {
+  color: #333;
+}
+
+/* 语音输入模式 */
+.voice-input-wrapper {
+  flex: 1;
+  background: transparent;
+  border-radius: 20px;
+  padding: 0;
+}
+
+.voice-input-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.voice-input-text {
+  font-size: 16px;
+  color: #333;
+  font-weight: 500;
+  letter-spacing: 2px;
+}
+
+.close-voice-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.2s;
+  font-weight: 300;
+}
+
+.close-voice-btn:active {
+  color: #333;
+}
+
+/* 录音弹出框 */
+.recording-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 120px;
+  z-index: 9999;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.recording-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+}
+
+.recording-bubble {
+  background: linear-gradient(135deg, #5cd97e 0%, #4ec56c 100%);
+  border-radius: 16px;
+  padding: 40px 60px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  position: relative;
+  transition: all 0.3s;
+}
+
+.recording-bubble.cancel-state {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5555 100%);
+  transform: scale(1.05);
+}
+
+.recording-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid #4ec56c;
+}
+
+.voice-wave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 40px;
+}
+
+.wave-bar {
+  width: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 2px;
+  animation: wave 1s ease-in-out infinite;
+}
+
+.wave-bar:nth-child(1) {
+  height: 16px;
+  animation-delay: 0s;
+}
+
+.wave-bar:nth-child(2) {
+  height: 28px;
+  animation-delay: 0.1s;
+}
+
+.wave-bar:nth-child(3) {
+  height: 36px;
+  animation-delay: 0.2s;
+}
+
+.wave-bar:nth-child(4) {
+  height: 28px;
+  animation-delay: 0.3s;
+}
+
+.wave-bar:nth-child(5) {
+  height: 16px;
+  animation-delay: 0.4s;
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.5);
+  }
+}
+
+.recording-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.action-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  padding: 12px 20px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.action-btn:active {
+  transform: scale(0.95);
+}
+
+.cancel-btn {
+  background: rgba(255, 255, 255, 0.15);
+  transition: all 0.3s;
+}
+
+.cancel-btn.active {
+  background: rgba(255, 107, 107, 0.8);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+.convert-btn {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 12px 16px;
+}
+
+.send-btn {
+  background: rgba(255, 255, 255, 0.25);
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.send-btn.active {
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
 }

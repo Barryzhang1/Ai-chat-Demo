@@ -46,3 +46,7 @@ description: Coding standards for the ChatUI frontend project. Follow this when 
 - Run `npm run lint` before each commit; enforce the same ESLint configuration in CI.
 - If you introduce Prettier, use `eslint-config-prettier` (and optionally `eslint-plugin-prettier`) to avoid conflicting rules.
 - Link this document from the project `README` / onboarding docs so new teammates can find it quickly.
+
+## 7. Precautions
+
+- Stop creating readme files; update the instructions and documentation changes to #file:fontend-instructions.md.

@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, NavBar } from 'antd-mobile';
 import { UserOutline, TeamOutline } from 'antd-mobile-icons';
 import './RoleSelect.css';
 
-const RoleSelect = () => {
+function RoleSelect() {
   const [userName, setUserName] = useState('');
   const navigate = useNavigate();
 
@@ -27,11 +26,9 @@ const RoleSelect = () => {
 
   return (
     <div className="role-select-container">
-      <NavBar backArrow={false}>点餐系统</NavBar>
-      
       <div className="role-select-content">
         <div className="welcome-section">
-          <h1 className="welcome-text">欢迎，{userName}！</h1>
+          <h1 className="welcome-text">你好，{userName}！</h1>
           <p className="welcome-subtitle">请选择您的身份</p>
         </div>
 
@@ -41,7 +38,7 @@ const RoleSelect = () => {
               <UserOutline fontSize={48} />
             </div>
             <h2 className="role-title">我是用户</h2>
-            <p className="role-description">开始点餐，享受美食</p>
+            <p className="role-description">我要点餐，查看菜单</p>
           </div>
 
           <div className="role-card merchant-card" onClick={handleMerchantRole}>
@@ -55,6 +52,6 @@ const RoleSelect = () => {
       </div>
     </div>
   );
-};
+}
 
 export default RoleSelect;

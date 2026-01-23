@@ -21,7 +21,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Register />} />
             <Route
-              path="/home"
+              path="/role-select"
               element={
                 <ProtectedRoute>
                   <RoleSelect />
