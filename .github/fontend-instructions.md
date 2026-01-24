@@ -45,9 +45,12 @@ The ChatUI app is created under the `ChatUI` directory and runs as a mobile-orie
 
 ### 2. Pages and Routing
 
-- ✅ React Router integrated
-- ✅ Current route entry: `/` renders the Chat page component
-- ℹ️ `src/pages/Home/Home.js` exists but is not wired to routing yet
+- ✅ React Router integrated with protected routes
+- ✅ `/` - Registration page (Register)
+- ✅ `/home` - Role selection page (RoleSelect)
+- ✅ `/user-order` - User ordering interface
+- ✅ `/merchant` - Merchant dashboard
+- ✅ Route protection via ProtectedRoute component using localStorage
 
 ### 3. Build and DX
 
@@ -62,20 +65,53 @@ ChatUI/
 ├── public/
 │   └── index.html              # HTML template
 ├── src/
+│   ├── api/                    # API layer (NEW)
+│   │   ├── orderApi.js         # Order-related APIs
+│   │   ├── dishApi.js          # Dish-related APIs
+│   │   ├── userApi.js          # User-related APIs
+│   │   └── index.js            # Unified exports
+│   ├── components/             # Reusable components (NEW)
+│   │   ├── DishCard/
+│   │   │   ├── DishCard.js     # Dish card component
+│   │   │   └── DishCard.css
+│   │   ├── MessageBubble/
+│   │   │   ├── MessageBubble.js # Message bubble component
+│   │   │   └── MessageBubble.css
+│   │   └── index.js            # Unified exports
+│   ├── config/                 # Configuration (NEW)
+│   │   └── index.js            # Environment variables config
 │   ├── pages/
-│   │   ├── Home/
-│   │   │   ├── Home.js          # Home page (currently not enabled)
+│   │   ├── Register/
+│   │   │   ├── Register.js     # Registration page
+│   │   │   └── Register.css
+│   │   ├── RoleSelect/
+│   │   │   ├── RoleSelect.js   # Role selection page
+│   │   │   └── RoleSelect.css
+│   │   ├── UserOrder/
+│   │   │   ├── UserOrder.js    # User ordering page
+│   │   │   └── UserOrder.css
+│   │   ├── MerchantDashboard/
+│   │   │   ├── MerchantDashboard.js # Merchant backend
+│   │   │   └── MerchantDashboard.css
+│   │   ├── Home/               # (Legacy - not in use)
+│   │   │   ├── Home.js
 │   │   │   └── Home.css
-│   │   └── Chat/
-│   │       ├── Chat.js          # Chat page
+│   │   └── Chat/               # (Legacy - not in use)
+│   │       ├── Chat.js
 │   │       └── Chat.css
-│   ├── App.js                  # Root: Router + antd-mobile ConfigProvider
+│   ├── utils/                  # Utility functions (NEW)
+│   │   ├── storage.js          # LocalStorage wrapper
+│   │   ├── validators.js       # Validation functions
+│   │   └── index.js            # Unified exports
+│   ├── App.js                  # Root: Router + ConfigProvider + ProtectedRoute
 │   ├── App.css
-│   ├── index.js                # Entry
+│   ├── index.js                # Entry point
 │   └── index.css
+├── .env                        # Development environment variables (NEW)
+├── .env.production             # Production environment variables (NEW)
+├── .env.example                # Environment variables template (NEW)
 ├── webpack.config.js           # webpack config
-├── package.json                # scripts/dependencies
-└── README.md
+└── package.json                # scripts/dependencies
 ```
 
 ## 🚀 How to Run
@@ -109,32 +145,159 @@ Build artifacts are emitted to `ChatUI/dist`.
 ## 📝 Development Guidelines
 
 1. **Component style**: Prefer function components + Hooks
-2. **Page organization**: Keep pages in `src/pages/`; add reusable components under `src/components/`
-3. **Styling**: Current setup uses CSS/LESS loaders; keep styles split by feature/page with clear naming
+2. **Page organiza✅ IMPLEMENTED - All backend APIs are encapsulated under `src/api/` (orderApi, dishApi, userApi)
+6. **Utils**: ✅ IMPLEMENTED - Common utilities in `src/utils/` (storage, validators)
+7. **Config**: ✅ IMPLEMENTED - Environment variables managed in `src/config/`
+8. **Component reusability**: ✅ IMPLEMENTED - Shared components in `src/components/` (DishCard, MessageBubble)
+9. **Naming conventions**: 
+   - Components: PascalCase (e.g., `DishCard.js`)
+   - Utils/APIs: camelCase (e.g., `orderApi.js`)
+   - Constants: UPPER_SNAKE_CASE (e.g., `MOCK_ORDERS`)
+10. **Code organization**: Use index.js for unified exports in each modulefeature/page with clear naming
 4. **Routing**: Maintain routes centrally in `src/App.js`; add a Route when introducing a new page
 5. **API layer**: When integrating backend APIs, encapsulate them under `src/api/` instead of scattering calls across pages
+6. **Internationalization**: Supports Chinese and English language options
+
 
 ## 🔧 Key Configuration
 
 ### webpack-dev-server
 
 - Port: 3000
+
+### Environment Variables
+
+Create `.env` file (copy from `.env.example`):
+
+```bash
+NODE_ENV=development
+REACT_APP_API_URL=http://localhost:3001/api
+REACT_APP_NAME=点餐系统
+```
+
+Production environment uses `.env.production`:
+
+```bash
+NODE_ENV=production
+REACT_APP_API_URL=https://api.yourdomain.com/api
+REACT_APP_NAME=点餐系统
+```
+
+Access in code via `config`:
+```javascript
+import { config } from './config';
+console.log(config.apiUrl); // Gets REACT_APP_API_URL
+```
 - `hot: true` enables HMR
-- `historyApiFallback: true` supports SPA routing
+- `🎯 Current Implementation Status
 
-### Babel
+### Completed Features
 
-- `@babel/preset-env`
-- `@babel/preset-react`
+4. **API calls failing**
+	- Verify `.env` file exists with correct `REACT_APP_API_URL`
+	- Check backend server is running on the specified port
+	- Verify CORS is configured on backend
+
+5. **Components not found**
+	- Check import paths are correct (e.g., `from '../../components'`)
+	- Verify `index.js` exports are properly configured
+
+## 📖 Code Structure Patterns
+
+### Component Pattern
+```javascript
+import React, { useState, useCallback } from 'react';
+import PropTypes from 'prop-types';
+import './ComponentName.css';
+
+const ComponentName = ({ prop1, prop2 }) => {
+  const [state, setState] = useState(initialValue);
+  
+  const handleAction = useCallback(() => {
+    // handler logic
+  }, [dependencies]);
+  
+  return (
+    <div className="component-name">
+      {/* JSX */}
+    </div>
+  );
+};
+
+ComponentName.propTypes = {
+  prop1: PropTypes.string.isRequired,
+  prop2: PropTypes.number,
+};
+
+export default ComponentName;
+```
+
+### API Pattern
+```javascript
+import { config } from '../config';
+
+const API_BASE_URL = config.apiUrl;
+
+export const resourceApi = {
+  getAll: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/resource`);
+      return await response.json();
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  },
+};
+```
+
+### Utils Pattern
+```javascript
+// Utility functions with clear names
+export const functionName = (param) => {
+  // logic
+  return result;
+};
+```
+- ✅ User registration flow
+- ✅ Role selection (User/Merchant)
+- ✅ User ordering system with AI-powered recommendations
+- ✅ Merchant dashboard with tabs (Orders, Inventory, Rankings, Reports)
+- ✅ Order validation and confirmation
+- ✅ Menu refresh and regeneration
+- ✅ API layer structure (ready for backend integration)
+- ✅ Utility functions (storage, validators)
+- ✅ Reusable components (DishCard, MessageBubble)
+- ✅ Environment variables configuration
+- ✅ Protected routes with authentication check
+
+### Mock Data
+Currently using mock data for:
+- Dishes menu (`MOCK_DISHES` in UserOrder)
+- Orders list (`MOCK_ORDERS` in MerchantDashboard)
+- Inventory (`MOCK_INVENTORY`)
+- Game rankings (`MOCK_RANKINGS`)
+- Sales data (`TOP_DISHES`)
 
 ## 📚 Next Steps
 
 1. **Backend integration**
-	- Connect to ChatBackEnd via REST and/or WebSocket
-	- Model messages and conversations (message/conversation/user)
+	- ✅ API structure ready - just connect to ChatBackEnd endpoints
+	- Replace mock data with actual API calls using `orderApi`, `dishApi`, `userApi`
+	- Add WebSocket for real-time order updates
 2. **State management**
-	- Simple cases: React Context
-	- Complex cases: Zustand / Redux Toolkit
+	- Consider React Context for user state
+	- Zustand / Redux Toolkit for complex state (orders, cart)
+3. **Tooling**
+	- ✅ Environment variables configured (.env, .env.production)
+	- TODO: Add ESLint + Prettier configuration
+	- TODO: Add pre-commit hooks (husky + lint-staged)
+4. **Features**
+	- Implement game feature (referenced in order flow)
+	- Add order history for users
+	- Add real-time notifications
+5. **TypeScript migration (optional)**
+	- Gradually migrate `src/` to TypeScript fo
 3. **Tooling**
 	- Add ESLint + Prettier (consistent style)
 	- Add environment variables (different backend base URLs for dev/prod)
@@ -154,4 +317,3 @@ Build artifacts are emitted to `ChatUI/dist`.
 3. **Blank screen / asset loading issues**
 	- Check browser console and network tab
 	- Confirm build output is `dist` and devServer static directory points to `dist`
-

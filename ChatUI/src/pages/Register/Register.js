@@ -1,17 +1,18 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dialog, Input, Button, Toast } from 'antd-mobile';
+import { Dialog, Input, Toast } from 'antd-mobile';
 import './Register.css';
 
-const Register = () => {
+function Register() {
   const [name, setName] = useState('');
+  const [visible, setVisible] = useState(true);
   const navigate = useNavigate();
 
-  const handleRegister = useCallback(() => {
-    if (name.trim() === '') {
+  const handleRegister = () => {
+    if (!name.trim()) {
       Toast.show({
-        icon: 'fail',
         content: '请输入您的名字',
+        position: 'center',
       });
       return;
     }
@@ -22,49 +23,35 @@ const Register = () => {
     Toast.show({
       icon: 'success',
       content: '注册成功！',
+      position: 'center',
     });
 
-    // 跳转到主页
+    // 跳转到角色选择页面
     setTimeout(() => {
-      navigate('/home');
+      navigate('/role-select');
     }, 500);
-  }, [name, navigate]);
-
-  const handleKeyPress = useCallback((event) => {
-    if (event.key === 'Enter') {
-      handleRegister();
-    }
-  }, [handleRegister]);
+  };
 
   return (
     <div className="register-container">
-      <div className="register-card">
-        <h1 className="register-title">欢迎使用点餐系统</h1>
-        <p className="register-subtitle">请输入您的名字开始使用</p>
-        
-        <div className="register-form">
+      <div className="register-bg-anim" aria-hidden="true"></div>
+      <div className="register-dialog">
+        <h2>欢迎使用点餐系统</h2>
+        <div className="register-input-area">
           <Input
             placeholder="请输入您的名字"
             value={name}
             onChange={setName}
-            onKeyPress={handleKeyPress}
             clearable
             className="register-input"
           />
-          
-          <Button
-            color="primary"
-            size="large"
-            block
-            onClick={handleRegister}
-            className="register-button"
-          >
-            开始使用
-          </Button>
         </div>
+        <button className="register-btn" onClick={handleRegister}>
+          开始使用
+        </button>
       </div>
     </div>
   );
-};
+}
 
 export default Register;

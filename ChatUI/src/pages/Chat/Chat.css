@@ -26,16 +26,6 @@
   cursor: pointer;
 }
 
-.register-btn {
-  background-color: #ffffff;
-  color: #000000;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 6px 16px;
-  border: none;
-}
-
 .messages-area {
   flex: 1;
   overflow: hidden;
@@ -203,7 +193,7 @@
   align-items: center;
   background-color: #2f2f2f;
   border-radius: 24px;
-  padding: 8px 16px;
+  padding: 4px 12px;
   gap: 8px;
 }
 

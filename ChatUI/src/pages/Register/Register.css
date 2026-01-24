@@ -1,46 +1,143 @@
+/* 注册页面背景动画层 */
+.register-bg-anim {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  background: #f5f5f5;
+  opacity: 1;
+}
+
+.register-bg-anim::before,
+.register-bg-anim::after {
+  content: '';
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: rgba(0, 122, 255, 0.12);
+  filter: blur(24px);
+  transform: translate3d(0, 0, 0);
+  animation: registerBlobMove 10s ease-in-out infinite alternate;
+}
+
+.register-bg-anim::before {
+  top: -120px;
+  left: -120px;
+}
+
+.register-bg-anim::after {
+  bottom: -140px;
+  right: -140px;
+  animation-duration: 12s;
+  animation-delay: -2s;
+  opacity: 0.9;
+}
+
+@keyframes registerBlobMove {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(80px, 60px, 0) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .register-bg-anim::before,
+  .register-bg-anim::after {
+    animation: none;
+  }
+}
 .register-container {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100dvh;
+  background: transparent;
   padding: 20px;
+  overflow: hidden;
 }
 
-.register-card {
-  background: white;
-  border-radius: 16px;
-  padding: 40px 30px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 400px;
-}
-
-.register-title {
-  font-size: 28px;
-  font-weight: bold;
-  color: #333;
+.register-dialog {
+  position: relative;
+  z-index: 1;
   text-align: center;
-  margin-bottom: 10px;
+  padding: 24px 16px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+  width: 100%;
+  min-width: 260px;
+  max-width: 320px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.register-dialog h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #222;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.2px;
 }
 
 .register-subtitle {
-  font-size: 14px;
-  color: #999;
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.register-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  font-size: 13px;
+  color: #888;
+  margin: 0 0 16px 0;
 }
 
 .register-input {
-  font-size: 16px;
+  margin-top: 0;
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  padding: 0;
+  border-radius: 20px;
+  box-shadow: none;
 }
 
-.register-button {
-  margin-top: 10px;
+.register-input .adm-input-element {
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  padding: 0;
+}
+
+.register-input-area {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: #f7f7f8;
+  border-radius: 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  margin-bottom: 8px;
+}
+
+.register-btn {
+  width: 100%;
+  height: 38px;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  background: var(--adm-color-primary, #007aff);
+  color: #fff;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.10);
+  margin-top: 4px;
+  transition: background 0.2s;
+}
+.register-btn:active {
+  background: var(--color-primary-pressed);
 }

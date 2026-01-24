@@ -9,6 +9,27 @@
   margin: 0 auto;
 }
 
+.role-select-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.role-select-brand {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  letter-spacing: -0.2px;
+}
+
+.lang-switch-btn {
+  border-radius: 999px;
+  padding: 0 10px;
+  height: 28px;
+  font-weight: 600;
+}
+
 .welcome-section {
   text-align: center;
   margin-bottom: 50px;
@@ -47,11 +68,11 @@
 }
 
 .user-card {
-  border: 2px solid #1677ff;
+  border: 2px solid var(--adm-color-primary);
 }
 
 .user-card:hover {
-  box-shadow: 0 8px 24px rgba(22, 119, 255, 0.2);
+  box-shadow: 0 8px 24px var(--color-primary-shadow);
 }
 
 .merchant-card {
@@ -68,7 +89,7 @@
 }
 
 .user-card .role-icon {
-  color: #1677ff;
+  color: var(--adm-color-primary);
 }
 
 .merchant-card .role-icon {
