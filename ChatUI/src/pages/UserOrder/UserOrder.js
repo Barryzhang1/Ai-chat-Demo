@@ -91,6 +91,8 @@ const MOCK_DISHES = [
 
 function UserOrder() {
   const [messages, setMessages] = useState([]);
+  // 用于流式展示assistant消息的字数
+  const [streamCharCounts, setStreamCharCounts] = useState({});
   const [inputValue, setInputValue] = useState('');
   const [currentMenu, setCurrentMenu] = useState(null);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
@@ -98,10 +100,12 @@ function UserOrder() {
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isOverCancel, setIsOverCancel] = useState(false);
+  const [playingAudioIndex, setPlayingAudioIndex] = useState(null);
   const messagesEndRef = useRef(null);
   const cancelBtnRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const audioRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -114,6 +118,26 @@ function UserOrder() {
       },
     ]);
   }, []);
+
+  // 流式展示系统消息
+  useEffect(() => {
+    if (!messages.length) return;
+    // 找到最后一个需要流式展示的assistant消息
+    const lastIdx = messages.length - 1;
+    const msg = messages[lastIdx];
+    if (
+      msg.role === 'assistant' &&
+      !msg.menu &&
+      !msg.audioUrl &&
+      (!streamCharCounts[lastIdx] || streamCharCounts[lastIdx] < msg.content.length)
+    ) {
+      let count = streamCharCounts[lastIdx] || 0;
+      const timer = setTimeout(() => {
+        setStreamCharCounts(prev => ({ ...prev, [lastIdx]: count + 1 }));
+      }, 30);
+      return () => clearTimeout(timer);
+    }
+  }, [messages, streamCharCounts]);
 
   useEffect(() => {
     scrollToBottom();
@@ -242,6 +266,30 @@ function UserOrder() {
     setIsVoiceMode(!isVoiceMode);
   };
 
+  // 播放语音
+  const handlePlayAudio = (audioUrl, index) => {
+    if (playingAudioIndex === index) {
+      // 如果正在播放，则暂停
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setPlayingAudioIndex(null);
+      }
+    } else {
+      // 播放新音频
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      audioRef.current = new Audio(audioUrl);
+      audioRef.current.play();
+      setPlayingAudioIndex(index);
+      
+      // 播放完成后重置状态
+      audioRef.current.onended = () => {
+        setPlayingAudioIndex(null);
+      };
+    }
+  };
+
   // 开始录音
   const handleTouchStart = async () => {
     setIsRecording(true);
@@ -321,29 +369,35 @@ function UserOrder() {
           const mimeType = mediaRecorderRef.current.mimeType || 'audio/webm';
           const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
           const audioUrl = URL.createObjectURL(audioBlob);
-          const duration = (audioBlob.size / 1024).toFixed(1);
           
-          console.log('录音完成');
-          console.log('音频格式:', mimeType);
-          console.log('音频大小:', audioBlob.size, 'bytes');
-          console.log('音频URL:', audioUrl);
-          console.log('音频块数量:', audioChunksRef.current.length);
-          
-          // 添加语音消息到聊天
-          const voiceMessage = {
-            role: 'user',
-            content: '[语音消息]',
-            audioUrl: audioUrl,
-            audioType: mimeType,
-            audioDuration: duration,
-            timestamp: new Date(),
-          };
-          
-          setMessages(prev => [...prev, voiceMessage]);
-          Toast.show(`语音发送成功`);
-          
-          // 清空音频块
-          audioChunksRef.current = [];
+          // 创建临时音频元素获取实际时长
+          const tempAudio = new Audio(audioUrl);
+          tempAudio.addEventListener('loadedmetadata', () => {
+            const duration = Math.ceil(tempAudio.duration); // 向上取整到秒
+            
+            console.log('录音完成');
+            console.log('音频格式:', mimeType);
+            console.log('音频大小:', audioBlob.size, 'bytes');
+            console.log('音频URL:', audioUrl);
+            console.log('音频时长:', duration, '秒');
+            console.log('音频块数量:', audioChunksRef.current.length);
+            
+            // 添加语音消息到聊天
+            const voiceMessage = {
+              role: 'user',
+              content: '[语音消息]',
+              audioUrl: audioUrl,
+              audioType: mimeType,
+              audioDuration: duration,
+              timestamp: new Date(),
+            };
+            
+            setMessages(prev => [...prev, voiceMessage]);
+            Toast.show(`语音发送成功`);
+            
+            // 清空音频块
+            audioChunksRef.current = [];
+          });
         };
       }
     }
@@ -396,10 +450,15 @@ function UserOrder() {
         {messages.map((message, index) => (
           <div key={index} className={`message ${message.role}`}>
             {message.audioUrl ? (
-              <audio controls className="audio-player" preload="auto">
-                <source src={message.audioUrl} type={message.audioType || 'audio/webm'} />
-                您的浏览器不支持音频播放
-              </audio>
+              <>
+                <div 
+                  className={`voice-message ${playingAudioIndex === index ? 'playing' : ''}`}
+                  onClick={() => handlePlayAudio(message.audioUrl, index)}
+                >
+                  <div className="voice-duration">{message.audioDuration}"</div>
+
+                </div>
+              </>
             ) : (
               <div className="message-bubble">
                 {message.isOrderConfirm ? (
@@ -424,7 +483,11 @@ function UserOrder() {
                     </div>
                   </div>
                 ) : (
-                  <div className="message-content">{message.content}</div>
+                  <div className="message-content">
+                    {message.role === 'assistant' && !message.menu && !message.audioUrl
+                      ? message.content.slice(0, streamCharCounts[index] || 0)
+                      : message.content}
+                  </div>
                 )}
                 
                 {message.menu && (
@@ -492,10 +555,6 @@ function UserOrder() {
                   )}
                 </div>
               )}
-              
-                <div className="message-time">
-                  {message.timestamp.toLocaleTimeString()}
-                </div>
               </div>
             )}
           </div>
