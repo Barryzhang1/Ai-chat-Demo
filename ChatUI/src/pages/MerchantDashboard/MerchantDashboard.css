@@ -3,9 +3,6 @@
   background-color: #f5f5f5;
 }
 
-.dashboard-tabs {
-  height: calc(100vh - 45px);
-}
 
 .tab-content {
   padding: 16px;

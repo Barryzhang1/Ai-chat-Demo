@@ -34,31 +34,22 @@ function Register() {
 
   return (
     <div className="register-container">
-      <Dialog
-        visible={visible}
-        content={
-          <div className="register-dialog">
-            <h2>欢迎使用点餐系统</h2>
-            <p className="register-subtitle">请输入您的名字开始使用</p>
-            <Input
-              placeholder="请输入您的名字"
-              value={name}
-              onChange={setName}
-              clearable
-              className="register-input"
-            />
-          </div>
-        }
-        actions={[
-          {
-            key: 'confirm',
-            text: '开始使用',
-            primary: true,
-            onClick: handleRegister,
-          },
-        ]}
-        closeOnMaskClick={false}
-      />
+      <div className="register-bg-anim" aria-hidden="true"></div>
+      <div className="register-dialog">
+        <h2>欢迎使用点餐系统</h2>
+        <div className="register-input-area">
+          <Input
+            placeholder="请输入您的名字"
+            value={name}
+            onChange={setName}
+            clearable
+            className="register-input"
+          />
+        </div>
+        <button className="register-btn" onClick={handleRegister}>
+          开始使用
+        </button>
+      </div>
     </div>
   );
 }
