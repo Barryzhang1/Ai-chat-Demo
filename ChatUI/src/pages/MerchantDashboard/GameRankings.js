@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavBar, List } from 'antd-mobile';
+import './MerchantDashboard.css';
 
 function GameRankings() {
   const [gameRankings, setGameRankings] = useState([]);

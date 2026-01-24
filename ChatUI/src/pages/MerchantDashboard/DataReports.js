@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavBar, Card } from 'antd-mobile';
+import './MerchantDashboard.css';
 
 function DataReports() {
   const [orders, setOrders] = useState([]);

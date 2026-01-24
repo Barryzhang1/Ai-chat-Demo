@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavBar, List } from 'antd-mobile';
+import './MerchantDashboard.css';
 
 function OrderList() {
   const [orders, setOrders] = useState([]);
@@ -12,7 +13,7 @@ function OrderList() {
   }, []);
 
   return (
-    <div>
+    <div className="merchant-dashboard">
       <NavBar onBack={() => navigate('/merchant')}>订单列表</NavBar>
       <div className="tab-content">
         {orders.length === 0 ? (

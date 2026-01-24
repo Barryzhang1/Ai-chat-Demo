@@ -24,6 +24,27 @@
   color: #ff6430;
 }
 
+/* 订单列表样式 - 排除表单 */
+.adm-list-body:not(.adm-form .adm-list-body) .adm-list-item {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 12px;
+  background-color: #ffffff;
+  overflow: hidden;
+}
+
+.adm-list-body {
+  background-color: transparent;
+}
+
+/* 表单中的列表项样式 */
+.adm-form .adm-list-item {
+  box-shadow: none;
+  background-color: #ffffff;
+  overflow: visible;
+  border-bottom: 1px solid #f0f0f0;
+}
+
 /* 库存 */
 .item-price {
   font-size: 16px;
@@ -143,9 +164,88 @@
   color: #333;
 }
 
-/* 表单 */
-.adm-form {
+/* Grid Dashboard Styles */
+.dashboard-grid-container {
+  padding: 20px;
+}
+
+.dashboard-card {
+  height: 100%;
   background: white;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 16px;
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 2px solid transparent; /* Border color set inline */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.dashboard-card:active {
+  transform: scale(0.96);
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.dashboard-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.dashboard-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.dashboard-card:hover .dashboard-icon {
+  transform: scale(1.1);
+}
+
+.dashboard-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Custom List Styles */
+.merchant-dashboard .adm-list {
+  --border-top: none !important;
+  --border-bottom: none !important;
+  background: transparent !important;
+}
+
+.merchant-dashboard .adm-list-body {
+  background: transparent !important;
+  border: none !important;
+}
+
+.merchant-dashboard .adm-list-item:not(.adm-form .adm-list-item) {
+  background: #fff;
+  border-radius: 12px;
+  margin-bottom: 16px; /* Increased margin */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); /* Increased shadow */
+  border: none !important;
+  overflow: hidden;
+}
+
+.merchant-dashboard .adm-list-item-content {
+  border-bottom: none !important;
+}
+
+/* 按钮样式 */
+.merchant-dashboard .adm-button,
+.adm-button {
+  border-radius: 20px !important;
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavBar, Form, Input, Button, Toast } from 'antd-mobile';
+import './MerchantDashboard.css';
 
 function AddDish() {
   const [inventory, setInventory] = useState([]);
