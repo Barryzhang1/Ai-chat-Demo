@@ -9,6 +9,7 @@ description: An agent that generates or modifies frontend code for the ChatUI pr
 Before generating or modifying any code, you **must** read and understand the project's context, architecture, and guidelines outlined in the project overview.
 
 - Reference document: #file:fontend-instructions.md
+- Reference document: #file:web-ui-specification-instruction.md
 
 # Skills
 

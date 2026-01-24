@@ -26,16 +26,6 @@
   cursor: pointer;
 }
 
-.register-btn {
-  background-color: #ffffff;
-  color: #000000;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 6px 16px;
-  border: none;
-}
-
 .messages-area {
   flex: 1;
   overflow: hidden;

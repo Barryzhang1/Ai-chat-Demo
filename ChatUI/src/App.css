@@ -22,7 +22,11 @@
 
 /* 自定义主题色 - 暗色模式 */
 :root {
-  --adm-color-primary: #10a37f;
+  --adm-color-primary: #007aff;
+  --color-primary-pressed: #0066d6;
+  --color-primary-tint: rgba(0, 122, 255, 0.12);
+  --color-primary-shadow: rgba(0, 122, 255, 0.2);
+  --focus-ring: rgba(0, 122, 255, 0.35);
   --adm-color-success: #00b578;
   --adm-color-warning: #ff8f1f;
   --adm-color-danger: #ff3141;

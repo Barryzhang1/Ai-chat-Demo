@@ -32,7 +32,7 @@
 }
 
 .user-message .message-content {
-  background-color: #1677ff;
+  background-color: var(--adm-color-primary);
   color: white;
 }
 
