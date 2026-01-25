@@ -44,11 +44,12 @@ async function bootstrap(): Promise<void> {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  const port = process.env.PORT ?? 3000;
-  await app.listen(port);
-  logger.log(`Application is running on: http://localhost:${port}`);
+  const port = process.env.PORT ?? 3001;
+  const host = process.env.HOST ?? '0.0.0.0';
+  await app.listen(port, host);
+  logger.log(`Application is running on: http://${host}:${port}`);
   logger.log(
-    `Swagger documentation available at: http://localhost:${port}/api`,
+    `Swagger documentation available at: http://${host}:${port}/api`,
   );
 }
 void bootstrap();
