@@ -21,15 +21,18 @@ services:
 
   # 后端服务
   chatbackend:
-    build:
-      context: ./ChatBackEnd
-      dockerfile: Dockerfile
+    image: node:18-alpine
     container_name: chat-backend
     restart: always
+    working_dir: /app
+    command: sh -c "npm install && npm run start:dev"
     ports:
       - "3001:3001"
+    volumes:
+      - ./ChatBackEnd:/app
+      - /app/node_modules
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=3001
       - MONGO_HOST=mongodb
       - MONGO_PORT=27017
@@ -52,14 +55,14 @@ services:
     build:
       context: ./ChatUI
       dockerfile: Dockerfile
-      args:
-        - REACT_APP_API_URL=http://localhost:3001/api
-        - REACT_APP_GAME_URL=http://localhost:3002
-        - REACT_APP_NAME=点餐系统
     container_name: chat-ui
     restart: always
     ports:
-      - "3000:3000"
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:3001/api
+      - REACT_APP_GAME_URL=http://localhost:3002
+      - REACT_APP_NAME=点餐系统
     depends_on:
       - chatbackend
     networks:
@@ -73,7 +76,7 @@ services:
     container_name: flappybird-game
     restart: always
     ports:
-      - "3002:3002"
+      - "3002:80"
     networks:
       - chat-network
 

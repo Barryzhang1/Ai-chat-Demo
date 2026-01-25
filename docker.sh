@@ -80,14 +80,14 @@ rebuild_services() {
     print_msg $BLUE "🛑 停止现有容器..."
     docker-compose down
     
-    print_msg $BLUE "\n🔨 重新构建 Docker 镜像..."
+    print_msg $BLUE "\n🔨 重新构建镜像..."
     docker-compose build --no-cache
-    
-    print_msg $BLUE "\n🚀 启动所有服务..."
+
+    print_msg $BLUE "\n🚀 重新启动所有服务..."
     docker-compose up -d
     
     print_msg $YELLOW "\n⏳ 等待服务启动..."
-    sleep 10
+    sleep 15
     
     show_status
     show_urls
@@ -135,9 +135,11 @@ show_help() {
     echo "  start          启动所有服务 (默认)"
     echo "  stop           停止所有服务"
     echo "  restart        重启所有服务"
-    echo "  rebuild        重新构建并启动所有服务"
+    echo "  rebuild        清理并重新启动所有服务"
     echo "  logs [服务名]  查看日志 (不指定服务名则查看所有)"
     echo "  status         查看服务状态"
+    echo "  ps             查看容器详细状态"
+    echo "  clean          完全清理（删除容器、卷、网络）"
     echo "  help           显示此帮助信息"
     echo ""
     echo "示例:"
@@ -145,9 +147,45 @@ show_help() {
     echo "  ./docker.sh start              # 启动所有服务"
     echo "  ./docker.sh stop               # 停止所有服务"
     echo "  ./docker.sh logs               # 查看所有日志"
-    echo "  ./docker.sh logs chatbackend   # 只查看后端日志"
+    echo "  ./docker.sh logs chatui        # 只查看前端日志"
+    echo "  ./docker.sh ps                 # 查看容器详细状态"
     echo ""
     echo "服务名称: mongodb, chatbackend, chatui, flappybird"
+    echo ""
+    echo "说明:"
+    echo "  现在使用数据卷挂载方式，代码修改后只需 restart 即可生效"
+    echo "  首次启动会安装依赖，需要较长时间，请耐心等待"
+}
+
+# 查看详细状态
+show_ps() {
+    print_msg $BLUE "📊 容器详细状态："
+    docker ps -a --filter "name=chat" --filter "name=flappybird"
+    echo ""
+    print_msg $BLUE "🔍 端口映射："
+    docker ps --filter "name=chat" --filter "name=flappybird" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+    echo ""
+    print_msg $BLUE "📝 测试连接："
+    echo "测试前端服务..."
+    curl -I http://localhost:3000 2>/dev/null | head -n 1 || echo "❌ 前端服务无响应"
+    echo "测试后端服务..."
+    curl -I http://localhost:3001 2>/dev/null | head -n 1 || echo "❌ 后端服务无响应"
+    echo "测试游戏服务..."
+    curl -I http://localhost:3002 2>/dev/null | head -n 1 || echo "❌ 游戏服务无响应"
+}
+
+# 完全清理
+clean_all() {
+    print_msg $YELLOW "⚠️  这将删除所有容器、数据卷和网络！"
+    read -p "确认继续? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        print_msg $BLUE "🗑️  完全清理..."
+        docker-compose down -v --remove-orphans
+        print_msg $GREEN "✅ 清理完成"
+    else
+        print_msg $YELLOW "已取消"
+    fi
 }
 
 # 主程序
@@ -170,6 +208,12 @@ main() {
             ;;
         status)
             show_status
+            ;;
+        ps)
+            show_ps
+            ;;
+        clean)
+            clean_all
             ;;
         help|--help|-h)
             show_help

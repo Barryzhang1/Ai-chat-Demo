@@ -1,6 +1,27 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
+const dotenv = require('dotenv');
+const fs = require('fs');
+
+// 根据环境加载对应的 .env 文件
+const currentPath = path.join(__dirname);
+const envPath = currentPath + '/.env';
+const envProductionPath = currentPath + '/.env.production';
+
+// 如果是 production 模式且 .env.production 存在，使用它；否则使用 .env
+const finalPath = process.env.NODE_ENV === 'production' && fs.existsSync(envProductionPath)
+  ? envProductionPath
+  : (fs.existsSync(envPath) ? envPath : null);
+
+// 加载环境变量
+if (finalPath) {
+  const envVars = dotenv.config({ path: finalPath }).parsed || {};
+  // 将环境变量设置到 process.env 中
+  Object.keys(envVars).forEach(key => {
+    process.env[key] = envVars[key];
+  });
+}
 
 module.exports = {
   entry: './src/index.js',
@@ -70,13 +91,16 @@ module.exports = {
       Buffer: ['buffer', 'Buffer'],
     }),
     new webpack.DefinePlugin({
-      // 直接从 process.env 读取环境变量并注入到代码中
+      // 注入 process.env 对象
       'process.env': JSON.stringify({
         NODE_ENV: process.env.NODE_ENV || 'production',
-        REACT_APP_API_URL: process.env.REACT_APP_API_URL || 'http://localhost:3001/api',
-        REACT_APP_GAME_URL: process.env.REACT_APP_GAME_URL || 'http://localhost:3002',
+        REACT_APP_API_URL: process.env.REACT_APP_API_URL || 'http://chat-backend:3001/api',
+        REACT_APP_GAME_URL: process.env.REACT_APP_GAME_URL || 'http://flappybird-game:3002',
         REACT_APP_NAME: process.env.REACT_APP_NAME || '点餐系统',
       }),
+      // 同时提供 process 的 browser 版本
+      'process.browser': true,
+      'process.version': JSON.stringify(process.version),
     }),
   ],
   devServer: {
@@ -84,6 +108,7 @@ module.exports = {
       directory: path.join(__dirname, 'dist'),
     },
     compress: true,
+    host: '0.0.0.0',
     port: 3000,
     hot: true,
     historyApiFallback: true,
