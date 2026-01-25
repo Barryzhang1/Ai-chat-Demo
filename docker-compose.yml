@@ -1,0 +1,85 @@
+services:
+  # MongoDB 数据库
+  mongodb:
+    image: mongo:latest
+    container_name: chat-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    networks:
+      - chat-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 后端服务
+  chatbackend:
+    build:
+      context: ./ChatBackEnd
+      dockerfile: Dockerfile
+    container_name: chat-backend
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_USER=root
+      - MONGO_PASSWORD=password
+      - MONGO_DATABASE=restaurant
+      - MONGO_AUTH_SOURCE=admin
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3002
+      - JWT_SECRET=your_jwt_secret_key_production_change_me
+      - JWT_EXPIRATION=86400
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-your_deepseek_api_key_here}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - chat-network
+
+  # 前端 UI
+  chatui:
+    build:
+      context: ./ChatUI
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=http://localhost:3001/api
+        - REACT_APP_GAME_URL=http://localhost:3002
+        - REACT_APP_NAME=点餐系统
+    container_name: chat-ui
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - chatbackend
+    networks:
+      - chat-network
+
+  # FlappyBird 游戏
+  flappybird:
+    build:
+      context: ./FlappyBird
+      dockerfile: Dockerfile
+    container_name: flappybird-game
+    restart: always
+    ports:
+      - "3002:3002"
+    networks:
+      - chat-network
+
+networks:
+  chat-network:
+    driver: bridge
+
+volumes:
+  mongo-data:

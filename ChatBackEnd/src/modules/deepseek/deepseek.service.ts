@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { ExecuteCommandDto } from './dto/execute-command.dto.js';
-import { CommandResult } from './entities/command-result.entity.js';
+import { ExecuteCommandDto } from './dto/execute-command.dto';
+import { CommandResult } from './entities/command-result.entity';
 
 @Injectable()
 export class DeepseekService {

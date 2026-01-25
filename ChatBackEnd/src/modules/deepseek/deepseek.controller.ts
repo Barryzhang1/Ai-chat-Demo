@@ -7,9 +7,9 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { DeepseekService } from './deepseek.service.js';
-import { ExecuteCommandDto } from './dto/execute-command.dto.js';
-import { CommandResult } from './entities/command-result.entity.js';
+import { DeepseekService } from './deepseek.service';
+import { ExecuteCommandDto } from './dto/execute-command.dto';
+import { CommandResult } from './entities/command-result.entity';
 
 @ApiTags('deepseek')
 @Controller('deepseek')

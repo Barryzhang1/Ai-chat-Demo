@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, Input, Toast } from 'antd-mobile';
 import './Register.css';
@@ -7,6 +7,17 @@ function Register() {
   const [name, setName] = useState('');
   const [visible, setVisible] = useState(true);
   const navigate = useNavigate();
+
+  // 检查是否已经登录
+  useEffect(() => {
+    const userName = localStorage.getItem('userName');
+    const userAuth = localStorage.getItem('userAuth');
+    
+    if (userName && userAuth === 'true') {
+      // 已登录，直接跳转到角色选择页面
+      navigate('/role-select');
+    }
+  }, [navigate]);
 
   const handleRegister = () => {
     if (!name.trim()) {
@@ -17,8 +28,9 @@ function Register() {
       return;
     }
 
-    // 保存用户名到 localStorage
+    // 保存用户名和认证状态到 localStorage
     localStorage.setItem('userName', name.trim());
+    localStorage.setItem('userAuth', 'true');
     
     Toast.show({
       icon: 'success',

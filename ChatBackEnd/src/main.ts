@@ -7,6 +7,12 @@ async function bootstrap(): Promise<void> {
   const app: INestApplication = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
 
+  // 设置全局路由前缀
+  app.setGlobalPrefix('api');
+
+  // 启用CORS
+  app.enableCors();
+
   // 全局验证管道
   app.useGlobalPipes(
     new ValidationPipe({

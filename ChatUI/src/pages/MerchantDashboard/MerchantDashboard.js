@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NavBar, Grid, Card, Popup, Form, Input, Button, Toast } from 'antd-mobile';
+import { NavBar, Grid, Popup, Form, Toast } from 'antd-mobile';
 import { 
   UnorderedListOutline, 
   AppstoreOutline, 
@@ -8,6 +8,8 @@ import {
   PieOutline,
   AddCircleOutline 
 } from 'antd-mobile-icons';
+import { dishApi } from '../../api/dishApi';
+import DishFormPopup from '../../components/DishFormPopup';
 import './MerchantDashboard.css';
 
 function MerchantDashboard() {
@@ -25,7 +27,7 @@ function MerchantDashboard() {
     },
     {
       key: 'inventory',
-      title: '菜品管理',
+      title: '菜品列表',
       icon: <AppstoreOutline fontSize={32} />,
       path: '/merchant/inventory',
       color: '#52c41a'
@@ -52,6 +54,17 @@ function MerchantDashboard() {
       color: '#eb2f96'
     },
   ];
+
+  const handleAddDish = async (values) => {
+    try {
+      await dishApi.createDish(values);
+      Toast.show({ icon: 'success', content: '上新成功！' });
+      form.resetFields();
+      setShowAddDishPopup(false);
+    } catch (error) {
+      Toast.show({ icon: 'fail', content: '上新失败，请重试' });
+    }
+  };
 
   return (
     <div className="merchant-dashboard">
@@ -83,85 +96,24 @@ function MerchantDashboard() {
         visible={showAddDishPopup}
         onMaskClick={() => setShowAddDishPopup(false)}
         position='bottom'
-        bodyStyle={{ minHeight: '60vh', backgroundColor: '#ffffff' }}
+        bodyStyle={{ backgroundColor: '#ffffff' }}
       >
-        <div style={{ padding: '20px' }}>
-          <div style={{ 
-            fontSize: '18px', 
-            fontWeight: 'bold', 
-            marginBottom: '20px', 
-            paddingBottom: '16px',
-            textAlign: 'center',
-          }}>
-            新品上架
-          </div>
-          <Form
-            form={form}
-            onFinish={(values) => {
-              const inventory = JSON.parse(localStorage.getItem('inventory') || '[]');
-              const newDish = {
-                id: Date.now(),
-                name: values.name,
-                price: parseFloat(values.price),
-                stock: parseInt(values.stock),
-                description: values.description,
-              };
-              const updatedInventory = [...inventory, newDish];
-              localStorage.setItem('inventory', JSON.stringify(updatedInventory));
-              Toast.show({ icon: 'success', content: '上新成功！' });
-              form.resetFields();
-              setShowAddDishPopup(false);
-            }}
-            footer={
-              <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-                <Button
-                  block
-                  onClick={() => {
-                    form.resetFields();
-                    setShowAddDishPopup(false);
-                  }}
-                >
-                  取消
-                </Button>
-                <Button block type="submit" color="primary">
-                  确认上新
-                </Button>
-              </div>
-            }
-          >
-            <Form.Item
-              name="name"
-              label="菜品名称"
-              rules={[{ required: true, message: '请输入菜品名称' }]}
-            >
-              <Input placeholder="请输入菜品名称" clearable />
-            </Form.Item>
-
-            <Form.Item
-              name="price"
-              label="价格"
-              rules={[{ required: true, message: '请输入价格' }]}
-            >
-              <Input type="number" placeholder="请输入价格" clearable />
-            </Form.Item>
-
-            <Form.Item
-              name="description"
-              label="描述"
-              rules={[{ required: true, message: '请输入描述' }]}
-            >
-              <Input placeholder="请输入菜品描述" clearable />
-            </Form.Item>
-
-            <Form.Item
-              name="stock"
-              label="库存"
-              rules={[{ required: true, message: '请输入库存' }]}
-            >
-              <Input type="number" placeholder="请输入库存数量" clearable />
-            </Form.Item>
-          </Form>
-        </div>
+        <DishFormPopup
+          form={form}
+          onFinish={handleAddDish}
+          onCancel={() => {
+            form.resetFields();
+            setShowAddDishPopup(false);
+          }}
+          editMode={false}
+          initialValues={{
+            isSpicy: false,
+            hasScallions: false,
+            hasCilantro: false,
+            hasGarlic: false,
+            cookingTime: 15,
+          }}
+        />
       </Popup>
     </div>
   );

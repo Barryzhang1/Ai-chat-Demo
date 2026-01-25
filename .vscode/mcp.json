@@ -12,7 +12,17 @@
 			],
 			"gallery": "https://api.mcp.github.com",
 			"version": "0.13.0"
-		}
+		},
+		"MongoDB": {
+			"command": "npx",
+			"args": [
+					"-y",
+					"mongodb-mcp-server@latest"				
+			],
+			"env": {
+				"MDB_MCP_CONNECTION_STRING": "mongodb://root:password@localhost:27017/restaurant?authSource=admin"       
+			}
+		}	
 	},
 	"inputs": []
 }

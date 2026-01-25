@@ -34,31 +34,23 @@ export class UsersModule {}
 
 ### 2.2 Directory Structure Best Practices
 
-```
-src/
-├── main.ts                 # Application entry point
-├── app.module.ts           # Root module
-├── common/                 # Shared resources
-│   ├── decorators/        # Custom decorators
-│   ├── filters/           # Exception filters
-│   ├── guards/            # Guards
-│   ├── interceptors/      # Interceptors
-│   ├── pipes/             # Pipes
-│   └── interfaces/        # Common interfaces
-├── config/                 # Configuration module
-│   ├── database.config.ts
-│   └── app.config.ts
-├── modules/                # Feature modules
-│   ├── users/
-│   │   ├── dto/           # Data Transfer Objects
-│   │   ├── entities/      # Database entities
-│   │   ├── users.controller.ts
-│   │   ├── users.service.ts
-│   │   └── users.module.ts
-│   └── auth/
-└── core/                   # Core module (singleton services)
-    ├── database/
-    └── logger/
+```Markdown
+
+ChatBackEnd/
+  Documents/           # 需求文档目录
+    {module}.md        # 模块需求
+    {module}/          # 模块详细需求
+  src/
+    modules/
+      {module}/
+        {module}.controller.ts  # 控制器
+        {module}.service.ts     # 服务
+        {module}.module.ts      # 模块定义
+        dto/                    # 数据传输对象
+        entities/               # 数据实体
+        doc/                    # 实现文档
+  test/                # 测试目录
+
 ```
 
 ## 3. Dependency Injection and Providers

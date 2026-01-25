@@ -3,5 +3,5 @@
 /FlappyBird/node_modules/
 
 /ChatBackEnd/dist/
-
+/mongo-data
 ChatBackEnd/.env

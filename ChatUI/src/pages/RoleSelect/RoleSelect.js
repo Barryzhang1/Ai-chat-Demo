@@ -33,15 +33,29 @@ function RoleSelect() {
       <div className="role-select-content">
         <div className="role-select-topbar">
           <div className="role-select-brand">{t('orderingSystem', language)}</div>
-          <Button
-            className="lang-switch-btn"
-            fill="outline"
-            size="small"
-            onClick={toggleLanguage}
-            aria-label={isEn ? '切换语言到中文' : 'Switch language to English'}
-          >
-            {isEn ? '中文' : 'EN'}
-          </Button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Button
+              className="lang-switch-btn"
+              fill="outline"
+              size="small"
+              onClick={toggleLanguage}
+              aria-label={isEn ? '切换语言到中文' : 'Switch language to English'}
+            >
+              {isEn ? '中文' : 'EN'}
+            </Button>
+            <Button
+              fill="outline"
+              size="small"
+              color="danger"
+              onClick={() => {
+                localStorage.removeItem('userName');
+                localStorage.removeItem('userAuth');
+                navigate('/');
+              }}
+            >
+              {isEn ? 'Logout' : '退出'}
+            </Button>
+          </div>
         </div>
 
         <div className="welcome-section">

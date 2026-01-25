@@ -1,35 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NavBar, Form, Input, Button, Toast } from 'antd-mobile';
+import { NavBar, Form, Input, Button, Toast, Switch, Stepper } from 'antd-mobile';
+import { dishApi } from '../../api/dishApi';
 import './MerchantDashboard.css';
 
 function AddDish() {
-  const [inventory, setInventory] = useState([]);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const inventoryData = JSON.parse(localStorage.getItem('inventory') || '[]');
-    setInventory(inventoryData);
-  }, []);
+  const handleAddDish = async (values) => {
+    try {
+      const dishData = {
+        name: values.name,
+        price: parseFloat(values.price),
+        description: values.description,
+        isSpicy: values.isSpicy || false,
+        hasScallions: values.hasScallions || false,
+        hasCilantro: values.hasCilantro || false,
+        hasGarlic: values.hasGarlic || false,
+        cookingTime: values.cookingTime || 0,
+      };
 
-  const handleAddDish = (values) => {
-    const newDish = {
-      id: Date.now(),
-      name: values.name,
-      price: parseFloat(values.price),
-      stock: parseInt(values.stock),
-      description: values.description,
-    };
+      await dishApi.createDish(dishData);
 
-    const updatedInventory = [...inventory, newDish];
-    setInventory(updatedInventory);
-    localStorage.setItem('inventory', JSON.stringify(updatedInventory));
-
-    Toast.show({
-      icon: 'success',
-      content: '上新成功！',
-    });
-    navigate('/merchant/inventory');
+      Toast.show({
+        icon: 'success',
+        content: '上新成功！',
+      });
+      navigate('/merchant/inventory');
+    } catch (error) {
+      console.error('Failed to create dish:', error);
+      Toast.show({
+        icon: 'fail',
+        content: '上新失败，请重试',
+      });
+    }
   };
 
   return (
@@ -69,11 +73,43 @@ function AddDish() {
           </Form.Item>
 
           <Form.Item
-            name="stock"
-            label="库存"
-            rules={[{ required: true, message: '请输入库存' }]}
+            name="isSpicy"
+            label="是否辣"
+            initialValue={false}
           >
-            <Input type="number" placeholder="请输入库存数量" />
+            <Switch />
+          </Form.Item>
+
+          <Form.Item
+            name="hasScallions"
+            label="是否有葱"
+            initialValue={false}
+          >
+            <Switch />
+          </Form.Item>
+
+          <Form.Item
+            name="hasCilantro"
+            label="是否有香菜"
+            initialValue={false}
+          >
+            <Switch />
+          </Form.Item>
+
+          <Form.Item
+            name="hasGarlic"
+            label="是否有蒜"
+            initialValue={false}
+          >
+            <Switch />
+          </Form.Item>
+
+          <Form.Item
+            name="cookingTime"
+            label="出餐时间（分钟）"
+            initialValue={15}
+          >
+            <Stepper min={0} max={120} />
           </Form.Item>
         </Form>
       </div>

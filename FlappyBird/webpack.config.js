@@ -43,7 +43,7 @@ module.exports = {
       directory: path.join(__dirname, 'dist'),
     },
     compress: true,
-    port: 8080,
+    port: 3002,
     hot: true,
     open: true,
   },

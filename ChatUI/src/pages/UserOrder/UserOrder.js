@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NavBar, Input, Button, Toast, Dialog } from 'antd-mobile';
+import { NavBar, Input, Button, Toast, Dialog, Popup } from 'antd-mobile';
 import { SendOutline, CameraOutline, AddCircleOutline, RedoOutline } from 'antd-mobile-icons';
 import speakIcon from '../../assets/speak.svg';
 import './UserOrder.css';
@@ -101,6 +101,7 @@ function UserOrder() {
   const [isRecording, setIsRecording] = useState(false);
   const [isOverCancel, setIsOverCancel] = useState(false);
   const [playingAudioIndex, setPlayingAudioIndex] = useState(null);
+  const [showGamePopup, setShowGamePopup] = useState(false);
   const messagesEndRef = useRef(null);
   const cancelBtnRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -475,7 +476,7 @@ function UserOrder() {
                       <Button 
                         size="small" 
                         color="primary"
-                        onClick={() => window.open('http://localhost:8080', '_blank')}
+                        onClick={() => setShowGamePopup(true)}
                         style={{ flex: '1' }}
                       >
                         开始游戏
@@ -643,6 +644,48 @@ function UserOrder() {
           </div>
         </div>
       )}
+
+      {/* 游戏弹窗 */}
+      <Popup
+        visible={showGamePopup}
+        onMaskClick={() => setShowGamePopup(false)}
+        position='right'
+        bodyStyle={{ 
+          width: '100vw', 
+          height: '100vh',
+          padding: 0,
+          backgroundColor: '#4EC0CA'
+        }}
+      >
+        <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+          <Button
+            color="primary"
+            onClick={() => setShowGamePopup(false)}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              zIndex: 1000,
+              borderRadius: '50%',
+              width: '50px',
+              height: '50px',
+              padding: 0,
+              fontSize: '24px'
+            }}
+          >
+            ✕
+          </Button>
+          <iframe
+            src={"http://localhost:3002"}
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none'
+            }}
+            title="Flappy Bird Game"
+          />
+        </div>
+      </Popup>
     </div>
   );
 }

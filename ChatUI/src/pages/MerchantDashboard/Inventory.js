@@ -1,22 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NavBar, List } from 'antd-mobile';
+import { NavBar, List, Button, Toast, Popup, Form } from 'antd-mobile';
+import { dishApi } from '../../api/dishApi';
+import DishFormPopup from '../../components/DishFormPopup';
 import './MerchantDashboard.css';
 
 function Inventory() {
   const [inventory, setInventory] = useState([]);
+  const [editingDish, setEditingDish] = useState(null);
+  const [showEditPopup, setShowEditPopup] = useState(false);
   const navigate = useNavigate();
+  const [form] = Form.useForm();
+
+  const fetchDishes = async () => {
+    try {
+      const dishes = await dishApi.getDishes();
+      if (Array.isArray(dishes)) {
+        setInventory(dishes);
+      } else {
+        console.warn('API did not return an array for dishes, setting to empty array.');
+        setInventory([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch dishes:', error);
+      setInventory([]); // 在API调用失败时也确保是数组
+    }
+  };
 
   useEffect(() => {
-    const inventoryData = JSON.parse(localStorage.getItem('inventory') || JSON.stringify([
-      { id: 1, name: '宫保鸡丁', price: 38, stock: 50, description: '经典川菜' },
-      { id: 2, name: '鱼香肉丝', price: 35, stock: 45, description: '酸甜可口' },
-      { id: 3, name: '麻婆豆腐', price: 28, stock: 60, description: '麻辣鲜香' },
-      { id: 4, name: '水煮鱼', price: 68, stock: 30, description: '麻辣鲜香' },
-      { id: 5, name: '回锅肉', price: 42, stock: 40, description: '肥而不腻' },
-    ]));
-    setInventory(inventoryData);
+    fetchDishes();
   }, []);
+
+  const handleStatusChange = async (dish) => {
+    try {
+      const updatedDish = await dishApi.updateDishStatus(dish._id, { isDelisted: !dish.isDelisted });
+      setInventory(inventory.map(item => item._id === dish._id ? updatedDish : item));
+      Toast.show({
+        content: `已${!dish.isDelisted ? '下架' : '上架'}`,
+        position: 'top',
+      })
+    } catch (error) {
+      console.error('Failed to update dish status:', error);
+      Toast.show({
+        content: '操作失败',
+        position: 'top',
+      })
+    }
+  };
+
+  const handleEdit = (dish) => {
+    setEditingDish(dish);
+    setShowEditPopup(true);
+  };
+
+  const handleUpdate = async (values) => {
+    try {
+      const updatedDish = await dishApi.updateDish(editingDish._id, values);
+      setInventory(inventory.map(item => item._id === editingDish._id ? updatedDish : item));
+      Toast.show({ icon: 'success', content: '修改成功！' });
+      form.resetFields();
+      setShowEditPopup(false);
+      setEditingDish(null);
+    } catch (error) {
+      console.error('Failed to update dish:', error);
+      Toast.show({ icon: 'fail', content: '修改失败，请重试' });
+    }
+  };
 
   return (
     <div>
@@ -25,14 +74,35 @@ function Inventory() {
         <List>
           {inventory.map(item => (
             <List.Item
-              key={item.id}
-              description={item.description}
-              extra={
+              key={item._id}
+              description={
                 <div>
-                  <div className="item-price">¥{item.price}</div>
-                  <div className={`stock ${item.stock < 20 ? 'low' : ''}`}>
-                    库存: {item.stock}
+                  <div>{item.description}</div>
+                  <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+                    {item.isSpicy && <span style={{ marginRight: '8px', color: '#ff4d4f' }}>🌶️ 辣</span>}
+                    {item.hasScallions && <span style={{ marginRight: '8px' }}>🧅 有葱</span>}
+                    {item.hasCilantro && <span style={{ marginRight: '8px' }}>🌿 有香菜</span>}
+                    {item.hasGarlic && <span style={{ marginRight: '8px' }}>🧄 有蒜</span>}
+                    {item.cookingTime && <span>⏱️ {item.cookingTime}分钟</span>}
                   </div>
+                </div>
+              }
+              extra={
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="item-price" style={{ marginRight: '8px' }}>¥{item.price}</div>
+                  <Button
+                    size="small"
+                    onClick={() => handleEdit(item)}
+                  >
+                    编辑
+                  </Button>
+                  <Button
+                    size="small"
+                    color={item.isDelisted ? 'primary' : 'danger'}
+                    onClick={() => handleStatusChange(item)}
+                  >
+                    {item.isDelisted ? '上架' : '下架'}
+                  </Button>
                 </div>
               }
             >
@@ -41,6 +111,34 @@ function Inventory() {
           ))}
         </List>
       </div>
+
+      <Popup
+        visible={showEditPopup}
+        onMaskClick={() => setShowEditPopup(false)}
+        position='bottom'
+        bodyStyle={{ backgroundColor: '#ffffff' }}
+      >
+        <DishFormPopup
+          form={form}
+          onFinish={handleUpdate}
+          onCancel={() => {
+            form.resetFields();
+            setShowEditPopup(false);
+            setEditingDish(null);
+          }}
+          editMode={true}
+          initialValues={editingDish ? {
+            name: editingDish.name,
+            price: editingDish.price,
+            description: editingDish.description,
+            isSpicy: editingDish.isSpicy || false,
+            hasScallions: editingDish.hasScallions || false,
+            hasCilantro: editingDish.hasCilantro || false,
+            hasGarlic: editingDish.hasGarlic || false,
+            cookingTime: editingDish.cookingTime || 15,
+          } : {}}
+        />
+      </Popup>
     </div>
   );
 }
