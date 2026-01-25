@@ -35,18 +35,14 @@ print_step() {
 # 检查 sshpass 是否安装
 check_sshpass() {
     if ! command -v sshpass &> /dev/null; then
-        print_msg $YELLOW "⚠️  未检测到 sshpass，需要安装以支持密码登录"
-        print_msg $YELLOW "Mac 用户请运行: brew install hudochenkov/sshpass/sshpass"
-        print_msg $YELLOW "或者建议配置 SSH 密钥登录（更安全）"
+        print_msg $YELLOW "⚠️  未检测到 sshpass，将尝试使用 SSH 密钥方式连接"
+        print_msg $YELLOW "如果连接失败，请运行: brew install hudochenkov/sshpass/sshpass"
+        print_msg $YELLOW "或配置 SSH 密钥: ssh-copy-id $SERVER_USER@$SERVER_IP"
         echo ""
-        read -p "是否继续（将使用 SSH 密钥方式）? [y/N] " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            exit 1
-        fi
         USE_SSHPASS=false
     else
         USE_SSHPASS=true
+        print_msg $GREEN "✅ 检测到 sshpass，将使用密码方式连接"
     fi
 }
 
@@ -119,14 +115,8 @@ check_git_status() {
         print_msg $YELLOW "⚠️  检测到未提交的更改："
         git status -s
         echo ""
-        read -p "是否要提交这些更改? [Y/n] " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-            return 0  # 需要提交
-        else
-            print_msg $YELLOW "跳过提交，将使用当前远程代码"
-            return 1  # 不提交
-        fi
+        print_msg $BLUE "将自动提交这些更改..."
+        return 0  # 需要提交
     else
         print_msg $GREEN "✅ 工作区干净，无需提交"
         return 1  # 不需要提交
@@ -141,11 +131,10 @@ commit_and_push() {
     print_msg $BLUE "添加更改..."
     git add .
     
-    # 提交
-    read -p "请输入提交信息 (默认: 'Update from deploy script'): " commit_msg
-    commit_msg=${commit_msg:-"Update from deploy script"}
+    # 自动生成提交信息
+    commit_msg="Deploy: Auto commit at $(date '+%Y-%m-%d %H:%M:%S')"
     
-    print_msg $BLUE "提交更改..."
+    print_msg $BLUE "提交更改: $commit_msg"
     git commit -m "$commit_msg"
     
     # 获取当前分支
@@ -190,15 +179,13 @@ setup_env() {
     if ssh_cmd "[ -f $REMOTE_DIR/.env ]"; then
         print_msg $GREEN "✅ 服务器上已存在 .env 文件"
         
-        # 如果本地也有 .env，询问是否更新
+        # 如果本地也有 .env，自动更新
         if [ -f ".env" ]; then
-            read -p "是否使用本地 .env 文件覆盖服务器配置? [y/N] " -n 1 -r
-            echo
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                print_msg $BLUE "上传本地 .env 文件..."
-                scp_cmd ".env" "$SERVER_USER@$SERVER_IP:$REMOTE_DIR/"
-                print_msg $GREEN "✅ .env 文件已更新"
-            fi
+            print_msg $BLUE "检测到本地 .env 文件，自动更新到服务器..."
+            scp_cmd ".env" "$SERVER_USER@$SERVER_IP:$REMOTE_DIR/"
+            print_msg $GREEN "✅ .env 文件已更新"
+        else
+            print_msg $YELLOW "本地无 .env 文件，保持服务器配置不变"
         fi
     else
         print_msg $YELLOW "⚠️  服务器上未检测到 .env 文件"
@@ -208,11 +195,8 @@ setup_env() {
             scp_cmd ".env" "$SERVER_USER@$SERVER_IP:$REMOTE_DIR/"
             print_msg $GREEN "✅ .env 文件已上传"
         else
-            read -p "请输入 DEEPSEEK_API_KEY (直接回车跳过): " api_key
-            if [ -n "$api_key" ]; then
-                ssh_cmd "echo 'DEEPSEEK_API_KEY=$api_key' > $REMOTE_DIR/.env"
-                print_msg $GREEN "✅ 环境变量已配置"
-            fi
+            print_msg $YELLOW "⚠️  本地和服务器都没有 .env 文件"
+            print_msg $YELLOW "服务将使用默认环境变量启动"
         fi
     fi
 }
