@@ -32,17 +32,51 @@ print_step() {
     echo ""
 }
 
-# 检查 sshpass 是否安装
+# 检查并安装 sshpass
 check_sshpass() {
     if ! command -v sshpass &> /dev/null; then
-        print_msg $YELLOW "⚠️  未检测到 sshpass，将尝试使用 SSH 密钥方式连接"
-        print_msg $YELLOW "如果连接失败，请运行: brew install hudochenkov/sshpass/sshpass"
-        print_msg $YELLOW "或配置 SSH 密钥: ssh-copy-id $SERVER_USER@$SERVER_IP"
-        echo ""
-        USE_SSHPASS=false
+        print_msg $YELLOW "⚠️  未检测到 sshpass，正在尝试自动安装..."
+        
+        # 检测操作系统并安装
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS
+            if command -v brew &> /dev/null; then
+                print_msg $BLUE "使用 Homebrew 安装 sshpass..."
+                brew tap hudochenkov/sshpass
+                brew install hudochenkov/sshpass/sshpass
+                if [ $? -eq 0 ]; then
+                    print_msg $GREEN "✅ sshpass 安装成功"
+                    USE_SSHPASS=true
+                else
+                    print_msg $YELLOW "⚠️  自动安装失败，将使用 SSH 密钥方式"
+                    USE_SSHPASS=false
+                fi
+            else
+                print_msg $RED "❌ 未检测到 Homebrew，请先安装: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+                print_msg $YELLOW "或手动安装 sshpass: brew install hudochenkov/sshpass/sshpass"
+                USE_SSHPASS=false
+            fi
+        elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            # Linux
+            if command -v apt-get &> /dev/null; then
+                sudo apt-get update && sudo apt-get install -y sshpass
+            elif command -v yum &> /dev/null; then
+                sudo yum install -y sshpass
+            fi
+            USE_SSHPASS=true
+        else
+            print_msg $YELLOW "⚠️  未知操作系统，将尝试使用 SSH 密钥方式"
+            USE_SSHPASS=false
+        fi
     else
         USE_SSHPASS=true
         print_msg $GREEN "✅ 检测到 sshpass，将使用密码方式连接"
+    fi
+    
+    if [ "$USE_SSHPASS" = false ]; then
+        print_msg $YELLOW "提示：如需使用密码登录，请配置 SSH 密钥："
+        print_msg $YELLOW "  ssh-keygen -t rsa -b 4096"
+        print_msg $YELLOW "  ssh-copy-id $SERVER_USER@$SERVER_IP"
     fi
 }
 
@@ -272,13 +306,13 @@ main() {
 ╚════════════════════════════════════════════╝
     "
     
+    # 先检查并安装 sshpass
+    check_sshpass
+    
     # 检查本地 Git 状态并提交
     if check_git_status; then
         commit_and_push
     fi
-    
-    # 检查工具
-    check_sshpass
     
     # 测试连接
     test_connection
