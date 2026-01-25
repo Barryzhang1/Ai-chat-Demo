@@ -255,6 +255,7 @@ setup_firewall() {
             firewall-cmd --permanent --add-port=3000/tcp
             firewall-cmd --permanent --add-port=3001/tcp
             firewall-cmd --permanent --add-port=3002/tcp
+            firewall-cmd --permanent --add-port=27017/tcp
             firewall-cmd --reload
             echo 'firewalld 规则已更新'
         # 检查是否使用 ufw
@@ -262,9 +263,10 @@ setup_firewall() {
             ufw allow 3000/tcp
             ufw allow 3001/tcp
             ufw allow 3002/tcp
+            ufw allow 27017/tcp
             echo 'ufw 规则已更新'
         else
-            echo '未检测到防火墙管理工具，请手动开放端口 3000, 3001, 3002'
+            echo '未检测到防火墙管理工具，请手动开放端口 3000, 3001, 3002, 27017'
         fi
     "
     
@@ -272,6 +274,7 @@ setup_firewall() {
     echo "   - 3000 (前端UI)"
     echo "   - 3001 (后端API)"
     echo "   - 3002 (游戏)"
+    echo "   - 27017 (MongoDB)"
     echo ""
     print_msg $BLUE "阿里云安全组配置: https://ecs.console.aliyun.com"
 }
@@ -286,6 +289,7 @@ show_result() {
     echo "   前端 UI:    http://$SERVER_IP:3000"
     echo "   后端 API:   http://$SERVER_IP:3001/api"
     echo "   游戏:       http://$SERVER_IP:3002"
+    echo "   MongoDB:    mongodb://root:password@$SERVER_IP:27017"
     echo ""
     print_msg $YELLOW "💡 管理命令："
     echo "   查看日志:   ssh $SERVER_USER@$SERVER_IP \"cd $REMOTE_DIR && ./docker.sh logs\""

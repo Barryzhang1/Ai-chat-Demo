@@ -11,6 +11,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: password
+    command: mongod --bind_ip_all
     networks:
       - chat-network
     healthcheck:
@@ -59,10 +60,6 @@ services:
     restart: always
     ports:
       - "3000:80"
-    environment:
-      - REACT_APP_API_URL=http://localhost:3001/api
-      - REACT_APP_GAME_URL=http://localhost:3002
-      - REACT_APP_NAME=点餐系统
     depends_on:
       - chatbackend
     networks:
