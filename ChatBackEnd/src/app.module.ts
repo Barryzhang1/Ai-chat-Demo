@@ -5,6 +5,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { DeepseekModule } from './modules/deepseek/deepseek.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DishModule } from './modules/dish/dish.module';
+import { CategoryModule } from './modules/category/category.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { DishModule } from './modules/dish/dish.module';
     DeepseekModule,
     AuthModule,
     DishModule,
+    CategoryModule,
   ],
   controllers: [],
   providers: [],

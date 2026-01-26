@@ -13,6 +13,7 @@ import Inventory from './pages/MerchantDashboard/Inventory';
 import GameRankings from './pages/MerchantDashboard/GameRankings';
 import DataReports from './pages/MerchantDashboard/DataReports';
 import AddDish from './pages/MerchantDashboard/AddDish';
+import CategoryManagement from './pages/MerchantDashboard/CategoryManagement';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { authUtils } from './utils/auth';
 import './App.css';
@@ -50,6 +51,7 @@ function AppRoutes() {
             <Route path="/merchant/orders" element={<OrderList />} />
             <Route path="/merchant/inventory" element={<Inventory />} />
             <Route path="/merchant/rankings" element={<GameRankings />} />
+            <Route path="/merchant/categories" element={<CategoryManagement />} />
             <Route path="/merchant/reports" element={<DataReports />} />
             <Route path="/merchant/add-dish" element={<AddDish />} />
             <Route

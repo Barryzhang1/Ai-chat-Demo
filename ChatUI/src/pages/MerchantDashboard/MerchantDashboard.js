@@ -6,7 +6,7 @@ import {
   AppstoreOutline, 
   HistogramOutline, 
   PieOutline,
-  AddCircleOutline 
+  TagOutline
 } from 'antd-mobile-icons';
 import { dishApi } from '../../api/dishApi';
 import DishFormPopup from '../../components/DishFormPopup';
@@ -14,8 +14,7 @@ import './MerchantDashboard.css';
 
 function MerchantDashboard() {
   const navigate = useNavigate();
-  const [showAddDishPopup, setShowAddDishPopup] = useState(false);
-  const [form] = Form.useForm();
+  const [form] = Form.useForm();  // 保留 form hook 如果你需要用到它，但如果 render 里没有 Form 使用了它，也可以删除
 
   const menuItems = [
     {
@@ -33,18 +32,18 @@ function MerchantDashboard() {
       color: '#52c41a'
     },
     {
-      key: 'add-dish',
-      title: '新品上架',
-      icon: <AddCircleOutline fontSize={32} />,
-      action: () => setShowAddDishPopup(true),
-      color: '#722ed1'
-    },
-    {
       key: 'rankings',
       title: '游戏排行',
       icon: <HistogramOutline fontSize={32} />,
       path: '/merchant/rankings',
       color: '#faad14'
+    },
+    {
+      key: 'categories', 
+      title: '类别管理',
+      icon: <TagOutline fontSize={32} />, 
+      path: '/merchant/categories',
+      color: '#ff8c00' 
     },
     {
       key: 'reports',
@@ -54,17 +53,6 @@ function MerchantDashboard() {
       color: '#eb2f96'
     },
   ];
-
-  const handleAddDish = async (values) => {
-    try {
-      await dishApi.createDish(values);
-      Toast.show({ icon: 'success', content: '上新成功！' });
-      form.resetFields();
-      setShowAddDishPopup(false);
-    } catch (error) {
-      Toast.show({ icon: 'fail', content: '上新失败，请重试' });
-    }
-  };
 
   return (
     <div className="merchant-dashboard">
@@ -91,38 +79,6 @@ function MerchantDashboard() {
           ))}
         </Grid>
       </div>
-
-      <Popup
-        visible={showAddDishPopup}
-        onMaskClick={() => setShowAddDishPopup(false)}
-        position='bottom'
-        bodyStyle={{ 
-          backgroundColor: '#ffffff',
-          maxHeight: '70vh',
-          borderTopLeftRadius: '16px',
-          borderTopRightRadius: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}
-      >
-        <DishFormPopup
-          form={form}
-          onFinish={handleAddDish}
-          onCancel={() => {
-            form.resetFields();
-            setShowAddDishPopup(false);
-          }}
-          editMode={false}
-          initialValues={{
-            isSpicy: false,
-            hasScallions: false,
-            hasCilantro: false,
-            hasGarlic: false,
-            cookingTime: 15,
-          }}
-        />
-      </Popup>
     </div>
   );
 }

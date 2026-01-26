@@ -33,3 +33,8 @@
   --adm-color-text-secondary: #666;
   --adm-color-background: #eeeeee;
 }
+
+/* 移除 SwipeAction 背景颜色 */
+.adm-swipe-action {
+  background-color: transparent;
+}
