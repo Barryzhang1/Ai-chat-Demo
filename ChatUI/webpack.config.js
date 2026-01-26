@@ -94,8 +94,8 @@ module.exports = {
       // 注入 process.env 对象
       'process.env': JSON.stringify({
         NODE_ENV: process.env.NODE_ENV || 'production',
-        REACT_APP_API_URL: process.env.REACT_APP_API_URL || 'http://chat-backend:3001/api',
-        REACT_APP_GAME_URL: process.env.REACT_APP_GAME_URL || 'http://flappybird-game:3002',
+        REACT_APP_API_URL: process.env.REACT_APP_API_URL || 'http://localhost:3001/api',
+        REACT_APP_GAME_URL: process.env.REACT_APP_GAME_URL || 'http://localhost:3002',
         REACT_APP_NAME: process.env.REACT_APP_NAME || '点餐系统',
       }),
       // 同时提供 process 的 browser 版本

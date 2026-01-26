@@ -46,7 +46,8 @@ start_services() {
     check_docker
     
     print_msg $BLUE "🚀 启动所有服务..."
-    docker-compose up -d
+    # 添加 --build 确保前端和游戏服务的 dist 被重新构建
+    docker-compose up -d --build
     
     print_msg $YELLOW "\n⏳ 等待服务启动..."
     sleep 5
@@ -76,6 +77,9 @@ restart_services() {
 # 重新构建并启动
 rebuild_services() {
     check_docker
+
+    print_msg $BLUE "🧹 清理本地构建产物..."
+    rm -rf ChatUI/dist
     
     print_msg $BLUE "🛑 停止现有容器..."
     docker-compose down
