@@ -676,7 +676,7 @@ function UserOrder() {
             ✕
           </Button>
           <iframe
-            src={"http://localhost:3002"}
+            src={process.env.REACT_APP_GAME_URL || 'http://localhost:3002'}
             style={{
               width: '100%',
               height: '100%',
