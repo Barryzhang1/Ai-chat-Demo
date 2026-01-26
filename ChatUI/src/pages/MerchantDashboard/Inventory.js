@@ -88,21 +88,29 @@ function Inventory() {
                 </div>
               }
               extra={
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div className="item-price" style={{ marginRight: '8px' }}>¥{item.price}</div>
-                  <Button
-                    size="small"
-                    onClick={() => handleEdit(item)}
-                  >
-                    编辑
-                  </Button>
-                  <Button
-                    size="small"
-                    color={item.isDelisted ? 'primary' : 'danger'}
-                    onClick={() => handleStatusChange(item)}
-                  >
-                    {item.isDelisted ? '上架' : '下架'}
-                  </Button>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '12px' }}>
+                  <div className="item-price" style={{ fontSize: '18px', fontWeight: 'bold', color: '#ff4d4f' }}>¥{item.price}</div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <Button
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(item);
+                      }}
+                    >
+                      编辑
+                    </Button>
+                    <Button
+                      size="small"
+                      color={item.isDelisted ? 'primary' : 'danger'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStatusChange(item);
+                      }}
+                    >
+                      {item.isDelisted ? '上架' : '下架'}
+                    </Button>
+                  </div>
                 </div>
               }
             >
@@ -116,7 +124,15 @@ function Inventory() {
         visible={showEditPopup}
         onMaskClick={() => setShowEditPopup(false)}
         position='bottom'
-        bodyStyle={{ backgroundColor: '#ffffff' }}
+        bodyStyle={{ 
+          backgroundColor: '#ffffff',
+          maxHeight: '70vh',
+          borderTopLeftRadius: '16px',
+          borderTopRightRadius: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}
       >
         <DishFormPopup
           form={form}

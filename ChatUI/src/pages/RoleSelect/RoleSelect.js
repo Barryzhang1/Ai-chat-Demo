@@ -4,6 +4,7 @@ import { Button } from 'antd-mobile';
 import { UserOutline, TeamOutline } from 'antd-mobile-icons';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { t } from '../../i18n/translations';
+import { authUtils } from '../../utils/auth';
 import './RoleSelect.css';
 
 function RoleSelect() {
@@ -48,8 +49,7 @@ function RoleSelect() {
               size="small"
               color="danger"
               onClick={() => {
-                localStorage.removeItem('userName');
-                localStorage.removeItem('userAuth');
+                authUtils.removeToken();
                 navigate('/');
               }}
             >

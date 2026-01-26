@@ -96,7 +96,15 @@ function MerchantDashboard() {
         visible={showAddDishPopup}
         onMaskClick={() => setShowAddDishPopup(false)}
         position='bottom'
-        bodyStyle={{ backgroundColor: '#ffffff' }}
+        bodyStyle={{ 
+          backgroundColor: '#ffffff',
+          maxHeight: '70vh',
+          borderTopLeftRadius: '16px',
+          borderTopRightRadius: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}
       >
         <DishFormPopup
           form={form}

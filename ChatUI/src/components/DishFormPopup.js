@@ -9,36 +9,28 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
   }, [editMode, initialValues, form]);
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <div style={{ 
+        flexShrink: 0,
         fontSize: '18px', 
         fontWeight: 'bold', 
-        marginBottom: '20px', 
-        paddingBottom: '16px',
+        padding: '20px 20px 16px 20px',
         textAlign: 'center',
+        backgroundColor: '#fff',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10
       }}>
         {editMode ? '编辑菜品' : '新品上架'}
       </div>
-      <Form
-        form={form}
-        onFinish={onFinish}
-        initialValues={initialValues}
-        footer={
-          <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-            <Button
-              block
-              onClick={onCancel}
-            >
-              取消
-            </Button>
-            <Button block type="submit" color="primary">
-              {editMode ? '确认修改' : '确认上新'}
-            </Button>
-          </div>
-        }
-      >
-        <Form.Item
-          name="name"
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+        <Form
+          form={form}
+          onFinish={onFinish}
+          initialValues={initialValues}
+        >
+          <Form.Item
+            name="name"
           label="菜品名称"
           rules={[{ required: true, message: '请输入菜品名称' }]}
         >
@@ -98,9 +90,28 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
         >
           <Stepper min={0} max={120} />
         </Form.Item>
-      </Form>
+        </Form>
+      </div>
+      <div style={{
+          padding: '16px 20px',
+          backgroundColor: '#fff',
+          flexShrink: 0,
+          display: 'flex',
+          gap: '12px'
+        }}>
+          <Button
+            block
+            onClick={onCancel}
+          >
+            取消
+          </Button>
+          <Button block color="primary" onClick={() => form.submit()}>
+            {editMode ? '确认修改' : '确认上新'}
+          </Button>
+      </div>
     </div>
   );
 }
 
 export default DishFormPopup;
+    

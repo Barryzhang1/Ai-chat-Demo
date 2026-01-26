@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, Input, Toast } from 'antd-mobile';
+import { userApi } from '../../api/userApi';
+import { authUtils } from '../../utils/auth';
 import './Register.css';
 
 function Register() {
@@ -10,16 +12,13 @@ function Register() {
 
   // 检查是否已经登录
   useEffect(() => {
-    const userName = localStorage.getItem('userName');
-    const userAuth = localStorage.getItem('userAuth');
-    
-    if (userName && userAuth === 'true') {
+    if (authUtils.isAuthenticated()) {
       // 已登录，直接跳转到角色选择页面
       navigate('/role-select');
     }
   }, [navigate]);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!name.trim()) {
       Toast.show({
         content: '请输入您的名字',
@@ -28,20 +27,40 @@ function Register() {
       return;
     }
 
-    // 保存用户名和认证状态到 localStorage
-    localStorage.setItem('userName', name.trim());
-    localStorage.setItem('userAuth', 'true');
-    
-    Toast.show({
-      icon: 'success',
-      content: '注册成功！',
-      position: 'center',
-    });
+    try {
+      const response = await userApi.register({ nickname: name.trim() });
+      if (response.code === 0 && response.data && response.data.token) {
+        // 保存 token 到 cookie
+        authUtils.setToken(response.data.token);
+        
+        // 保存用户名到 localStorage (保持现有逻辑兼容性)
+        localStorage.setItem('userName', response.data.user.nickname);
+        
+        Toast.show({
+          icon: 'success',
+          content: '登录成功！',
+          position: 'center',
+        });
 
-    // 跳转到角色选择页面
-    setTimeout(() => {
-      navigate('/role-select');
-    }, 500);
+        // 跳转到角色选择页面
+        setTimeout(() => {
+          navigate('/role-select');
+        }, 500);
+      } else {
+        Toast.show({
+          icon: 'fail',
+          content: response.message || '登录失败',
+          position: 'center',
+        });
+      }
+    } catch (error) {
+      console.error('Register/Login failed:', error);
+      Toast.show({
+        icon: 'fail',
+        content: '登录出错，请重试',
+        position: 'center',
+      });
+    }
   };
 
   return (

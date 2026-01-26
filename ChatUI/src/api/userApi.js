@@ -7,7 +7,7 @@ export const userApi = {
   // 用户注册
   register: async (userData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/register`, {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

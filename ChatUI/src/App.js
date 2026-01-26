@@ -14,11 +14,11 @@ import GameRankings from './pages/MerchantDashboard/GameRankings';
 import DataReports from './pages/MerchantDashboard/DataReports';
 import AddDish from './pages/MerchantDashboard/AddDish';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
+import { authUtils } from './utils/auth';
 import './App.css';
 
 const ProtectedRoute = ({ children }) => {
-  const userName = localStorage.getItem('userName');
-  return userName ? children : <Navigate to="/" replace />;
+  return authUtils.isAuthenticated() ? children : <Navigate to="/" replace />;
 };
 
 function AppRoutes() {

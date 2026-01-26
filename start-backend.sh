@@ -9,6 +9,12 @@ echo ""
 # 切换到脚本所在目录
 cd "$(dirname "$0")"
 
+# 如果存在 ChatBackEnd 目录，进入该目录
+if [ -d "ChatBackEnd" ]; then
+    echo "📂 进入 ChatBackEnd 目录..."
+    cd ChatBackEnd
+fi
+
 # 检查 .env 文件是否存在
 if [ ! -f .env ]; then
     echo "⚠️  警告: .env 文件不存在"
@@ -30,24 +36,6 @@ if [ -f .env ]; then
     source .env
 fi
 
-# 检查 Docker 是否运行
-echo "🔍 检查 Docker 状态..."
-if ! docker info > /dev/null 2>&1; then
-    echo "❌ Docker 未运行，请先启动 Docker"
-    exit 1
-fi
-
-# 检查 MongoDB 容器是否运行
-echo "🔍 检查 MongoDB 状态..."
-if ! docker ps | grep -q "chat-mongo-db"; then
-    echo "📦 MongoDB 容器未运行，正在启动..."
-    docker-compose up -d
-    echo "⏳ 等待 MongoDB 启动..."
-    sleep 3
-else
-    echo "✅ MongoDB 已运行"
-fi
-
 # 检查 Node.js 版本
 echo ""
 echo "🔍 检查 Node.js 版本..."
@@ -60,12 +48,12 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 
-# 启动开发服务器
+# 启动服务器
 echo ""
-echo "🎯 启动后端开发服务器..."
+echo "🎯 启动后端服务器 (npm run start)..."
 echo "📍 API 地址: http://localhost:3000"
-echo "📍 MongoDB: mongodb://localhost:27017/restaurant"
+echo "⚠️  注意: 此模式不自动启动 MongoDB，请确保本地 MongoDB 已运行"
 echo ""
-npm run start:dev
+npm run start
 
 
