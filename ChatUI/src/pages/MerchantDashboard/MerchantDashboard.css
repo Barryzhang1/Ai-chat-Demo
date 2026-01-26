@@ -248,3 +248,258 @@
 .adm-button {
   border-radius: 20px !important;
 }
+
+/* Inventory 页面布局 */
+.inventory-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--color-bg, #f5f5f5);
+}
+
+.inventory-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* 左侧分类栏 */
+.inventory-sidebar {
+  width: 90px;
+  background-color: var(--color-surface, #ffffff);
+  border-right: 0.5px solid var(--color-divider, rgba(0, 0, 0, 0.06));
+  overflow-y: hidden;
+}
+
+.inventory-sidebar .adm-side-bar-item {
+  padding: 16px 8px;
+  font-size: 14px;
+  color: var(--color-text, #111111);
+  text-align: center;
+  transition: all 120ms ease;
+  background-color: var(--color-surface, #ffffff);
+}
+
+.inventory-sidebar .adm-side-bar-item-active {
+  background-color: var(--adm-color-fill-content, #f7f7f8);
+  color: var(--adm-color-primary, #007AFF);
+  font-weight: 600;
+  border-left: 3px solid var(--adm-color-primary, #007AFF);
+}
+
+.inventory-sidebar .adm-side-bar-extra-space {
+  background-color: var(--color-surface, #ffffff);
+}
+
+.inventory-sidebar .adm-side-bar-item:active {
+  background-color: var(--color-primary-tint, rgba(0, 122, 255, 0.12));
+}
+
+/* 右侧菜品内容区 */
+.inventory-dishes-content {
+  flex: 1;
+  overflow-y: auto;
+  background-color: var(--color-bg, #f5f5f5);
+  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 分类区块 */
+.inventory-category-section {
+  margin-bottom: 24px;
+}
+
+.inventory-category-section:last-child {
+  margin-bottom: 0;
+}
+
+/* 分类标题分割线 */
+.inventory-category-divider {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text, #111111);
+}
+
+.inventory-category-divider.adm-divider {
+  border-color: var(--color-divider, rgba(0, 0, 0, 0.06));
+}
+
+.inventory-empty-category {
+  padding: 32px;
+  text-align: center;
+  color: var(--color-text-secondary, #565869);
+  font-size: 14px;
+  background-color: var(--color-surface, #ffffff);
+  border-radius: var(--radius-card, 12px);
+}
+
+/* 菜品列表 */
+.inventory-dishes-list {
+  background-color: transparent !important;
+}
+
+.inventory-dishes-list .adm-list-body {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.inventory-dishes-list .adm-list-item {
+  background: var(--color-surface, #ffffff);
+  border-radius: var(--radius-card, 12px);
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-1, 0 1px 2px rgba(0, 0, 0, 0.08));
+  transition: box-shadow 120ms ease;
+  border: none !important;
+}
+
+.inventory-dishes-list .adm-list-item:active {
+  box-shadow: var(--shadow-2, 0 2px 8px rgba(0, 0, 0, 0.10));
+}
+
+.inventory-dishes-list .adm-list-item-content {
+  border-bottom: none !important;
+}
+
+/* 支持 iOS 安全区域 */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .inventory-dishes-content {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+}
+
+/* 响应式优化 */
+@media (max-width: 360px) {
+  .inventory-sidebar {
+    width: 80px;
+  }
+  
+  .inventory-sidebar .adm-side-bar-item {
+    font-size: 13px;
+    padding: 14px 6px;
+  }
+}
+
+/* Reduced Motion 支持 */
+@media (prefers-reduced-motion: reduce) {
+  .inventory-sidebar .adm-side-bar-item,
+  .inventory-dishes-list .adm-list-item {
+    transition: none;
+  }
+  
+  .inventory-dishes-content {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==================== 座位管理 ==================== */
+.seat-management {
+  padding: 16px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.statistics-card {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stat-item {
+  text-align: center;
+  padding: 12px 8px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #999;
+}
+
+.stat-available .stat-value {
+  color: #00b578;
+}
+
+.stat-occupied .stat-value {
+  color: #1677ff;
+}
+
+.stat-queue .stat-value {
+  color: #ff8f1f;
+}
+
+.action-bar {
+  margin-bottom: 16px;
+}
+
+.seats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.seat-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease;
+}
+
+.seat-card:active {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.seat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.seat-number {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+.seat-status {
+  display: flex;
+  align-items: center;
+}
+
+.seat-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.seat-info:last-of-type {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 14px;
+  color: #999;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #333;
+  font-family: monospace;
+}
+
+.seat-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: flex-end;
+}
+

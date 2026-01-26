@@ -6,7 +6,8 @@ import {
   AppstoreOutline, 
   HistogramOutline, 
   PieOutline,
-  TagOutline
+  TagOutline,
+  TeamOutline
 } from 'antd-mobile-icons';
 import { dishApi } from '../../api/dishApi';
 import DishFormPopup from '../../components/DishFormPopup';
@@ -30,6 +31,13 @@ function MerchantDashboard() {
       icon: <AppstoreOutline fontSize={32} />,
       path: '/merchant/inventory',
       color: '#52c41a'
+    },
+    {
+      key: 'seats',
+      title: '座位管理',
+      icon: <TeamOutline fontSize={32} />,
+      path: '/merchant/seats',
+      color: '#722ed1'
     },
     {
       key: 'rankings',

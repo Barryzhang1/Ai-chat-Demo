@@ -205,6 +205,42 @@
   background: white;
 }
 
+/* 继续点单卡片 */
+.continue-order-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 100%;
+}
+
+.continue-order-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.continue-order-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.continue-order-text {
+  flex: 1;
+  font-size: 15px;
+  color: #333;
+  line-height: 1.6;
+}
+
+.continue-order-actions {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white;
+}
+
 /* 菜单列表 */
 .menu-list {
   margin-top: 12px;
@@ -239,6 +275,12 @@
 /* 菜品容器 */
 .dishes-container {
   background: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dishes-container:active {
+  background: #f8f8f8;
 }
 
 .dish-item {
@@ -302,7 +344,7 @@
 .dish-price {
   font-size: 16px;
   font-weight: bold;
-  color: #ff6430;
+  color: #ff3b30;
 }
 
 .dish-quantity {
@@ -629,6 +671,168 @@
   font-weight: 500;
   transition: all 0.3s;
 }
+
+/* 菜单 Popup 样式 */
+.menu-popup-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f5;
+  position: relative;
+}
+
+.menu-popup-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  padding-top: 20px;
+}
+
+.menu-popup-sidebar {
+  width: 90px;
+  background: #f5f5f5;
+  overflow-y: auto;
+}
+
+/* 自定义 SideBar 选中样式 */
+.menu-popup-sidebar .adm-side-bar-item {
+  background: #f5f5f5;
+}
+
+.menu-popup-sidebar .adm-side-bar-item-active {
+  background: white !important;
+  border-left: 3px solid #1677ff;
+}
+
+/* 移除高亮条 */
+.menu-popup-sidebar .adm-side-bar-item-highlight {
+  display: none;
+}
+
+.menu-popup-dishes {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 12px 80px 12px; /* 底部留出空间给固定栏 */
+  scroll-behavior: smooth;
+}
+
+.popup-category-section {
+  margin-bottom: 16px;
+}
+
+.popup-dishes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.popup-dish-card {
+  background: white;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.popup-dish-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.popup-dish-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.popup-dish-description {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.popup-dish-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.popup-dish-tags .tag {
+  padding: 2px 8px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.popup-dish-tags .tag.spicy {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+
+.popup-dish-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.popup-dish-price {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ff3b30;
+}
+
+.empty-category {
+  text-align: center;
+  padding: 40px 0;
+  color: #999;
+  font-size: 14px;
+}
+
+/* 底部固定栏 */
+.menu-popup-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: white;
+  border-top: 1px solid #f0f0f0;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+  z-index: 100;
+}
+
+.total-section {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.total-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.total-price {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ff3b30;
+}
+
+.confirm-btn {
+  min-width: 100px;
+  border-radius: 20px;
+  height: 36px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 
 .send-btn.active {
   background: rgba(255, 255, 255, 0.4);

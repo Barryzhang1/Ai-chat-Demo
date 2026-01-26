@@ -36,6 +36,12 @@ function Register() {
         // 保存用户名到 localStorage (保持现有逻辑兼容性)
         localStorage.setItem('userName', response.data.user.nickname);
         
+        // 保存完整用户信息到 localStorage（用于座位管理等功能）
+        localStorage.setItem('userInfo', JSON.stringify({
+          nickname: response.data.user.nickname,
+          userId: response.data.user._id
+        }));
+        
         Toast.show({
           icon: 'success',
           content: '登录成功！',
