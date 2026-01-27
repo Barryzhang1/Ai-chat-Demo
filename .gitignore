@@ -6,3 +6,5 @@
 /mongo-data
 ChatBackEnd/.env
 /ChatUi/dist/
+
+/ChatBackEnd/package-lock.json
