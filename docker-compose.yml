@@ -1,43 +1,4 @@
 services:
-  # MongoDB 数据库
-  mongodb:
-    image: mongo:latest
-    container_name: chat-mongodb
-    restart: always
-    ports:
-      - "27017:27017"
-    volumes:
-      - ../mongo-data:/data/db
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: password
-    command: mongod --bind_ip_all
-    networks:
-      - chat-network
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Redis 缓存
-  redis:
-    image: redis:7-alpine
-    container_name: chat-redis
-    restart: always
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    command: redis-server --appendonly yes
-    networks:
-      - chat-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
   # 后端服务
   chatbackend:
     image: node:18-alpine
@@ -48,28 +9,23 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      - ../ChatBackEnd:/app
+      - ./ChatBackEnd:/app
       - /app/node_modules
     environment:
       - NODE_ENV=development
       - PORT=3001
-      - MONGO_HOST=mongodb
+      - MONGO_HOST=chat-mongodb
       - MONGO_PORT=27017
       - MONGO_USER=root
       - MONGO_PASSWORD=password
       - MONGO_DATABASE=restaurant
       - MONGO_AUTH_SOURCE=admin
-      - REDIS_HOST=redis
+      - REDIS_HOST=chat-redis
       - REDIS_PORT=6379
       - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3002
       - JWT_SECRET=your_jwt_secret_key_production_change_me
       - JWT_EXPIRATION=86400
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-your_deepseek_api_key_here}
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     networks:
       - chat-network
     healthcheck:
@@ -107,8 +63,5 @@ services:
 
 networks:
   chat-network:
-    driver: bridge
-
-volumes:
-  mongo-data:
-  redis-data:
+    external: true
+    name: ai-chat-network
