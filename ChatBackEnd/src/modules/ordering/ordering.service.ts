@@ -397,6 +397,47 @@ export class OrderingService {
   }
 
   /**
+   * 获取聊天历史记录（公开方法）
+   */
+  async getChatHistoryMessages(
+    userId: string,
+    limit: number = 20,
+  ): Promise<{
+    messages: Array<{
+      role: string;
+      content: string;
+      timestamp: Date;
+    }>;
+    total: number;
+  } | null> {
+    this.logger.log(
+      'Getting chat history for user: ' + userId + ', limit: ' + limit,
+    );
+
+    const chatHistory = await this.chatHistoryModel.findOne({ userId }).exec();
+
+    if (!chatHistory || !chatHistory.messages) {
+      return null;
+    }
+
+    const total = chatHistory.messages.length;
+    // 按时间倒序返回（最新的在前）
+    const messages = chatHistory.messages
+      .slice(-limit)
+      .reverse()
+      .map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
+      }));
+
+    return {
+      messages,
+      total,
+    };
+  }
+
+  /**
    * 构建系统提示词
    */
   private buildSystemPrompt(): string {

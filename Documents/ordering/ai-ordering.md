@@ -571,6 +571,73 @@ class AiOrderDto {
 - **Auth Module**：用户认证
 - **Dish Collection**：菜品数据（需预先导入）
 
+## 相关API
+
+### 获取聊天历史记录
+
+**端点**：`GET /ordering/chat-history`
+
+**认证方式**：Bearer Token
+
+**请求头**：
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**查询参数**：
+
+| 参数 | 类型 | 必填 | 说明 | 默认值 |
+|------|------|------|------|--------|
+| limit | number | ❌ | 返回的消息数量 | 20 |
+
+**成功响应 (200 OK)**：
+```json
+{
+  "code": 0,
+  "message": "获取成功",
+  "data": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "我们3个人，想吃点辣的",
+        "timestamp": "2026-01-27T10:30:00.000Z"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"message\":\"好的，为3位客人推荐以下辣味菜品...\",\"dishes\":[...]}",
+        "timestamp": "2026-01-27T10:30:05.000Z"
+      }
+    ],
+    "total": 10
+  }
+}
+```
+
+**错误响应 (401 Unauthorized)**：
+```json
+{
+  "code": 401,
+  "message": "未授权",
+  "error": "Unauthorized"
+}
+```
+
+**错误响应 (404 Not Found)**：
+```json
+{
+  "code": 404,
+  "message": "聊天历史不存在",
+  "error": "NotFound"
+}
+```
+
+**功能说明**：
+- 返回当前用户的聊天历史记录
+- 按时间倒序排列（最新的在前）
+- 默认返回最近20条消息
+- 可通过 `limit` 参数控制返回数量（最大100条）
+- 用于前端展示历史对话记录
+
 ## 数据初始化
 
 使用 `Documents/sample_data.js` 初始化菜品数据：

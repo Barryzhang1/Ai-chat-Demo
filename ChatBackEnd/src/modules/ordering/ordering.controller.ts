@@ -7,6 +7,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Query,
+  NotFoundException,
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import {
@@ -14,6 +16,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrderingService } from './ordering.service';
@@ -108,6 +111,43 @@ export class OrderingController {
   async getCart(@Request() req: ExpressRequest & { user: { id: string } }) {
     const userId = req.user.id;
     const result = await this.orderingService.getCart(userId);
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: result,
+    };
+  }
+
+  @Get('chat-history')
+  @ApiOperation({ summary: '获取聊天历史记录' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: '返回的消息数量，默认20条，最大100条',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+  })
+  @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 404, description: '聊天历史不存在' })
+  async getChatHistory(
+    @Request() req: ExpressRequest & { user: { id: string } },
+    @Query('limit') limit?: number,
+  ) {
+    const userId = req.user.id;
+    const limitNum = limit ? Math.min(Math.max(1, Number(limit)), 100) : 20;
+
+    const result = await this.orderingService.getChatHistoryMessages(
+      userId,
+      limitNum,
+    );
+
+    if (!result) {
+      throw new NotFoundException('聊天历史不存在');
+    }
 
     return {
       code: 0,

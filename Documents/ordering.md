@@ -121,6 +121,7 @@
 | POST | /api/ordering/refresh-menu | 刷新菜单（随机采样） | ✅ |
 | POST | /api/ordering/create-order | 创建订单 | ✅ |
 | GET | /api/ordering/cart | 获取购物车 | ✅ |
+| GET | /api/ordering/chat-history | 获取聊天历史记录 | ✅ |
 
 ## AI 交互流程
 
