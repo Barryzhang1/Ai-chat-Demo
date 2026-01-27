@@ -31,6 +31,9 @@ export class Dish {
 
   @Prop({ default: 0 })
   cookingTime: number;
+
+  @Prop({ type: [String], default: [] })
+  tags: string[];
 }
 
 export const DishSchema = SchemaFactory.createForClass(Dish);
