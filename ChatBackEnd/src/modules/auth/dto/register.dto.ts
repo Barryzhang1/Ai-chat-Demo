@@ -1,9 +1,16 @@
 import { IsString, IsNotEmpty, Length, Matches } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 /**
  * 用户注册 DTO
  */
 export class RegisterDto {
+  @ApiProperty({
+    description: '用户昵称',
+    example: '张三',
+    minLength: 2,
+    maxLength: 20,
+  })
   @IsString()
   @IsNotEmpty({ message: '昵称不能为空' })
   @Length(2, 20, { message: '昵称长度必须在2-20个字符之间' })
