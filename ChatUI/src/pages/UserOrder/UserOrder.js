@@ -1,9 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NavBar, Input, Button, Toast, Dialog, Popup } from 'antd-mobile';
-import { SendOutline, CameraOutline, AddCircleOutline, RedoOutline } from 'antd-mobile-icons';
+import { NavBar, Input, Button, Toast, Popup, SideBar, Divider, Stepper, Empty, Badge } from 'antd-mobile';
+import { AddCircleOutline, RedoOutline } from 'antd-mobile-icons';
+import { io } from 'socket.io-client';
+import { categoryApi } from '../../api/categoryApi';
+import { dishApi } from '../../api/dishApi';
 import speakIcon from '../../assets/speak.svg';
 import './UserOrder.css';
+
+let socket = null;
 
 // 模拟菜品数据库
 const MOCK_DISHES = [
@@ -102,12 +107,186 @@ function UserOrder() {
   const [isOverCancel, setIsOverCancel] = useState(false);
   const [playingAudioIndex, setPlayingAudioIndex] = useState(null);
   const [showGamePopup, setShowGamePopup] = useState(false);
+  const [seatInfo, setSeatInfo] = useState(null);
+  const [queueInfo, setQueueInfo] = useState(null);
+  const [showMenuPopup, setShowMenuPopup] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [allDishes, setAllDishes] = useState([]);
+  const [activeCategory, setActiveCategory] = useState('');
+  const [dishQuantities, setDishQuantities] = useState({});
   const messagesEndRef = useRef(null);
   const cancelBtnRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const audioRef = useRef(null);
+  const menuContentRef = useRef(null);
+  const categoryRefs = useRef({});
   const navigate = useNavigate();
+
+  // 获取菜品和分类数据
+  const fetchMenuData = async () => {
+    try {
+      const [categoriesData, dishesData] = await Promise.all([
+        categoryApi.getCategories(),
+        dishApi.getDishes()
+      ]);
+
+      const sortedCategories = (categoriesData || [])
+        .filter(cat => cat.isActive)
+        .sort((a, b) => (b.sortOrder || 0) - (a.sortOrder || 0));
+
+      setCategories(sortedCategories);
+      const availableDishes = (dishesData || []).filter(dish => !dish.isDelisted);
+      setAllDishes(availableDishes);
+
+      if (sortedCategories.length > 0) {
+        setActiveCategory(sortedCategories[0]._id);
+      }
+    } catch (error) {
+      console.error('Failed to fetch menu data:', error);
+    }
+  };
+
+  // 打开菜单 Popup
+  const handleOpenMenuPopup = () => {
+    setShowMenuPopup(true);
+    if (categories.length === 0) {
+      fetchMenuData();
+    }
+  };
+
+  // 处理分类切换，滚动到对应分类
+  const handleCategoryChange = (key) => {
+    setActiveCategory(key);
+    
+    const element = categoryRefs.current[key];
+    if (element && menuContentRef.current) {
+      const container = menuContentRef.current;
+      const offsetTop = element.offsetTop - container.offsetTop - 10;
+      
+      container.scrollTo({
+        top: offsetTop,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // 监听滚动，更新当前激活的分类
+  const handleMenuScroll = () => {
+    if (!menuContentRef.current) return;
+
+    const container = menuContentRef.current;
+    const scrollTop = container.scrollTop;
+
+    // 找到当前滚动位置对应的分类
+    for (let i = categories.length - 1; i >= 0; i--) {
+      const category = categories[i];
+      const element = categoryRefs.current[category._id];
+      
+      if (element) {
+        const offsetTop = element.offsetTop - container.offsetTop - 100;
+        if (scrollTop >= offsetTop) {
+          setActiveCategory(category._id);
+          break;
+        }
+      }
+    }
+  };
+
+  // 按分类分组菜品
+  const groupDishesByCategory = () => {
+    const grouped = {};
+    categories.forEach(category => {
+      grouped[category._id] = {
+        category,
+        dishes: allDishes.filter(dish => dish.categoryId === category._id)
+      };
+    });
+    return grouped;
+  };
+
+  // 计算每个分类下选中的菜品数量
+  const getCategoryDishCount = (categoryId) => {
+    const categoryDishes = groupDishesByCategory()[categoryId]?.dishes || [];
+    let count = 0;
+    categoryDishes.forEach(dish => {
+      const quantity = dishQuantities[dish._id] || 0;
+      if (quantity > 0) {
+        count += quantity;
+      }
+    });
+    return count;
+  };
+
+  // 更新菜品数量
+  const handleDishQuantityChange = (dishId, value) => {
+    setDishQuantities(prev => ({
+      ...prev,
+      [dishId]: value
+    }));
+  };
+
+  // 计算选中菜品的总价
+  const calculateTotalPrice = () => {
+    let total = 0;
+    Object.entries(dishQuantities).forEach(([dishId, quantity]) => {
+      if (quantity > 0) {
+        const dish = allDishes.find(d => d._id === dishId);
+        if (dish) {
+          total += dish.price * quantity;
+        }
+      }
+    });
+    return total;
+  };
+
+  // 确认选择的菜品
+  const handleConfirmSelection = () => {
+    const selectedDishes = [];
+    Object.entries(dishQuantities).forEach(([dishId, quantity]) => {
+      if (quantity > 0) {
+        const dish = allDishes.find(d => d._id === dishId);
+        if (dish) {
+          selectedDishes.push({ ...dish, quantity });
+        }
+      }
+    });
+
+    if (selectedDishes.length === 0) {
+      Toast.show({ content: '请选择菜品' });
+      return;
+    }
+
+    // 计算总价
+    const totalPrice = calculateTotalPrice();
+
+    // 生成订单消息
+    const orderMessage = {
+      role: 'user',
+      content: '我已选好菜品',
+      menu: selectedDishes.map(dish => ({
+        id: dish._id,
+        name: dish.name,
+        price: dish.price,
+        description: dish.description,
+        image: dish.imageUrl || `https://picsum.photos/200/200?random=${dish._id}`,
+        spicy: dish.isSpicy,
+        quantity: dish.quantity
+      })),
+      totalPrice: totalPrice,
+      timestamp: new Date(),
+      isUserOrder: true,
+    };
+
+    // 添加到消息列表
+    setMessages(prev => [...prev, orderMessage]);
+    
+    Toast.show({ icon: 'success', content: `已选择 ${selectedDishes.length} 道菜` });
+    setShowMenuPopup(false);
+    
+    // 清空选择
+    setDishQuantities({});
+  };
 
   useEffect(() => {
     // 初始欢迎消息
@@ -120,6 +299,66 @@ function UserOrder() {
     ]);
   }, []);
 
+  // Socket.IO 连接和座位分配
+  useEffect(() => {
+    // 初始化 Socket.IO 连接
+    socket = io('http://localhost:3001/seat', {
+      transports: ['websocket'],
+    });
+
+    socket.on('connect', () => {
+      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+      if (userInfo.nickname) {
+        socket.emit('requestSeat', { nickname: userInfo.nickname });
+      } else {
+        socket.emit('requestSeat', {});
+      }
+    });
+
+    socket.on('seatAssigned', (data) => {
+      setSeatInfo(data);
+      setQueueInfo(null);
+      Toast.show({
+        icon: 'success',
+        content: `已分配座位：${data.seatNumber}号`,
+        duration: 3000,
+      });
+    });
+
+    socket.on('needQueue', (data) => {
+      setQueueInfo(data);
+      setSeatInfo(null);
+      Toast.show({
+        icon: 'fail',
+        content: `当前座位已满，您在队列中的位置：${data.position}`,
+        duration: 3000,
+      });
+    });
+
+    socket.on('queueUpdate', (data) => {
+      setQueueInfo(data);
+      if (data.position <= 3) {
+        Toast.show({
+          content: `您的排队位置已更新：第${data.position}位`,
+          duration: 2000,
+        });
+      }
+    });
+
+    socket.on('error', (data) => {
+      Toast.show({
+        icon: 'fail',
+        content: data.message || '连接错误',
+      });
+    });
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, []);
+
   // 流式展示系统消息
   useEffect(() => {
     if (!messages.length) return;
@@ -130,6 +369,9 @@ function UserOrder() {
       msg.role === 'assistant' &&
       !msg.menu &&
       !msg.audioUrl &&
+      !msg.isContinueOrder &&
+      !msg.isGameRecommend &&
+      !msg.isOrderConfirm &&
       (!streamCharCounts[lastIdx] || streamCharCounts[lastIdx] < msg.content.length)
     ) {
       let count = streamCharCounts[lastIdx] || 0;
@@ -313,8 +555,6 @@ function UserOrder() {
         }
       }
       
-      console.log('使用音频格式:', options.mimeType || 'default');
-      
       // 创建 MediaRecorder
       mediaRecorderRef.current = new MediaRecorder(stream, options);
       
@@ -322,13 +562,11 @@ function UserOrder() {
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
-          console.log('收集音频块:', event.data.size, 'bytes');
         }
       };
       
       // 开始录音
       mediaRecorderRef.current.start();
-      console.log('开始录音...');
     } catch (error) {
       console.error('麦克风权限错误:', error);
       Toast.show('无法访问麦克风，请检查权限设置');
@@ -374,14 +612,7 @@ function UserOrder() {
           // 创建临时音频元素获取实际时长
           const tempAudio = new Audio(audioUrl);
           tempAudio.addEventListener('loadedmetadata', () => {
-            const duration = Math.ceil(tempAudio.duration); // 向上取整到秒
-            
-            console.log('录音完成');
-            console.log('音频格式:', mimeType);
-            console.log('音频大小:', audioBlob.size, 'bytes');
-            console.log('音频URL:', audioUrl);
-            console.log('音频时长:', duration, '秒');
-            console.log('音频块数量:', audioChunksRef.current.length);
+            const duration = Math.ceil(tempAudio.duration);
             
             // 添加语音消息到聊天
             const voiceMessage = {
@@ -445,6 +676,16 @@ function UserOrder() {
     <div className="user-order-container">
       <NavBar onBack={() => navigate('/role-select')}>
         智能点餐
+        {seatInfo && (
+          <span style={{ fontSize: '14px', marginLeft: '10px', color: '#00b578' }}>
+            座位：{seatInfo.seatNumber}号
+          </span>
+        )}
+        {queueInfo && (
+          <span style={{ fontSize: '14px', marginLeft: '10px', color: '#ff8f1f' }}>
+            排队中：第{queueInfo.position}位
+          </span>
+        )}
       </NavBar>
 
       <div className="messages-container">
@@ -483,9 +724,26 @@ function UserOrder() {
                       </Button>
                     </div>
                   </div>
+                ) : message.isContinueOrder ? (
+                  <div className="continue-order-card">
+                    <div className="continue-order-content">
+                      <div className="continue-order-icon">🍽️</div>
+                      <div className="continue-order-text">{message.content}</div>
+                    </div>
+                    <div className="continue-order-actions">
+                      <Button 
+                        size="small" 
+                        color="primary"
+                        onClick={handleOpenMenuPopup}
+                        style={{ flex: '1' }}
+                      >
+                        继续点单
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
                   <div className="message-content">
-                    {message.role === 'assistant' && !message.menu && !message.audioUrl
+                    {message.role === 'assistant' && !message.menu && !message.audioUrl && !message.isContinueOrder && !message.isGameRecommend && !message.isOrderConfirm
                       ? message.content.slice(0, streamCharCounts[index] || 0)
                       : message.content}
                   </div>
@@ -500,7 +758,7 @@ function UserOrder() {
                     </div>
                   </div>
                   
-                  <div className="dishes-container">
+                  <div className="dishes-container" onClick={handleOpenMenuPopup}>
                     {message.menu.map(dish => (
                       <div key={dish.id} className="dish-item">
                         <img src={dish.image} alt={dish.name} className="dish-image" />
@@ -511,7 +769,7 @@ function UserOrder() {
                           </div>
                           <div className="dish-bottom">
                             <span className="dish-price">¥{dish.price}</span>
-                            <span className="dish-quantity">x1</span>
+                            <span className="dish-quantity">x{dish.quantity || 1}</span>
                           </div>
                         </div>
                       </div>
@@ -527,23 +785,37 @@ function UserOrder() {
                   
                   {!orderConfirmed && (
                     <div className="menu-actions">
-                      <Button 
-                        size="small"
-                        color="warning"
-                        onClick={handleLookAgain}
-                        style={{ flex: '0 0 auto' }}
-                      >
-                        再看看
-                      </Button>
-                      <Button 
-                        size="small"
-                        color="primary"
-                        onClick={handleRefreshMenu}
-                        icon={<RedoOutline />}
-                        style={{ flex: '0 0 auto' }}
-                      >
-                        刷新
-                      </Button>
+                      {message.isUserOrder && (
+                        <Button 
+                          size="small"
+                          color="primary"
+                          onClick={handleOpenMenuPopup}
+                          style={{ flex: '0 0 auto' }}
+                        >
+                          继续添加
+                        </Button>
+                      )}
+                      {!message.isUserOrder && (
+                        <>
+                          <Button 
+                            size="small"
+                            color="warning"
+                            onClick={handleLookAgain}
+                            style={{ flex: '0 0 auto' }}
+                          >
+                            再看看
+                          </Button>
+                          <Button 
+                            size="small"
+                            color="primary"
+                            onClick={handleRefreshMenu}
+                            icon={<RedoOutline />}
+                            style={{ flex: '0 0 auto' }}
+                          >
+                            刷新
+                          </Button>
+                        </>
+                      )}
                       <Button 
                         size="small" 
                         color="success" 
@@ -599,8 +871,7 @@ function UserOrder() {
               <div className="close-voice-btn" onClick={toggleVoiceMode}>×</div>
             ) : (
               <>
-                <CameraOutline className="icon-btn" fontSize={24} />
-                <AddCircleOutline className="icon-btn" fontSize={24} />
+                <AddCircleOutline className="icon-btn" fontSize={24} onClick={handleOpenMenuPopup} />
               </>
             )}
           </div>
@@ -684,6 +955,119 @@ function UserOrder() {
             }}
             title="Flappy Bird Game"
           />
+        </div>
+      </Popup>
+
+      {/* 菜单浏览 Popup */}
+      <Popup
+        visible={showMenuPopup}
+        onMaskClick={() => setShowMenuPopup(false)}
+        onClose={() => setShowMenuPopup(false)}
+        bodyStyle={{ 
+          height: '80vh',
+          borderTopLeftRadius: '16px',
+          borderTopRightRadius: '16px',
+          overflow: 'hidden'
+        }}
+      >
+        <div className="menu-popup-container">
+          <div className="menu-popup-content">
+            {/* 左侧分类栏 */}
+            <div className="menu-popup-sidebar">
+              <SideBar
+                activeKey={activeCategory}
+                onChange={handleCategoryChange}
+              >
+                {categories.map(category => {
+                  const count = getCategoryDishCount(category._id);
+                  return (
+                    <SideBar.Item
+                      key={category._id}
+                      title={
+                        <Badge content={count > 0 ? count : null} style={{ '--right': '-8px', '--top': '8px' }}>
+                          {category.name}
+                        </Badge>
+                      }
+                    />
+                  );
+                })}
+              </SideBar>
+            </div>
+
+            {/* 右侧菜品列表 */}
+            <div 
+              className="menu-popup-dishes"
+              ref={menuContentRef}
+              onScroll={handleMenuScroll}
+            >
+              {categories.length === 0 ? (
+                <Empty description="暂无分类" />
+              ) : (
+                categories.map(category => {
+                  const categoryDishes = groupDishesByCategory()[category._id]?.dishes || [];
+                  
+                  return (
+                    <div 
+                      key={category._id} 
+                      className="popup-category-section"
+                      ref={el => categoryRefs.current[category._id] = el}
+                    >
+                      <Divider contentPosition="left">{category.name}</Divider>
+
+                      {categoryDishes.length === 0 ? (
+                        <div className="empty-category">暂无菜品</div>
+                      ) : (
+                        <div className="popup-dishes-list">
+                          {categoryDishes.map(dish => (
+                            <div key={dish._id} className="popup-dish-card">
+                              <div className="popup-dish-info">
+                                <div className="popup-dish-name">{dish.name}</div>
+                                {dish.description && (
+                                  <div className="popup-dish-description">
+                                    {dish.description}
+                                  </div>
+                                )}
+                                <div className="popup-dish-tags">
+                                  {dish.isSpicy && <span className="tag spicy">🌶️ 辣</span>}
+                                  {dish.hasScallions && <span className="tag">🧅 葱</span>}
+                                  {dish.hasCilantro && <span className="tag">🌿 香菜</span>}
+                                  {dish.hasGarlic && <span className="tag">🧄 蒜</span>}
+                                </div>
+                                <div className="popup-dish-bottom">
+                                  <span className="popup-dish-price">¥{dish.price}</span>
+                                  <Stepper
+                                    value={dishQuantities[dish._id] || 0}
+                                    onChange={(value) => handleDishQuantityChange(dish._id, value)}
+                                    min={0}
+                                    max={99}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* 底部固定栏 */}
+          <div className="menu-popup-footer">
+            <div className="total-section">
+              <span className="total-label">合计：</span>
+              <span className="total-price">¥{calculateTotalPrice()}</span>
+            </div>
+            <Button
+              color="primary"
+              onClick={handleConfirmSelection}
+              className="confirm-btn"
+            >
+              确认
+            </Button>
+          </div>
         </div>
       </Popup>
     </div>

@@ -10,6 +10,10 @@ export class CreateDishDto {
   price: number;
 
   @IsString()
+  @IsNotEmpty()
+  categoryId: string;
+
+  @IsString()
   @IsOptional()
   description?: string;
 

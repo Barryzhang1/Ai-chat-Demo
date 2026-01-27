@@ -7,12 +7,15 @@ import Register from './pages/Register/Register';
 import RoleSelect from './pages/RoleSelect/RoleSelect';
 import Chat from './pages/Chat/Chat';
 import UserOrder from './pages/UserOrder/UserOrder';
+import MenuBrowse from './pages/MenuBrowse/MenuBrowse';
 import MerchantDashboard from './pages/MerchantDashboard/MerchantDashboard';
 import OrderList from './pages/MerchantDashboard/OrderList';
 import Inventory from './pages/MerchantDashboard/Inventory';
+import SeatManagement from './pages/MerchantDashboard/SeatManagement';
 import GameRankings from './pages/MerchantDashboard/GameRankings';
 import DataReports from './pages/MerchantDashboard/DataReports';
 import AddDish from './pages/MerchantDashboard/AddDish';
+import CategoryManagement from './pages/MerchantDashboard/CategoryManagement';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { authUtils } from './utils/auth';
 import './App.css';
@@ -49,7 +52,9 @@ function AppRoutes() {
             />
             <Route path="/merchant/orders" element={<OrderList />} />
             <Route path="/merchant/inventory" element={<Inventory />} />
+            <Route path="/merchant/seats" element={<SeatManagement />} />
             <Route path="/merchant/rankings" element={<GameRankings />} />
+            <Route path="/merchant/categories" element={<CategoryManagement />} />
             <Route path="/merchant/reports" element={<DataReports />} />
             <Route path="/merchant/add-dish" element={<AddDish />} />
             <Route
@@ -57,6 +62,14 @@ function AppRoutes() {
               element={
                 <ProtectedRoute>
                   <UserOrder />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/menu-browse"
+              element={
+                <ProtectedRoute>
+                  <MenuBrowse />
                 </ProtectedRoute>
               }
             />

@@ -6,6 +6,8 @@ import { DeepseekModule } from './modules/deepseek/deepseek.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DishModule } from './modules/dish/dish.module';
 import { OrderingModule } from './modules/ordering/ordering.module';
+import { CategoryModule } from './modules/category/category.module';
+import { SeatModule } from './modules/seat/seat.module';
 
 @Module({
   imports: [
@@ -47,6 +49,8 @@ import { OrderingModule } from './modules/ordering/ordering.module';
     AuthModule,
     DishModule,
     OrderingModule,
+    CategoryModule,
+    SeatModule,
   ],
   controllers: [],
   providers: [],

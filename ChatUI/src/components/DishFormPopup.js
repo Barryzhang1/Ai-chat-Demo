@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import { Form, Input, Button, Switch, Stepper } from 'antd-mobile';
+import { Form, Input, Button, Switch, Stepper, Selector } from 'antd-mobile';
 
-function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValues = {} }) {
+function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValues = {}, categories = [] }) {
   useEffect(() => {
     if (editMode && initialValues) {
       form.setFieldsValue(initialValues);
@@ -43,6 +43,17 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
           rules={[{ required: true, message: '请输入价格' }]}
         >
           <Input type="number" placeholder="请输入价格" clearable />
+        </Form.Item>
+
+        <Form.Item
+          name="categoryId"
+          label="分类"
+          rules={[{ required: true, message: '请选择分类' }]}
+        >
+          <Selector
+            columns={2}
+            options={categories.map(c => ({ label: c.name, value: c._id }))}
+          />
         </Form.Item>
 
         <Form.Item

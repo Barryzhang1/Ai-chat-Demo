@@ -4,13 +4,17 @@ import {
   TextArea,
   Button,
   Toast,
+  Dialog,
 } from 'antd-mobile';
 import {
   SendOutline,
   AddOutline,
   AudioOutline,
 } from 'antd-mobile-icons';
+import { io } from 'socket.io-client';
 import './Chat.css';
+
+let socket = null;
 
 const WELCOME_MESSAGE = {
   id: 'welcome',
@@ -25,6 +29,8 @@ const Chat = () => {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [seatInfo, setSeatInfo] = useState(null);
+  const [queueInfo, setQueueInfo] = useState(null);
   const messagesEndRef = useRef(null);
   const textAreaRef = useRef(null);
 
@@ -35,6 +41,70 @@ const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    // 初始化 Socket.IO 连接
+    socket = io('http://localhost:3001/seat', {
+      transports: ['websocket'],
+    });
+
+    socket.on('connect', () => {
+      console.log('Socket connected:', socket.id);
+      // 获取用户信息
+      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+      console.log('UserInfo from localStorage:', userInfo);
+      console.log('Nickname to send:', userInfo.nickname);
+      // 请求座位（只发送真实用户昵称）
+      if (userInfo.nickname) {
+        console.log('Emitting requestSeat with nickname:', userInfo.nickname);
+        socket.emit('requestSeat', { nickname: userInfo.nickname });
+      } else {
+        console.log('No nickname found, emitting requestSeat without nickname');
+        socket.emit('requestSeat', {});
+      }
+    });
+
+    socket.on('seatAssigned', (data) => {
+      console.log('Seat assigned:', data);
+      setSeatInfo(data);
+      setQueueInfo(null);
+      Toast.show({
+        icon: 'success',
+        content: `已分配座位：${data.seatNumber}号`,
+        duration: 3000,
+      });
+    });
+
+    socket.on('needQueue', (data) => {
+      console.log('Need queue:', data);
+      setQueueInfo(data);
+      setSeatInfo(null);
+      Toast.show({
+        icon: 'fail',
+        content: `当前座位已满，您在队列中的位置：${data.position}`,
+        duration: 3000,
+      });
+    });
+
+    socket.on('queueUpdate', (data) => {
+      console.log('Queue updated:', data);
+      setQueueInfo(data);
+    });
+
+    socket.on('error', (data) => {
+      console.error('Socket error:', data);
+      Toast.show({
+        icon: 'fail',
+        content: data.message || '连接错误',
+      });
+    });
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, []);
 
   const simulateTyping = useCallback((text, messageId) => {
     let currentIndex = 0;

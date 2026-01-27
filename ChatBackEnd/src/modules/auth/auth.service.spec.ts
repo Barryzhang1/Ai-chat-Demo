@@ -76,6 +76,12 @@ describe('AuthService', () => {
       });
 
       it('应该成功注册带下划线的昵称', () => {
+        const registerDto: RegisterDto = { nickname: 'User_Name' };
+        const result = service.register(registerDto);
+
+        expect(result.user.nickname).toBe('User_Name');
+      });
+
       it('应该为每个用户生成不同的token', () => {
         const user1 = service.register({ nickname: '用户A' });
         const user2 = service.register({ nickname: '用户B' });

@@ -11,6 +11,10 @@ export class UpdateDishDto {
 
   @IsString()
   @IsOptional()
+  categoryId?: string;
+
+  @IsString()
+  @IsOptional()
   description?: string;
 
   @IsBoolean()

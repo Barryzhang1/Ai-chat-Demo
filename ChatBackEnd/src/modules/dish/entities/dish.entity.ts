@@ -11,6 +11,9 @@ export class Dish {
   @Prop({ required: true })
   price: number;
 
+  @Prop({ required: true })
+  categoryId: string;
+
   @Prop({ required: false })
   description?: string;
 

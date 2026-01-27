@@ -19,17 +19,49 @@
   padding: 16px;
 }
 
-/* 自定义主题色 - 暗色模式 */
+/* 自定义主题色 - iOS 简洁风格 */
 :root {
+  /* Primary Color (iOS System Blue) */
   --adm-color-primary: #007aff;
   --color-primary-pressed: #0066d6;
   --color-primary-tint: rgba(0, 122, 255, 0.12);
   --color-primary-shadow: rgba(0, 122, 255, 0.2);
   --focus-ring: rgba(0, 122, 255, 0.35);
+  
+  /* Semantic Colors */
   --adm-color-success: #00b578;
   --adm-color-warning: #ff8f1f;
   --adm-color-danger: #ff3141;
-  --adm-color-text-primary: #ececf1;
-  --adm-color-text-secondary: #666;
-  --adm-color-background: #eeeeee;
+  
+  /* Neutral Colors */
+  --color-bg: #f5f5f5;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f7f7f8;
+  --color-text: #111111;
+  --color-text-secondary: #565869;
+  --color-divider: rgba(0, 0, 0, 0.06);
+  
+  /* Text Colors (for compatibility) */
+  --adm-color-text-primary: #111111;
+  --adm-color-text-secondary: #565869;
+  --adm-color-background: #f5f5f5;
+  
+  /* Border Radius */
+  --radius-card: 12px;
+  --radius-bubble: 12px;
+  --radius-pill: 999px;
+  
+  /* Shadow */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.10);
+  
+  /* Motion */
+  --t-fast: 120ms;
+  --t-med: 200ms;
+  --t-slow: 300ms;
+}
+
+/* 移除 SwipeAction 背景颜色 */
+.adm-swipe-action {
+  background-color: transparent;
 }

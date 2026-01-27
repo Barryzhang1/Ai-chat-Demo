@@ -18,7 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "update-dishes": "ts-node -r tsconfig-paths/register src/scripts/update-dishes.ts"
+    "update-dishes": "ts-node -r tsconfig-paths/register src/scripts/update-dishes.ts",
+    "random-assign-category": "ts-node -r tsconfig-paths/register src/scripts/random-assign-category.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -28,8 +29,10 @@
     "@nestjs/mongoose": "^11.0.4",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/platform-socket.io": "^11.1.12",
     "@nestjs/swagger": "^11.2.5",
     "@nestjs/typeorm": "^11.0.0",
+    "@nestjs/websockets": "^11.1.12",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
     "mongoose": "^9.1.5",
@@ -37,6 +40,8 @@
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "typeorm": "^0.3.28",
     "uuid": "^11.0.3"
   },
@@ -50,6 +55,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
     "@types/passport-jwt": "^4.0.1",
+    "@types/socket.io": "^3.0.1",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
