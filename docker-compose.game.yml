@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  # FlappyBird 游戏
+  flappybird:
+    build:
+      context: ./FlappyBird
+      dockerfile: Dockerfile
+    container_name: flappybird-game
+    restart: always
+    ports:
+      - "3002:80"
+    networks:
+      - chat-network
+
+networks:
+  chat-network:
+    external: true
+    name: ai-chat-network

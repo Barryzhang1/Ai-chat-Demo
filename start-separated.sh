@@ -14,7 +14,10 @@ docker-compose -f docker-compose.db.yml up -d
 echo "⏳ 等待数据库就绪..."
 sleep 5
 
-echo "🚀 启动应用服务 (Backend, UI, Game)..."
+echo "🚀 启动应用服务 (Backend & UI)..."
 docker-compose -f docker-compose.yml up -d --build
+
+echo "🚀 启动游戏服务 (FlappyBird)..."
+docker-compose -f docker-compose.game.yml up -d --build
 
 echo "✅ 所有服务启动完成！"
