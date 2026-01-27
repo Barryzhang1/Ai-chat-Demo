@@ -4,7 +4,7 @@ services:
     build:
       context: ./ChatBackEnd
       dockerfile: Dockerfile
-    container_name: chat-backend
+    container_name: chatbackend
     restart: always
     ports:
       - "3001:3001"
@@ -19,18 +19,13 @@ services:
       - MONGO_AUTH_SOURCE=admin
       - REDIS_HOST=chat-redis
       - REDIS_PORT=6379
+      - REDIS_URL=redis://chat-redis:6379
       - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3002
       - JWT_SECRET=your_jwt_secret_key_production_change_me
       - JWT_EXPIRATION=86400
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-your_deepseek_api_key_here}
     networks:
       - chat-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   # 前端 UI
   chatui:
@@ -41,12 +36,10 @@ services:
     restart: always
     ports:
       - "3000:80"
-    depends_on:
-      - chatbackend
     networks:
       - chat-network
 
 networks:
   chat-network:
-    external: true
     name: ai-chat-network
+    external: true

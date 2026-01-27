@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # FlappyBird 游戏
   flappybird:
@@ -15,5 +13,5 @@ services:
 
 networks:
   chat-network:
-    external: true
     name: ai-chat-network
+    external: true
