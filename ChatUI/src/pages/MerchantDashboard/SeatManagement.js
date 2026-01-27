@@ -45,6 +45,13 @@ const SeatManagement = () => {
       setQueueLength(data.queueLength || 0);
     });
 
+    socket.on('merchantSeatUpdate', (data) => {
+      console.log('Merchant seat update:', data);
+      setSeats(data.seats || []);
+      setStatistics(data.statistics || statistics);
+      setQueueLength(data.queueLength || 0);
+    });
+
     socket.on('seatStatus', (stats) => {
       console.log('Seat status updated:', stats);
       setStatistics(stats);
@@ -69,7 +76,7 @@ const SeatManagement = () => {
 
   const fetchSeats = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/seats');
+      const response = await fetch('http://localhost:3001/api/seats/with-status');
       if (response.ok) {
         const data = await response.json();
         setSeats(data);

@@ -11,12 +11,6 @@ import { Server, Socket } from 'socket.io';
 import { SeatService } from './seat.service';
 import { Logger } from '@nestjs/common';
 
-interface QueueUser {
-  socketId: string;
-  nickname?: string;
-  joinedAt: Date;
-}
-
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -29,7 +23,6 @@ export class SeatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private readonly logger = new Logger(SeatGateway.name);
-  private queue: QueueUser[] = [];
 
   constructor(private readonly seatService: SeatService) {}
 
@@ -43,17 +36,17 @@ export class SeatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // 释放座位
     const releasedSeat = await this.seatService.releaseSeatBySocketId(client.id);
 
-    // 从队列中移除
-    this.queue = this.queue.filter((user) => user.socketId !== client.id);
+    // 从排队队列中移除
+    await this.seatService.leaveQueue(client.id);
 
     // 如果释放了座位，处理队列中等待的用户
     if (releasedSeat) {
       this.logger.log(`Seat ${releasedSeat.seatNumber} released by ${client.id}, processing queue...`);
+      await this.notifyMerchantSeatChange();
       await this.processQueue();
     } else {
       // 如果没有释放座位（用户可能只是在排队），只广播状态
-      await this.broadcastSeatStatus();
-      this.broadcastQueueStatus();
+      await this.notifyMerchantSeatChange();
     }
   }
 
@@ -89,36 +82,27 @@ export class SeatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         );
 
         // 广播座位状态更新
-        await this.broadcastSeatStatus();
+        await this.notifyMerchantSeatChange();
       } else {
-        // 添加到队列
-        const existingInQueue = this.queue.find(
-          (user) => user.socketId === client.id,
+        // 添加到排队队列
+        const position = await this.seatService.joinQueue(
+          client.id,
+          data?.nickname,
+          1,
         );
-
-        if (!existingInQueue) {
-          this.queue.push({
-            socketId: client.id,
-            nickname: data?.nickname,
-            joinedAt: new Date(),
-          });
-        }
 
         // 通知用户需要排队
-        const position = this.queue.findIndex(
-          (user) => user.socketId === client.id,
-        );
         client.emit('needQueue', {
-          position: position + 1,
-          queueLength: this.queue.length,
+          position,
+          queueLength: await this.seatService.getQueueLength(),
         });
 
         this.logger.log(
-          `Client ${client.id} added to queue at position ${position + 1}`,
+          `Client ${client.id} added to queue at position ${position}`,
         );
 
         // 广播队列状态
-        this.broadcastQueueStatus();
+        await this.notifyMerchantSeatChange();
       }
     } catch (error) {
       this.logger.error(`Error handling seat request: ${error.message}`);
@@ -135,7 +119,7 @@ export class SeatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.logger.log(`Seat released by ${client.id}`);
 
       // 广播座位状态更新
-      await this.broadcastSeatStatus();
+      await this.notifyMerchantSeatChange();
 
       // 检查队列中是否有等待的用户
       await this.processQueue();
@@ -146,32 +130,32 @@ export class SeatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('getQueueStatus')
-  handleGetQueueStatus(@ConnectedSocket() client: Socket) {
-    const position = this.queue.findIndex(
-      (user) => user.socketId === client.id,
-    );
+  async handleGetQueueStatus(@ConnectedSocket() client: Socket) {
+    const position = await this.seatService.getQueuePosition(client.id);
 
     if (position === -1) {
       client.emit('queueStatus', { inQueue: false });
     } else {
       client.emit('queueStatus', {
         inQueue: true,
-        position: position + 1,
-        queueLength: this.queue.length,
+        position,
+        queueLength: await this.seatService.getQueueLength(),
       });
     }
   }
 
   // 处理队列，为等待的用户分配座位
   private async processQueue() {
-    if (this.queue.length === 0) {
+    const queueLength = await this.seatService.getQueueLength();
+    
+    if (queueLength === 0) {
       return;
     }
 
     const availableSeats = await this.seatService.findAvailableSeats();
 
-    while (availableSeats.length > 0 && this.queue.length > 0) {
-      const nextUser = this.queue.shift();
+    while (availableSeats.length > 0 && (await this.seatService.getQueueLength()) > 0) {
+      const nextUser = await this.seatService.callNext();
       const seat = availableSeats.shift();
 
       if (!nextUser || !seat) {
@@ -192,6 +176,11 @@ export class SeatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           seatId: occupiedSeat._id.toString(),
         });
 
+        // 也发送 called 事件
+        this.server.to(nextUser.socketId).emit('called', {
+          message: `已为您分配座位：${occupiedSeat.seatNumber}号`,
+        });
+
         this.logger.log(
           `Seat ${occupiedSeat.seatNumber} assigned to queued user ${nextUser.socketId}`,
         );
@@ -199,36 +188,33 @@ export class SeatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.logger.error(
           `Error assigning seat to queued user: ${error.message}`,
         );
-        // 将用户重新加入队列
+        // 如果分配失败，将用户重新加入队列头部
         if (nextUser) {
-          this.queue.unshift(nextUser);
+          await this.seatService.joinQueue(
+            nextUser.socketId,
+            nextUser.nickname,
+            nextUser.partySize,
+          );
         }
         break;
       }
     }
 
     // 广播更新后的状态
-    await this.broadcastSeatStatus();
-    this.broadcastQueueStatus();
-  }
-
-  // 广播座位状态给所有客户端
-  private async broadcastSeatStatus() {
-    const statistics = await this.seatService.getStatistics();
-    this.server.emit('seatStatus', statistics);
-  }
-
-  // 广播队列状态给所有客户端
-  private broadcastQueueStatus() {
-    this.server.emit('queueStatus', {
-      queueLength: this.queue.length,
-    });
-
+    await this.notifyMerchantSeatChange();
+    
     // 更新队列中每个用户的位置
-    this.queue.forEach((user, index) => {
+    await this.updateQueuePositions();
+  }
+
+  // 更新队列中所有用户的排队位置
+  private async updateQueuePositions() {
+    const queueList = await this.seatService.getQueueList();
+    
+    queueList.forEach((user, index) => {
       this.server.to(user.socketId).emit('queueUpdate', {
         position: index + 1,
-        queueLength: this.queue.length,
+        queueLength: queueList.length,
       });
     });
   }
@@ -237,13 +223,15 @@ export class SeatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('getMerchantSeatStatus')
   async handleGetMerchantSeatStatus(@ConnectedSocket() client: Socket) {
     try {
-      const seats = await this.seatService.findAll();
+      const seats = await this.seatService.findAllWithStatus();
       const statistics = await this.seatService.getStatistics();
+      const queueList = await this.seatService.getQueueList();
 
       client.emit('merchantSeatStatus', {
         seats,
         statistics,
-        queueLength: this.queue.length,
+        queueList,
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       this.logger.error(
@@ -253,9 +241,27 @@ export class SeatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  // 座位状态变更时，通知商家端
+  // 座位状态变更时，通知所有商家端
   async notifyMerchantSeatChange() {
-    await this.broadcastSeatStatus();
-    this.broadcastQueueStatus();
+    try {
+      const seats = await this.seatService.findAllWithStatus();
+      const statistics = await this.seatService.getStatistics();
+      const queueList = await this.seatService.getQueueList();
+
+      this.server.emit('merchantSeatUpdate', {
+        seats,
+        statistics,
+        queueList,
+        timestamp: new Date().toISOString(),
+      });
+
+      // 同时广播统计信息给所有客户端
+      this.server.emit('seatStatus', statistics);
+      this.server.emit('queueStatus', {
+        queueLength: statistics.queueLength,
+      });
+    } catch (error) {
+      this.logger.error(`Error notifying merchant seat change: ${error.message}`);
+    }
   }
 }

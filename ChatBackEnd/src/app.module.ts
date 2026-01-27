@@ -8,6 +8,7 @@ import { DishModule } from './modules/dish/dish.module';
 import { OrderingModule } from './modules/ordering/ordering.module';
 import { CategoryModule } from './modules/category/category.module';
 import { SeatModule } from './modules/seat/seat.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { SeatModule } from './modules/seat/seat.module';
         };
       },
     }),
+    RedisModule,
     ChatModule,
     DeepseekModule,
     AuthModule,

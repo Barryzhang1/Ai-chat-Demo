@@ -100,12 +100,11 @@ trap cleanup SIGINT SIGTERM
 # 启动后端 (后台运行)
 echo -e "${GREEN}🟢 启动后端服务 (Port 3001)...${NC}"
 cd ChatBackEnd
-npm run start > ../backend.log 2>&1 &
+npm run start &
 BACKEND_PID=$!
 cd ..
 
 echo "  - 后端 PID: $BACKEND_PID"
-echo "  - 后端日志: tail -f backend.log"
 
 # 等待后端稍微启动一下
 sleep 3
@@ -114,19 +113,18 @@ sleep 3
 echo -e "${GREEN}🟢 启动前端服务 (Port 3000)...${NC}"
 cd ChatUI
 # 这里不使用 webpack serve 的 open 参数，或者让它只是运行
-npm start > ../frontend.log 2>&1 &
+npm start &
 FRONTEND_PID=$!
 cd ..
 
 echo "  - 前端 PID: $FRONTEND_PID"
-echo "  - 前端日志: tail -f frontend.log"
 
 echo ""
 echo -e "${GREEN}✨ 服务已启动!${NC}"
 echo -e "   前端访问: ${BLUE}http://localhost:3000${NC}"
 echo -e "   后端 API: ${BLUE}http://localhost:3001${NC}"
 echo ""
-echo "正在监听日志 (按 Ctrl+C 停止所有服务)..."
+echo "按 Ctrl+C 停止所有服务..."
 
-# 同时输出两个日志文件的末尾，方便调试
-tail -f backend.log frontend.log
+# 等待所有后台进程
+wait
