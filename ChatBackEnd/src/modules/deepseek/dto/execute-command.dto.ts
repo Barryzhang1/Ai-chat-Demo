@@ -10,6 +10,9 @@ export class ExecuteCommandDto {
   @IsNotEmpty()
   command: string;
 
+  @IsString()
+  systemPrompt: string;
+
   @ApiProperty({
     description: '额外参数',
     example: ['--format', 'json'],

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NavBar, Input, Button, Toast, Dialog, Popup, SideBar, Divider, Stepper, Empty, Badge } from 'antd-mobile';
-import { SendOutline, CameraOutline, AddCircleOutline, RedoOutline } from 'antd-mobile-icons';
+import { NavBar, Input, Button, Toast, Popup, SideBar, Divider, Stepper, Empty, Badge } from 'antd-mobile';
+import { AddCircleOutline, RedoOutline } from 'antd-mobile-icons';
 import { io } from 'socket.io-client';
 import { categoryApi } from '../../api/categoryApi';
 import { dishApi } from '../../api/dishApi';
@@ -242,7 +242,6 @@ function UserOrder() {
 
   // 确认选择的菜品
   const handleConfirmSelection = () => {
-    console.log('handleConfirmSelection called');
     const selectedDishes = [];
     Object.entries(dishQuantities).forEach(([dishId, quantity]) => {
       if (quantity > 0) {
@@ -253,8 +252,6 @@ function UserOrder() {
       }
     });
 
-    console.log('Selected dishes:', selectedDishes);
-
     if (selectedDishes.length === 0) {
       Toast.show({ content: '请选择菜品' });
       return;
@@ -262,7 +259,6 @@ function UserOrder() {
 
     // 计算总价
     const totalPrice = calculateTotalPrice();
-    console.log('Total price:', totalPrice);
 
     // 生成订单消息
     const orderMessage = {
@@ -279,16 +275,11 @@ function UserOrder() {
       })),
       totalPrice: totalPrice,
       timestamp: new Date(),
-      isUserOrder: true, // 标记为用户自选订单
+      isUserOrder: true,
     };
 
-    console.log('Order message:', orderMessage);
-
     // 添加到消息列表
-    setMessages(prev => {
-      console.log('Adding order message to messages');
-      return [...prev, orderMessage];
-    });
+    setMessages(prev => [...prev, orderMessage]);
     
     Toast.show({ icon: 'success', content: `已选择 ${selectedDishes.length} 道菜` });
     setShowMenuPopup(false);
@@ -316,23 +307,15 @@ function UserOrder() {
     });
 
     socket.on('connect', () => {
-      console.log('Socket connected:', socket.id);
-      // 获取用户信息
       const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      console.log('UserInfo from localStorage:', userInfo);
-      console.log('Nickname to send:', userInfo.nickname);
-      // 请求座位（只发送真实用户昵称）
       if (userInfo.nickname) {
-        console.log('Emitting requestSeat with nickname:', userInfo.nickname);
         socket.emit('requestSeat', { nickname: userInfo.nickname });
       } else {
-        console.log('No nickname found, emitting requestSeat without nickname');
         socket.emit('requestSeat', {});
       }
     });
 
     socket.on('seatAssigned', (data) => {
-      console.log('Seat assigned:', data);
       setSeatInfo(data);
       setQueueInfo(null);
       Toast.show({
@@ -343,7 +326,6 @@ function UserOrder() {
     });
 
     socket.on('needQueue', (data) => {
-      console.log('Need queue:', data);
       setQueueInfo(data);
       setSeatInfo(null);
       Toast.show({
@@ -354,7 +336,6 @@ function UserOrder() {
     });
 
     socket.on('queueUpdate', (data) => {
-      console.log('Queue updated:', data);
       setQueueInfo(data);
       if (data.position <= 3) {
         Toast.show({
@@ -365,7 +346,6 @@ function UserOrder() {
     });
 
     socket.on('error', (data) => {
-      console.error('Socket error:', data);
       Toast.show({
         icon: 'fail',
         content: data.message || '连接错误',
@@ -575,8 +555,6 @@ function UserOrder() {
         }
       }
       
-      console.log('使用音频格式:', options.mimeType || 'default');
-      
       // 创建 MediaRecorder
       mediaRecorderRef.current = new MediaRecorder(stream, options);
       
@@ -584,13 +562,11 @@ function UserOrder() {
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
-          console.log('收集音频块:', event.data.size, 'bytes');
         }
       };
       
       // 开始录音
       mediaRecorderRef.current.start();
-      console.log('开始录音...');
     } catch (error) {
       console.error('麦克风权限错误:', error);
       Toast.show('无法访问麦克风，请检查权限设置');
@@ -636,14 +612,7 @@ function UserOrder() {
           // 创建临时音频元素获取实际时长
           const tempAudio = new Audio(audioUrl);
           tempAudio.addEventListener('loadedmetadata', () => {
-            const duration = Math.ceil(tempAudio.duration); // 向上取整到秒
-            
-            console.log('录音完成');
-            console.log('音频格式:', mimeType);
-            console.log('音频大小:', audioBlob.size, 'bytes');
-            console.log('音频URL:', audioUrl);
-            console.log('音频时长:', duration, '秒');
-            console.log('音频块数量:', audioChunksRef.current.length);
+            const duration = Math.ceil(tempAudio.duration);
             
             // 添加语音消息到聊天
             const voiceMessage = {
@@ -1093,10 +1062,7 @@ function UserOrder() {
             </div>
             <Button
               color="primary"
-              onClick={() => {
-                console.log('Button clicked!');
-                handleConfirmSelection();
-              }}
+              onClick={handleConfirmSelection}
               className="confirm-btn"
             >
               确认

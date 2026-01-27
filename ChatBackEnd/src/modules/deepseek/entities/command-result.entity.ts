@@ -14,6 +14,27 @@ export class CommandResult {
   output: string;
 
   @ApiProperty({
+    description: '命令输出的 JSON 格式内容（包含查询语句和查询结果）',
+    example: {
+      query: [],
+      result: [],
+      resultCount: 0,
+      parseRetryCount: 0,
+      executionRetryCount: 0,
+    },
+    required: false,
+  })
+  json?: {
+    query?: any;
+    result?: any[];
+    resultCount?: number;
+    parseRetryCount?: number;
+    executionRetryCount?: number;
+    error?: string;
+    originalOutput?: string;
+  };
+
+  @ApiProperty({
     description: '错误信息(如果有)',
     example: null,
     required: false,
