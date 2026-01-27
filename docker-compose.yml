@@ -1,18 +1,15 @@
 services:
   # 后端服务
   chatbackend:
-    image: node:18-alpine
+    build:
+      context: ./ChatBackEnd
+      dockerfile: Dockerfile
     container_name: chat-backend
     restart: always
-    working_dir: /app
-    command: sh -c "apk add --no-cache curl && sleep 5 && npm install && npm run start:dev"
     ports:
       - "3001:3001"
-    volumes:
-      - ./ChatBackEnd:/app
-      - /app/node_modules
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - PORT=3001
       - MONGO_HOST=chat-mongodb
       - MONGO_PORT=27017
@@ -29,7 +26,7 @@ services:
     networks:
       - chat-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

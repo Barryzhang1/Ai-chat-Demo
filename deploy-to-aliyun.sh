@@ -239,7 +239,8 @@ setup_env() {
 start_services() {
     print_step "🚀 启动服务"
     
-    ssh_cmd "cd $REMOTE_DIR && chmod +x docker.sh && ./docker.sh stop || true && ./docker.sh rebuild"
+    # 使用分离后的启动脚本
+    ssh_cmd "cd $REMOTE_DIR && chmod +x start-separated.sh && ./start-separated.sh"
     
     print_msg $GREEN "✅ 服务启动完成"
 }
