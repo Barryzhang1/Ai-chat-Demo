@@ -2,7 +2,11 @@
 
 ## 功能描述
 
-当用户点击刷新菜单按钮时，系统通过用户认证信息获取购物车，从购物车中读取保存的查询条件（`preferences` 字段），重新查询数据库获取不同的菜品，并覆盖写入到购物车中，返回更新后的菜品列表和购物车信息。此功能允许用户在不改变需求的情况下，获取不同的菜品推荐组合。
+用户对当前推荐的菜品不满意时，可以点击刷新按钮，系统会基于上次保存的查询条件（人数、口味、忌口、价格范围等），**随机**重新查询数据库，返回不同的菜品结果，并自动更新购物车。
+
+**注意**：
+- 刷新后会替换购物车中的所有菜品
+- 如果用户已经下单，购物车和查询条件已清空，刷新菜单会返回错误，提示用户重新点餐
 
 ## API 规范
 
@@ -136,10 +140,13 @@
 **无保存的查询条件 (400 Bad Request)**：
 ```json
 {
-  "code": 400,
-  "message": "购物车中没有保存的查询条件，请先通过AI点餐"
+  "statusCode": 400,
+  "message": "购物车中没有保存的查询条件，无法刷新菜单。请先通过AI点餐或重新开始点餐",
+  "error": "Bad Request"
 }
 ```
+
+**说明**：当用户下单后，购物车和查询条件会被清空，此时调用刷新菜单接口会返回此错误。
 
 **无符合条件的菜品 (200 OK)**：
 ```json
@@ -169,13 +176,15 @@
 2. **获取购物车和查询条件**
    - 根据 `userId` 查询购物车
    - 检查购物车是否存在
-   - 从购物车的 `preferences` 字段读取查询条件
-   - 如果购物车不存在或没有保存的查询条件，返回错误提示
+   - 从购物车的 `queries` 和 `preferences` 字段读取查询条件
+   - 如果购物车不存在或没有保存的查询条件（`queries` 和 `preferences` 都为空），返回错误提示
+   - **注意**：用户下单后，购物车的 `queries` 和 `preferences` 会被清空，此时刷新菜单将失败
 
 3. **构建MongoDB查询**
    - 根据 `preferences.tags` 构建 `$in` 查询条件
    - 根据 `preferences.excludeTags` 构建 `$nin` 查询条件
-   - 设置查询结果数量限制T token）
+   - 根据 `preferences.minPrice` 和 `preferences.maxPrice` 构建价格范围条件
+   - 设置查询结果数量限制
    - 验证请求参数格式和范围
 
 4. **查询菜品**
@@ -208,6 +217,17 @@ if (preferences.excludeTags && preferences.excludeTags.length > 0) {
     query.tags.$nin = preferences.excludeTags;
   } else {
     query.tags = { $nin: preferences.excludeTags };
+  }
+}
+
+// 添加价格范围条件
+if (preferences.minPrice !== undefined || preferences.maxPrice !== undefined) {
+  query.price = {};
+  if (preferences.minPrice !== undefined) {
+    query.price.$gte = preferences.minPrice;
+  }
+  if (preferences.maxPrice !== undefined) {
+    query.price.$lte = preferences.maxPrice;
   }
 }
 
@@ -245,18 +265,24 @@ const totalPrice = cartDishes.reduce(
   0
 );
 
-// 覆盖更新购物车
+// 覆盖更新购物车（保持queries和preferences不变）
 await cartModel.findOneAndUpdate(
   { userId },
   {
     userId,
     dishes: cartDishes,
     totalPrice,
+    // queries 和 preferences 字段不更新，保持原有值
     updatedAt: new Date(),
   },
   { upsert: true, new: true }
 );
 ```
+
+**注意事项**：
+- 刷新菜单仅更新 `dishes` 和 `totalPrice` 字段
+- `queries` 和 `preferences` 字段保持不变，以便用户继续使用相同条件刷新
+- 如果用户下单，购物车的 `queries` 和 `preferences` 将被清空，之后无法继续刷新菜单
 
 ## 数据存储
 
@@ -277,10 +303,14 @@ await cartModel.findOneAndUpdate(
       quantity: number,        // 数量
     }
   ],
-  preferences: {               // 查询条件（用于刷新菜单）
+  queries: string[],           // DeepSeek查询记录（仅用于刷新菜单，下单后清空）
+  preferences: {               // 查询条件（用于刷新菜单，下单后清空）
     numberOfPeople: number,    // 就餐人数
     tags: string[],            // 偏好标签
     excludeTags: string[],     // 排除标签
+    minPrice: number,          // 最低价格
+    maxPrice: number,          // 最高价格
+    totalBudget: number,       // 总预算
     limit: number,             // 推荐数量
   },
   totalPrice: number,          // 总价
@@ -290,6 +320,8 @@ await cartModel.findOneAndUpdate(
 ```
 
 **更新策略**：
+- 刷新菜单时，覆盖 `dishes` 和 `totalPrice`，保持 `queries` 和 `preferences` 不变
+- 下单后，清空 `dishes`、`queries`、`preferences` 和 `totalPrice`，启动新会话
 ### DTO 验证
 
 无需DTO验证，因为不接收请求参数。
@@ -305,19 +337,14 @@ async refreshMenu(userId: string): Promise<RefreshMenuResponse> {
     throw new NotFoundException('购物车不存在，请先通过AI点餐');
   }
   
-  if (!cart.preferences) {
+  // 检查是否有保存的查询条件（queries 或 preferences）
+  if (!cart.queries?.length && !cart.preferences) {
     throw new BadRequestException(
-      '购物车中没有保存的查询条件，请先通过AI点餐'
+      '没有保存的查询条件，请先通过AI点餐。注意：下单后查询条件会被清空，需要重新开始点餐流程。'
     );
   }
   
-  const queryPreferences = cart.preferences; if (!cart || !cart.preferences) {
-      throw new BadRequestException(
-        '没有保存的查询条件，请先通过AI点餐或提供查询参数'
-      );
-    }
-    queryPreferences = cart.preferences;
-  }
+  const queryPreferences = cart.preferences;
   
   // 2. 构建查询条件
   const query = this.buildQuery(queryPreferences);
@@ -374,13 +401,6 @@ async refreshMenu(userId: string): Promise<RefreshMenuResponse> {
 - **输入**：空请求体 `{}`
 - **预期**：使用购物车的 `preferences` 重新查询，返回新菜品
 
-### 测试场景2：正常刷新（提供新条件）
-- **输入**：
-  ```json
-  {
-    "preferences": {
-      "tags": ["辣", "性价比"],
-      "limit": 5
 ### 测试场景2：排除标签
 - **输入**：
   ```json
@@ -394,12 +414,16 @@ async refreshMenu(userId: string): Promise<RefreshMenuResponse> {
   ```
 - **预期**：返回3道热菜，不包含海鲜和辣味
 
-### 测试场景3：无保存条件时刷新
-- **前置条件**：购物车中没有 `preferences` 字段
-- **输入**：空请求体 `{}`
-- **预期**：返回400错误，提示需要提供查询条件
+### 测试场景3：价格范围过滤
+- **输入**：通过AI点餐说"预算500，推荐5道菜"
+- **预期**：购物车保存 `totalBudget: 500`，刷新菜单时根据人数和菜品数量计算单价上限
 
-### 测试场景4：无匹配结果
+### 测试场景4：下单后刷新失败
+- **前置条件**：用户已完成下单，购物车的 `queries` 和 `preferences` 已被清空
+- **输入**：空请求体 `{}`
+- **预期**：返回400错误，提示"没有保存的查询条件，请先通过AI点餐。注意：下单后查询条件会被清空，需要重新开始点餐流程。"
+
+### 测试场景5：无匹配结果
 ## 使用场景
 
 ### 场景1：用户觉得推荐不满意
@@ -450,30 +474,27 @@ async refreshMenu(userId: string): Promise<RefreshMenuResponse> {
 - **操作**：连续调用刷新API 3次
 - **预期**：每次返回不同的5道辣味菜品（随机）
 
-### 测试场景3：无保存条件时刷新
-- **前置条件**：购物车中没有 `preferences` 字段
-- **操作**：调用刷新菜单API
-- **预期**：返回400错误，提示"购物车中没有保存的查询条件，请先通过AI点餐"
-
-### 测试场景4：购物车不存在
+### 测试场景3：购物车不存在
 - **前置条件**：用户从未创建过购物车
 - **操作**：调用刷新菜单API
 - **预期**：返回404错误，提示"购物车不存在，请先通过AI点餐"
 
-### 测试场景5：无匹配结果
+### 测试场景4：无匹配结果
 - **前置条件**：购物车中有查询条件 `{"tags": ["不存在的标签"], "limit": 5}`
 - **操作**：调用刷新菜单API
 - **预期**：返回空菜品列表，购物车清空
 
-### 测试场景6：多次刷新验证随机性
-- **前置条件**：购物车中有查询条件 `{"tags": ["辣"], "limit": 5}`
-- **操作**：连续调用刷新API 3次
-- **预期**：每次返回不同的5道辣味菜品（随机）
-
 ## 与其他功能的关联
 
 ### 与AI点餐的关系
-- AI点餐会将查询条件保存到购物车的 `preferences` 字段
+- AI点餐会将查询条件（包括价格偏好）保存到购物车的 `queries` 和 `preferences` 字段
+- 刷新菜单直接复用这些查询条件，无需用户重复输入
+- 两个API返回的数据结构完全一致（都包含 `cart` 对象）
+
+### 与下单功能的关系
+- 下单后，购物车的 `dishes`、`queries`、`preferences` 和 `totalPrice` 全部清空
+- 清空后尝试刷新菜单将返回错误，要求用户重新开始点餐流程
+- 这种设计实现了点餐会话的隔离，避免新订单被旧的查询条件影响
 - 刷新菜单直接使用保存的条件，无需用户重新输入
 - 如果用户想修改需求，需要通过AI点餐重新描述
 - 刷新菜单专注于"换一批"功能，不改变用户偏好

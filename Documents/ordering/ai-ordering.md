@@ -2,7 +2,12 @@
 
 ## 功能描述
 
-通过DeepSeek AI的自然语言处理能力，实现智能对话点餐功能。用户可以用自然语言描述就餐需求（人数、口味偏好、忌口等），AI解析需求后智能推荐菜品，并将推荐的菜品添加到用户购物车中。对于与点餐无关的消息，AI会引导用户进行点餐。
+通过DeepSeek AI的自然语言处理能力，实现智能对话点餐功能。用户可以用自然语言描述就餐需求（人数、口味偏好、忌口、**预算限制**等），AI解析需求后智能推荐菜品，并将推荐的菜品添加到用户购物车中。对于与点餐无关的消息，AI会引导用户进行点餐。
+
+**会话隔离机制**：
+- 用户下单后，系统自动启动新的点餐会话
+- AI只会读取“最后一次下单时间之后”的聊天记录（最多10条）
+- 如果下单后没有新消息，AI会将下一次对话视为全新的点餐请求
 
 ## API 规范
 
@@ -41,39 +46,34 @@ Content-Type: application/json
   "message": "推荐成功",
   "data": {
     "reply": "好的，为3位客人推荐以下辣味菜品：\n1. 宫保鸡丁 - ¥38\n2. 回锅肉 - ¥48\n3. 辣子鸡 - ¥55\n4. 麻婆豆腐 - ¥28\n已为您添加到购物车，需要添加其他菜品吗？",
-    "dishes": [
-      {
-        "dishId": "507f1f77bcf86cd799439011",
-        "name": "宫保鸡丁",
-        "price": 38,
-        "quantity": 1,
-        "tags": ["热菜", "鸡肉", "辣", "性价比", "经典"]
-      },
-      {
-        "dishId": "507f1f77bcf86cd799439012",
-        "name": "回锅肉",
-        "price": 48,
-        "quantity": 1,
-        "tags": ["热菜", "猪肉", "辣", "经典", "下饭"]
-      },
-      {
-        "dishId": "507f1f77bcf86cd799439013",
-        "name": "辣子鸡",
-        "price": 55,
-        "quantity": 1,
-        "tags": ["热菜", "鸡肉", "特辣", "下酒", "重口味"]
-      },
-      {
-        "dishId": "507f1f77bcf86cd799439014",
-        "name": "麻婆豆腐",
-        "price": 28,
-        "quantity": 1,
-        "tags": ["热菜", "素食", "辣", "经典", "性价比"]
-      }
-    ],
     "cart": {
-      "totalPrice": 169,
-      "totalItems": 4
+      "dishes": [
+        {
+          "dishId": "507f1f77bcf86cd799439011",
+          "name": "宫保鸡丁",
+          "price": 38,
+          "quantity": 1
+        },
+        {
+          "dishId": "507f1f77bcf86cd799439012",
+          "name": "回锅肉",
+          "price": 48,
+          "quantity": 1
+        },
+        {
+          "dishId": "507f1f77bcf86cd799439013",
+          "name": "辣子鸡",
+          "price": 55,
+          "quantity": 1
+        },
+        {
+          "dishId": "507f1f77bcf86cd799439014",
+          "name": "麻婆豆腐",
+          "price": 28,
+          "quantity": 1
+        }
+      ],
+      "totalPrice": 169
     }
   }
 }
@@ -87,10 +87,9 @@ Content-Type: application/json
   "message": "响应成功",
   "data": {
     "reply": "请问您是几人就餐，有什么口味偏好和忌口吗？我可以为您推荐合适的菜品。",
-    "dishes": [],
     "cart": {
-      "totalPrice": 0,
-      "totalItems": 0
+      "dishes": [],
+      "totalPrice": 0
     }
   }
 }
@@ -103,14 +102,13 @@ Content-Type: application/json
 | code | number | 响应码，0表示成功 |
 | message | string | 响应消息 |
 | data.reply | string | AI回复内容 |
-| data.dishes | array | 推荐的菜品列表 |
-| data.dishes[].dishId | string | 菜品ID (ObjectId) |
-| data.dishes[].name | string | 菜品名称 |
-| data.dishes[].price | number | 菜品价格 |
-| data.dishes[].quantity | number | 数量 |
-| data.dishes[].tags | string[] | 菜品标签 |
+| data.cart | object | 购物车信息 |
+| data.cart.dishes | array | 购物车中的菜品列表 |
+| data.cart.dishes[].dishId | string | 菜品ID (ObjectId) |
+| data.cart.dishes[].name | string | 菜品名称 |
+| data.cart.dishes[].price | number | 菜品价格 |
+| data.cart.dishes[].quantity | number | 数量 |
 | data.cart.totalPrice | number | 购物车总价 |
-| data.cart.totalItems | number | 购物车菜品总数 |
 
 #### 失败响应
 
@@ -262,6 +260,10 @@ Content-Type: application/json
 | "不吃辣" | 口味：不辣 | `{ tags: { $in: ["不辣"] } }` |
 | "不吃海鲜" | 忌口：海鲜 | `{ tags: { $nin: ["海鲜"] } }` |
 | "素食" | 饮食：素食 | `{ tags: { $in: ["素食"] } }` |
+| "预算500" | 总预算：500 | `{ totalBudget: 500 }` |
+| "人均100" | 人均预算：100 | `{ totalBudget: 人均×人数 }` |
+| "每个菜不超过50" | 单价上限：50 | `{ price: { $lte: 50 } }` |
+| "要高档点的" | 价格要求：高档 | `{ tags: ["高级"], minPrice: 60 }` |
 ### AI返回查询条件示例
 
 **示例1：3人就餐，喜欢辣的，不吃海鲜**
@@ -272,6 +274,73 @@ AI回复：
 QUERY_START
 {"numberOfPeople": 3, "tags": ["辣", "热菜", "性价比"], "excludeTags": ["海鲜"], "limit": 5}
 QUERY_END
+```
+
+后端执行查询：
+```javascript
+db.dishes.find({
+  tags: { 
+    $in: ["辣", "热菜", "性价比"],
+    $nin: ["海鲜"]
+  }
+}).limit(5)
+```
+
+**示例2：带领导，高级菜品**
+
+AI回复：
+```
+好的，为您推荐适合商务宴请的高级菜品。
+QUERY_START
+{"tags": ["带领导", "高级", "硬菜"], "limit": 4}
+QUERY_END
+```
+
+后端执行查询：
+```javascript
+db.dishes.find({
+  tags: { 
+    $in: ["带领导", "高级", "硬菜"]
+  }
+}).limit(4)
+```
+
+**示例3：3人就餐，预算500元**
+
+AI回复：
+```
+好的，为您推荐3人份，总预算500元的菜品。
+QUERY_START
+{"numberOfPeople": 3, "tags": ["性价比"], "totalBudget": 500, "limit": 5}
+QUERY_END
+```
+
+后端处理：
+- 计算平均每道菜预算：500 ÷ 5 = 100元
+- 执行查询：
+```javascript
+db.dishes.find({
+  tags: { $in: ["性价比"] },
+  price: { $lte: 100 }
+}).limit(5)
+```
+
+**示例4：每个菜不超过50元**
+
+AI回复：
+```
+好的，为您推荐单价不超过50元的菜品。
+QUERY_START
+{"tags": ["性价比"], "maxPrice": 50, "limit": 5}
+QUERY_END
+```
+
+后端执行查询：
+```javascript
+db.dishes.find({
+  tags: { $in: ["性价比"] },
+  price: { $lte: 50 }
+}).limit(5)
 ```
 
 后端执行查询：

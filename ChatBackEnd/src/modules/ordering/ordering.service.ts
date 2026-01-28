@@ -52,6 +52,9 @@ interface QueryPreferences {
   tags?: string[];
   excludeTags?: string[];
   limit?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  totalBudget?: number;
 }
 
 interface QueryCondition {
@@ -59,6 +62,8 @@ interface QueryCondition {
   excludeTags?: string[];
   limit?: number;
   description?: string;
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 @Injectable()
@@ -109,12 +114,6 @@ export class OrderingService {
     aiOrderDto: AiOrderDto,
   ): Promise<{
     message: string;
-    dishes: Array<{
-      dishId: string;
-      name: string;
-      price: number;
-      quantity: number;
-    }>;
     cart: {
       dishes: Array<{
         dishId: string;
@@ -177,12 +176,6 @@ export class OrderingService {
 
       return {
         message: responseMessage,
-        dishes: recommendedDishes.map((dish) => ({
-          dishId: dish._id.toString(),
-          name: dish.name,
-          price: dish.price,
-          quantity: 1,
-        })),
         cart: {
           dishes: cart.dishes.map((item) => ({
             dishId: item.dishId.toString(),
@@ -213,12 +206,6 @@ export class OrderingService {
 
       return {
         message: responseMessage,
-        dishes: recommendedDishes.map((dish) => ({
-          dishId: dish._id.toString(),
-          name: dish.name,
-          price: dish.price,
-          quantity: 1,
-        })),
         cart: {
           dishes: cart.dishes.map((item) => ({
             dishId: item.dishId.toString(),
@@ -239,7 +226,6 @@ export class OrderingService {
 
     return {
       message: responseMessage,
-      dishes: [],
       cart: {
         dishes: cart.dishes.map((item) => ({
           dishId: item.dishId.toString(),
@@ -257,28 +243,28 @@ export class OrderingService {
    */
   async refreshMenu(userId: string): Promise<{
     message: string;
-    dishes: Array<{
-      dishId: string;
-      name: string;
-      price: number;
-      quantity: number;
-    }>;
+    cart: {
+      dishes: Array<{
+        dishId: string;
+        name: string;
+        price: number;
+        quantity: number;
+      }>;
+      totalPrice: number;
+    };
   }> {
     this.logger.log('Refreshing menu for user: ' + userId);
 
     // 获取购物车中的偏好设置和查询条件
-    let cart = await this.cartModel.findOne({ userId }).exec();
+    const cart = await this.cartModel.findOne({ userId }).exec();
 
     if (!cart) {
-      // 如果购物车不存在，初始化一个
-      cart = await this.cartModel.create({
-        userId: userId,
-        dishes: [],
-        preferences: {
-          limit: 5,
-        },
-        totalPrice: 0,
-      });
+      throw new NotFoundException('购物车不存在，请先进行AI点餐');
+    }
+
+    // 检查是否有保存的查询条件
+    if ((!cart.queries || cart.queries.length === 0) && !cart.preferences) {
+      throw new BadRequestException('没有保存的查询条件，请先进行AI点餐');
     }
 
     let dishes: DishDocument[];
@@ -293,14 +279,31 @@ export class OrderingService {
       dishes = await this.queryDishesRandom(preferences);
     }
 
+    // 更新购物车
+    const dishesToAdd = dishes.map((dish) => ({
+      name: dish.name,
+      quantity: 1,
+    }));
+
+    await this.clearCartDishes(userId);
+    const updatedCart = await this.updateCart(
+      userId,
+      dishesToAdd,
+      cart.preferences,
+      cart.queries,
+    );
+
     return {
       message: '菜单已刷新',
-      dishes: dishes.map((dish) => ({
-        dishId: dish._id.toString(),
-        name: dish.name,
-        price: dish.price,
-        quantity: 1,
-      })),
+      cart: {
+        dishes: updatedCart.dishes.map((item) => ({
+          dishId: item.dishId.toString(),
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        totalPrice: updatedCart.totalPrice,
+      },
     };
   }
 
@@ -341,9 +344,11 @@ export class OrderingService {
       note: createOrderDto.note,
     });
 
-    // 清空购物车
+    // 清空购物车（包括查询条件和偏好设置）
     cart.dishes = [];
     cart.totalPrice = 0;
+    cart.queries = [];
+    cart.preferences = undefined;
     await cart.save();
 
     return {
@@ -449,6 +454,11 @@ export class OrderingService {
 - 口味分类："辣"、"特辣"、"不辣"、"甜口"
 - 其他："性价比"、"儿童"、"爸妈"、"带领导"、"相亲"、"清真"、"健康"、"经典"、"热门"等
 
+价格限定：
+- 当用户提到预算（如"预算500"、"人均100"、"每个菜不超过50"）时，需要计算价格范围
+- totalBudget: 总预算（会自动分配到每道菜）
+- minPrice/maxPrice: 单个菜品的价格范围
+
 用户可以：
 1. 询问菜品信息
 2. 表达就餐偏好（例如："我们3个人，想吃点辣的，不吃海鲜"）
@@ -470,22 +480,26 @@ export class OrderingService {
       "tags": ["热菜", "猪肉"],
       "excludeTags": ["素食"],
       "limit": 8,
-      "description": "荤菜"
+      "description": "荤菜",
+      "maxPrice": 60
     },
     {
       "tags": ["素食"],
       "limit": 8,
-      "description": "素菜"
+      "description": "素菜",
+      "maxPrice": 40
     },
     {
       "tags": ["主食"],
       "limit": 3,
-      "description": "主食"
+      "description": "主食",
+      "maxPrice": 20
     },
     {
       "tags": ["饮料"],
       "limit": 2,
-      "description": "饮料"
+      "description": "饮料",
+      "maxPrice": 15
     }
   ]
 }
@@ -496,6 +510,10 @@ export class OrderingService {
 3. 主食查询：tags包含"主食"
 4. 饮料查询：tags包含"饮料"
 5. 如果用户只说"想吃辣的"这种简单需求，可以不用queries，用旧的preferences即可
+6. 价格处理：
+   - 如果提到总预算（如"预算500"），设置totalBudget字段，系统会自动分配
+   - 如果提到单价范围（如"每个菜不超过50"），设置maxPrice字段
+   - 如果提到人均（如"人均100"），用人均×人数计算totalBudget
 
 注意：
 - 只返回JSON，不要添加任何其他文字
@@ -657,6 +675,30 @@ export class OrderingService {
         query.tags = { $nin: queryCondition.excludeTags };
       }
 
+      // 处理价格范围
+      if (
+        (queryCondition.minPrice !== undefined &&
+          queryCondition.minPrice !== null) ||
+        (queryCondition.maxPrice !== undefined &&
+          queryCondition.maxPrice !== null)
+      ) {
+        query.price = {} as { $gte?: number; $lte?: number };
+        if (
+          queryCondition.minPrice !== undefined &&
+          queryCondition.minPrice !== null
+        ) {
+          (query.price as { $gte?: number; $lte?: number }).$gte =
+            queryCondition.minPrice;
+        }
+        if (
+          queryCondition.maxPrice !== undefined &&
+          queryCondition.maxPrice !== null
+        ) {
+          (query.price as { $gte?: number; $lte?: number }).$lte =
+            queryCondition.maxPrice;
+        }
+      }
+
       const limit = queryCondition.limit || 5;
 
       MongoLogger.logQuery(
@@ -736,6 +778,22 @@ export class OrderingService {
       query.tags = { $nin: preferences.excludeTags };
     }
 
+    // 处理价格范围
+    if (
+      (preferences.minPrice !== undefined && preferences.minPrice !== null) ||
+      (preferences.maxPrice !== undefined && preferences.maxPrice !== null)
+    ) {
+      query.price = {} as { $gte?: number; $lte?: number };
+      if (preferences.minPrice !== undefined && preferences.minPrice !== null) {
+        (query.price as { $gte?: number; $lte?: number }).$gte =
+          preferences.minPrice;
+      }
+      if (preferences.maxPrice !== undefined && preferences.maxPrice !== null) {
+        (query.price as { $gte?: number; $lte?: number }).$lte =
+          preferences.maxPrice;
+      }
+    }
+
     const limit = preferences.limit || 5;
 
     MongoLogger.logQuery(
@@ -782,6 +840,22 @@ export class OrderingService {
       }
     } else if (preferences.excludeTags && preferences.excludeTags.length > 0) {
       query.tags = { $nin: preferences.excludeTags };
+    }
+
+    // 处理价格范围
+    if (
+      (preferences.minPrice !== undefined && preferences.minPrice !== null) ||
+      (preferences.maxPrice !== undefined && preferences.maxPrice !== null)
+    ) {
+      query.price = {} as { $gte?: number; $lte?: number };
+      if (preferences.minPrice !== undefined && preferences.minPrice !== null) {
+        (query.price as { $gte?: number; $lte?: number }).$gte =
+          preferences.minPrice;
+      }
+      if (preferences.maxPrice !== undefined && preferences.maxPrice !== null) {
+        (query.price as { $gte?: number; $lte?: number }).$lte =
+          preferences.maxPrice;
+      }
     }
 
     const limit = preferences.limit || 5;
@@ -844,6 +918,30 @@ export class OrderingService {
         queryCondition.excludeTags.length > 0
       ) {
         query.tags = { $nin: queryCondition.excludeTags };
+      }
+
+      // 处理价格范围
+      if (
+        (queryCondition.minPrice !== undefined &&
+          queryCondition.minPrice !== null) ||
+        (queryCondition.maxPrice !== undefined &&
+          queryCondition.maxPrice !== null)
+      ) {
+        query.price = {} as { $gte?: number; $lte?: number };
+        if (
+          queryCondition.minPrice !== undefined &&
+          queryCondition.minPrice !== null
+        ) {
+          (query.price as { $gte?: number; $lte?: number }).$gte =
+            queryCondition.minPrice;
+        }
+        if (
+          queryCondition.maxPrice !== undefined &&
+          queryCondition.maxPrice !== null
+        ) {
+          (query.price as { $gte?: number; $lte?: number }).$lte =
+            queryCondition.maxPrice;
+        }
       }
 
       const limit = queryCondition.limit || 5;
@@ -1118,7 +1216,7 @@ export class OrderingService {
   }
 
   /**
-   * 获取聊天历史
+   * 获取聊天历史（只获取最后一次下单后的消息）
    */
   private async getChatHistory(
     userId: string,
@@ -1129,10 +1227,25 @@ export class OrderingService {
       return [];
     }
 
-    // 只返回最近10条消息
-    const recentMessages = chatHistory.messages.slice(-10);
+    // 获取用户最后一次下单时间
+    const lastOrder = await this.orderModel
+      .findOne({ userId })
+      .sort({ createdAt: -1 })
+      .exec();
 
-    return recentMessages.map((msg) => ({
+    let recentMessages = chatHistory.messages;
+
+    // 如果有下单记录，只取下单时间之后的消息
+    if (lastOrder?.createdAt) {
+      recentMessages = chatHistory.messages.filter(
+        (msg) => msg.timestamp > lastOrder.createdAt!,
+      );
+    }
+
+    // 只返回最近10条消息
+    const limitedMessages = recentMessages.slice(-10);
+
+    return limitedMessages.map((msg) => ({
       role: msg.role,
       content: msg.content,
     }));

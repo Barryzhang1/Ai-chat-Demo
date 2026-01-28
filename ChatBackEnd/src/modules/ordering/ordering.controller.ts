@@ -48,7 +48,7 @@ export class OrderingController {
 
     return {
       code: 0,
-      message: result.dishes.length > 0 ? '推荐成功' : '响应成功',
+      message: result.cart.dishes.length > 0 ? '推荐成功' : '响应成功',
       data: result,
     };
   }
