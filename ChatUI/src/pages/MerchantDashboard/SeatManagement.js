@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Button, Toast, Dialog, Input, Tag, Space, Grid, NavBar } from 'antd-mobile';
 import { AddOutline, DeleteOutline, CloseOutline, CheckOutline } from 'antd-mobile-icons';
 import { io } from 'socket.io-client';
+import { config } from '../../config';
 import './MerchantDashboard.css';
 
 const { Item } = Grid;
@@ -23,14 +24,14 @@ const SeatManagement = () => {
 
   useEffect(() => {
     // 初始化 Socket.IO 连接
-    socket = io('http://localhost:3001/seat', {
+    socket = io(`${config.socketUrl}/seat`, {
       transports: ['websocket'],
     });
 
     socket.on('connect', () => {
       console.log('Merchant socket connected');
-      // 请求座位状态
-      socket.emit('getMerchantSeatStatus');
+      // 请求清理离线用户并获取座位状态
+      socket.emit('cleanupOfflineUsers');
     });
 
     socket.on('merchantSeatStatus', (data) => {
@@ -76,7 +77,7 @@ const SeatManagement = () => {
 
   const fetchSeats = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/seats/with-status');
+      const response = await fetch(`${config.apiUrl}/seats/with-status`);
       if (response.ok) {
         const data = await response.json();
         setSeats(data);
@@ -88,7 +89,7 @@ const SeatManagement = () => {
 
   const fetchStatistics = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/seats/statistics');
+      const response = await fetch(`${config.apiUrl}/seats/statistics`);
       if (response.ok) {
         const data = await response.json();
         setStatistics(data);
@@ -139,7 +140,7 @@ const SeatManagement = () => {
 
             setLoading(true);
             try {
-              const response = await fetch('http://localhost:3001/api/seats', {
+              const response = await fetch(`${config.apiUrl}/seats`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -194,7 +195,7 @@ const SeatManagement = () => {
     if (result) {
       setLoading(true);
       try {
-        const response = await fetch(`http://localhost:3001/api/seats/${seat._id}`, {
+        const response = await fetch(`${config.apiUrl}/seats/${seat._id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -241,7 +242,7 @@ const SeatManagement = () => {
     if (result) {
       setLoading(true);
       try {
-        const response = await fetch(`http://localhost:3001/api/seats/${seat._id}`, {
+        const response = await fetch(`${config.apiUrl}/seats/${seat._id}`, {
           method: 'DELETE',
         });
 

@@ -11,4 +11,9 @@ export class CreateCategoryDto {
   @IsNumber()
   @IsOptional()
   sortOrder?: number;
+
+  @ApiProperty({ description: '是否启用', example: true, required: false })
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
 }

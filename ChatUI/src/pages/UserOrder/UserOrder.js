@@ -1,98 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NavBar, Input, Button, Toast, Popup, SideBar, Divider, Stepper, Empty, Badge } from 'antd-mobile';
+import { NavBar, Input, Button, Toast, Popup, SideBar, Divider, Stepper, Empty, Badge, DotLoading } from 'antd-mobile';
 import { AddCircleOutline, RedoOutline } from 'antd-mobile-icons';
 import { io } from 'socket.io-client';
 import { categoryApi } from '../../api/categoryApi';
 import { dishApi } from '../../api/dishApi';
+import { orderApi } from '../../api/orderApi';
+import { config } from '../../config';
 import speakIcon from '../../assets/speak.svg';
 import './UserOrder.css';
 
 let socket = null;
-
-// 模拟菜品数据库
-const MOCK_DISHES = [
-  { 
-    id: 1, 
-    name: '宫保鸡丁', 
-    price: 38, 
-    description: '经典川菜，鸡肉鲜嫩，花生酥脆',
-    image: 'https://picsum.photos/200/200?random=1',
-    spicy: true
-  },
-  { 
-    id: 2, 
-    name: '鱼香肉丝', 
-    price: 35, 
-    description: '酸甜可口，下饭必备',
-    image: 'https://picsum.photos/200/200?random=2',
-    spicy: false
-  },
-  { 
-    id: 3, 
-    name: '麻婆豆腐', 
-    price: 28, 
-    description: '麻辣鲜香，豆腐嫩滑',
-    image: 'https://picsum.photos/200/200?random=3',
-    spicy: true
-  },
-  { 
-    id: 4, 
-    name: '水煮鱼', 
-    price: 68, 
-    description: '麻辣鲜香，鱼肉细嫩',
-    image: 'https://picsum.photos/200/200?random=4',
-    spicy: true
-  },
-  { 
-    id: 5, 
-    name: '回锅肉', 
-    price: 42, 
-    description: '肥而不腻，香气扑鼻',
-    image: 'https://picsum.photos/200/200?random=5',
-    spicy: false
-  },
-  { 
-    id: 6, 
-    name: '糖醋里脊', 
-    price: 45, 
-    description: '酸甜适中，外酥里嫩',
-    image: 'https://picsum.photos/200/200?random=6',
-    spicy: false
-  },
-  { 
-    id: 7, 
-    name: '清蒸鲈鱼', 
-    price: 78, 
-    description: '鱼肉鲜美，清淡健康',
-    image: 'https://picsum.photos/200/200?random=7',
-    spicy: false
-  },
-  { 
-    id: 8, 
-    name: '红烧排骨', 
-    price: 58, 
-    description: '色泽红亮，肉质酥烂',
-    image: 'https://picsum.photos/200/200?random=8',
-    spicy: false
-  },
-  { 
-    id: 9, 
-    name: '蒜蓉西兰花', 
-    price: 25, 
-    description: '清淡爽口，营养丰富',
-    image: 'https://picsum.photos/200/200?random=9',
-    spicy: false
-  },
-  { 
-    id: 10, 
-    name: '酸辣土豆丝', 
-    price: 18, 
-    description: '酸辣开胃，清脆爽口',
-    image: 'https://picsum.photos/200/200?random=10',
-    spicy: true
-  },
-];
 
 function UserOrder() {
   const [messages, setMessages] = useState([]);
@@ -123,6 +41,8 @@ function UserOrder() {
   const categoryRefs = useRef({});
   const navigate = useNavigate();
 
+  const [isGenerating, setIsGenerating] = useState(false);  
+
   // 获取菜品和分类数据
   const fetchMenuData = async () => {
     try {
@@ -148,10 +68,34 @@ function UserOrder() {
   };
 
   // 打开菜单 Popup
-  const handleOpenMenuPopup = () => {
-    setShowMenuPopup(true);
+  const handleOpenMenuPopup = async (recommendedMenu = null) => {
+    // 如果数据未加载，先加载数据
     if (categories.length === 0) {
-      fetchMenuData();
+      await fetchMenuData();
+    }
+    
+    // 如果有推荐菜单，先初始化菜品数量，再打开popup
+    if (recommendedMenu && recommendedMenu.length > 0) {
+      const quantities = {};
+      recommendedMenu.forEach(dish => {
+        // 后端返回的菜单中，菜品ID字段是id（从dishId映射而来）
+        const dishId = dish.id;
+        if (dishId) {
+          quantities[dishId] = dish.quantity || 1;
+        }
+      });
+      
+      // 先设置数量，然后延迟打开popup确保状态更新
+      setDishQuantities(quantities);
+      
+      // 使用 requestAnimationFrame 确保状态已更新
+      requestAnimationFrame(() => {
+        setShowMenuPopup(true);
+      });
+    } else {
+      // 清空之前的选择
+      setDishQuantities({});
+      setShowMenuPopup(true);
     }
   };
 
@@ -290,19 +234,53 @@ function UserOrder() {
 
   useEffect(() => {
     // 初始欢迎消息
-    setMessages([
-      {
-        role: 'assistant',
-        content: '您好！欢迎使用智能点餐系统。请告诉我您的点餐需求，比如：人数、预算、口味偏好、忌口等信息，我会为您推荐合适的菜品。',
-        timestamp: new Date(),
-      },
-    ]);
+    const fetchHistory = async () => {
+       try {
+         const res = await orderApi.getChatHistory();
+         if (res.data && res.data.length > 0) {
+            // Transform history to match UI
+            const history = res.data.map(msg => ({
+              role: msg.role,
+              content: msg.content,
+              menu: msg.metadata?.dishes?.length > 0 ? msg.metadata.dishes.map(d => ({
+                  id: d._id || d.id,
+                  name: d.name,
+                  price: d.price,
+                  description: d.description,
+                  image: d.image || d.imageUrl || `https://picsum.photos/200/200?random=${d.price}`,
+                  quantity: 1, // Default to 1 for display
+                  isSpicy: d.isSpicy || false
+              })) : null,
+              totalPrice: msg.metadata?.totalPrice || 0,
+              timestamp: new Date(msg.createdAt),
+              isUserOrder: msg.role === 'user' && msg.content === '我已选好菜品', // Heuristic
+              // Not handling audioUrl yet as API doesn't seem to return it typically or it's binary
+            })).reverse();
+            setMessages(history);
+            return;
+         }
+       } catch (e) {
+         console.error("Failed to load history", e);
+       }
+       
+       // Fallback or empty history
+       setMessages([
+        {
+          role: 'assistant',
+          content: '您好！欢迎使用智能点餐系统。请告诉我您的点餐需求，比如：人数、预算、口味偏好、忌口等信息，我会为您推荐合适的菜品。',
+ 
+          timestamp: new Date(),
+        },
+      ]);
+    }
+    
+    fetchHistory();
   }, []);
 
   // Socket.IO 连接和座位分配
   useEffect(() => {
     // 初始化 Socket.IO 连接
-    socket = io('http://localhost:3001/seat', {
+    socket = io(`${config.socketUrl}/seat`, {
       transports: ['websocket'],
     });
 
@@ -376,7 +354,10 @@ function UserOrder() {
     ) {
       let count = streamCharCounts[lastIdx] || 0;
       const timer = setTimeout(() => {
-        setStreamCharCounts(prev => ({ ...prev, [lastIdx]: count + 1 }));
+        setStreamCharCounts(prev => ({
+          ...prev,
+          [lastIdx]: count + 1
+        }));
       }, 30);
       return () => clearTimeout(timer);
     }
@@ -396,112 +377,151 @@ function UserOrder() {
     return keywords.some(keyword => text.includes(keyword));
   };
 
-  // 根据用户需求生成菜单
-  const generateMenu = (requirements) => {
-    // 简单的推荐逻辑：随机选择4-6道菜
-    const count = Math.floor(Math.random() * 3) + 4; // 4-6道菜
-    const shuffled = [...MOCK_DISHES].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
-  };
-
   // 处理发送消息
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
+  const handleSend = async () => {
+    if (!inputValue.trim() || isGenerating) return;
 
+    const content = inputValue.trim();
     const userMessage = {
       role: 'user',
-      content: inputValue,
+      content: content,
       timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, userMessage]);
-
-    // 判断是否与点餐相关
-    if (!isOrderRelated(inputValue)) {
-      const replyMessage = {
-        role: 'assistant',
-        content: '抱歉，我是一个点餐系统，不支持闲聊。请告诉我您的点餐需求。',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, replyMessage]);
-      setInputValue('');
-      return;
-    }
-
-    // 合并用户需求
-    const newRequirements = userRequirements ? `${userRequirements} ${inputValue}` : inputValue;
-    setUserRequirements(newRequirements);
-
-    // 生成菜单
-    const menu = generateMenu(newRequirements);
-    setCurrentMenu(menu);
-
-    // 计算总价
-    const totalPrice = menu.reduce((sum, dish) => sum + dish.price, 0);
-
-    const replyMessage = {
-      role: 'assistant',
-      content: '根据您的需求，为您推荐以下菜品：',
-      menu: menu,
-      totalPrice: totalPrice,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, replyMessage]);
     setInputValue('');
+    setIsGenerating(true);
+
+    // 1. 先插入loading消息
+    const loadingMessage = {
+      role: 'assistant',
+      content: <>正在火速翻阅菜单中，请稍后<DotLoading style={{marginLeft: 8}} /></>,
+      timestamp: new Date(),
+      isLoading: true,
+    };
+    setMessages(prev => [...prev, loadingMessage]);
+
+    try {
+       const res = await orderApi.aiOrder(content);
+       // 后端返回结构 data: { message: string, dishes: any[] }
+       // dishes 数组中每个对象包含: dishId, name, price, quantity
+       const { message: reply, dishes } = res.data || {};
+       
+       let menu = null;
+       let totalPrice = 0;
+       
+       if (dishes && dishes.length > 0) {
+          menu = dishes.map(d => ({
+             id: d.dishId,
+             name: d.name,
+             price: d.price,
+             description: d.description,
+             image: d.image || d.imageUrl || `https://picsum.photos/200/200?random=${d.price}`,
+             isSpicy: d.isSpicy || false,
+             quantity: d.quantity || 1
+          }));
+          totalPrice = menu.reduce((sum, dish) => sum + (dish.price * dish.quantity), 0);
+          setCurrentMenu(menu);
+       }
+
+       // 2. 替换loading消息为推荐结果
+       setMessages(prev => {
+         const idx = prev.findIndex(m => m.isLoading);
+         if (idx !== -1) {
+           const newMsgs = [...prev];
+           newMsgs[idx] = {
+             role: 'assistant',
+             content: reply || '收到您的需求，正在为您处理...',
+             menu: menu,
+             totalPrice: totalPrice,
+             timestamp: new Date(),
+           };
+           return newMsgs;
+         } else {
+           // fallback
+           return [
+             ...prev,
+             {
+               role: 'assistant',
+               content: reply || '收到您的需求，正在为您处理...',
+               menu: menu,
+               totalPrice: totalPrice,
+               timestamp: new Date(),
+             }
+           ];
+         }
+       });
+
+    } catch(err) {
+       console.error(err);
+       // 失败时也替换loading消息为错误
+       setMessages(prev => {
+         const idx = prev.findIndex(m => m.isLoading);
+         if (idx !== -1) {
+           const newMsgs = [...prev];
+           newMsgs[idx] = {
+             role: 'assistant',
+             content: '抱歉，服务出了点问题，请稍后再试。',
+ 
+             timestamp: new Date(),
+           };
+           return newMsgs;
+         } else {
+           return [
+             ...prev,
+             {
+               role: 'assistant',
+               content: '抱歉，服务出了点问题，请稍后再试。',
+ 
+               timestamp: new Date(),
+             }
+           ];
+         }
+       });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   // 确认订单
-  const handleConfirmOrder = () => {
+  const handleConfirmOrder = async () => {
     if (!currentMenu) return;
 
-    const totalPrice = currentMenu.reduce((sum, dish) => sum + dish.price, 0);
-    
-    // 创建订单
-    const order = {
-      id: `ORDER${Date.now()}`,
-      dishes: currentMenu,
-      totalPrice: totalPrice,
-      timestamp: new Date(),
-      userName: localStorage.getItem('userName'),
-    };
-
-    // 保存订单到 localStorage
-    const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-    orders.push(order);
-    localStorage.setItem('orders', JSON.stringify(orders));
-
-    setOrderConfirmed(true);
-
-    const confirmMessage = {
-      role: 'assistant',
-      content: `订单创建成功！\n订单号：${order.id}\n总金额：¥${totalPrice}\n感谢您的订购！`,
-      timestamp: new Date(),
-      isOrderConfirm: true,
-    };
-
-    setMessages(prev => [...prev, confirmMessage]);
-
-    // 发送游戏推荐消息
-    setTimeout(() => {
-      const gameMessage = {
+    try {
+      // 构造符合后端 CreateOrderDto 的数据
+      const items = currentMenu.map(dish => ({
+        dishId: dish.id || dish._id,
+        quantity: dish.quantity || 1
+      }));
+      const totalPrice = currentMenu.reduce((sum, dish) => sum + (dish.price * (dish.quantity || 1)), 0);
+      // 调用后端创建订单
+      const res = await orderApi.createOrder({ items });
+      // 成功后处理
+      const orderId = res.data?._id || `ORDER${Date.now()}`;
+      setOrderConfirmed(true);
+      setShowMenuPopup(false);
+      const confirmMessage = {
         role: 'assistant',
-        content: '订单已确认，等待期间可以玩游戏哦～',
+        content: `订单创建成功！\n订单号：${orderId}\n总金额：¥${totalPrice}\n感谢您的订购！`,
         timestamp: new Date(),
-        isGameRecommend: true,
+        isOrderConfirm: true,
       };
-      setMessages(prev => [...prev, gameMessage]);
-    }, 1000);
-  };
+      setMessages(prev => [...prev, confirmMessage]);
+      // 发送游戏推荐消息
+      setTimeout(() => {
+        const gameMessage = {
+          role: 'assistant',
+          content: '等待上菜期间，来玩个小游戏解解闷吧？',
+          timestamp: new Date(),
+          isGameRecommend: true,
+        };
+        setMessages(prev => [...prev, gameMessage]);
+      }, 1000);
 
-  // 再看看
-  const handleLookAgain = () => {
-    const message = {
-      role: 'assistant',
-      content: '好的，请告诉我您还有什么其他需求吗？我会为您重新推荐。',
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, message]);
+    } catch (e) {
+      console.error(e);
+      Toast.show({ icon: 'fail', content: '订单创建失败，请重试' });
+    }
   };
 
   // 切换语音模式
@@ -651,25 +671,35 @@ function UserOrder() {
   };
 
   // 刷新菜单
-  const handleRefreshMenu = () => {
-    if (!userRequirements) {
-      Toast.show('请先告诉我您的点餐需求');
-      return;
+  const handleRefreshMenu = async () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    
+    try {
+       const res = await orderApi.refreshMenu();
+       // 刷新后通常意味着清空上下文，或者重新请求一次 ai-order，
+       // 根据当前业务逻辑，这里假设 backend 刷新了内部状态，我们可能需要告诉用户已刷新
+       // 或者重新触发一次基于当前需求的推荐（如果需求还存在）
+       
+       Toast.show({icon: 'success', content: '菜单已刷新'});
+       
+       // Optional: Auto-trigger a new recommendation if we have requirements
+       // For now just show system message
+       const message = {
+          role: 'assistant',
+          content: '菜单上下文已刷新，请告诉我您新的点餐需求。',
+ 
+          timestamp: new Date(),
+       };
+       setMessages(prev => [...prev, message]);
+       setCurrentMenu(null); // Clear current menu
+       
+    } catch(e) {
+       console.error(e);
+       Toast.show('刷新失败');
+    } finally {
+       setIsGenerating(false);
     }
-
-    const menu = generateMenu(userRequirements);
-    setCurrentMenu(menu);
-    const totalPrice = menu.reduce((sum, dish) => sum + dish.price, 0);
-
-    const message = {
-      role: 'assistant',
-      content: '为您重新推荐以下菜品：',
-      menu: menu,
-      totalPrice: totalPrice,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, message]);
   };
 
   return (
@@ -734,7 +764,7 @@ function UserOrder() {
                       <Button 
                         size="small" 
                         color="primary"
-                        onClick={handleOpenMenuPopup}
+                        onClick={() => handleOpenMenuPopup(null)}
                         style={{ flex: '1' }}
                       >
                         继续点单
@@ -743,8 +773,10 @@ function UserOrder() {
                   </div>
                 ) : (
                   <div className="message-content">
-                    {message.role === 'assistant' && !message.menu && !message.audioUrl && !message.isContinueOrder && !message.isGameRecommend && !message.isOrderConfirm
-                      ? message.content.slice(0, streamCharCounts[index] || 0)
+                    {typeof message.content === 'string'
+                      ? (message.role === 'assistant' && !message.menu && !message.audioUrl && !message.isContinueOrder && !message.isGameRecommend && !message.isOrderConfirm
+                          ? message.content.slice(0, streamCharCounts[index] || 0)
+                          : message.content)
                       : message.content}
                   </div>
                 )}
@@ -758,15 +790,11 @@ function UserOrder() {
                     </div>
                   </div>
                   
-                  <div className="dishes-container" onClick={handleOpenMenuPopup}>
+                  <div className="dishes-container" onClick={() => handleOpenMenuPopup(message.menu)}>
                     {message.menu.map(dish => (
                       <div key={dish.id} className="dish-item">
-                        <img src={dish.image} alt={dish.name} className="dish-image" />
                         <div className="dish-info">
                           <div className="dish-name">{dish.name}</div>
-                          <div className="dish-tags">
-                            {!dish.spicy && <span className="tag">不辣🌶️</span>}
-                          </div>
                           <div className="dish-bottom">
                             <span className="dish-price">¥{dish.price}</span>
                             <span className="dish-quantity">x{dish.quantity || 1}</span>
@@ -784,45 +812,13 @@ function UserOrder() {
                   </div>
                   
                   {!orderConfirmed && (
-                    <div className="menu-actions">
-                      {message.isUserOrder && (
-                        <Button 
-                          size="small"
-                          color="primary"
-                          onClick={handleOpenMenuPopup}
-                          style={{ flex: '0 0 auto' }}
-                        >
-                          继续添加
-                        </Button>
-                      )}
-                      {!message.isUserOrder && (
-                        <>
-                          <Button 
-                            size="small"
-                            color="warning"
-                            onClick={handleLookAgain}
-                            style={{ flex: '0 0 auto' }}
-                          >
-                            再看看
-                          </Button>
-                          <Button 
-                            size="small"
-                            color="primary"
-                            onClick={handleRefreshMenu}
-                            icon={<RedoOutline />}
-                            style={{ flex: '0 0 auto' }}
-                          >
-                            刷新
-                          </Button>
-                        </>
-                      )}
+                    <div className="menu-actions" style={{ display: 'flex', justifyContent: 'flex-end' }}>
                       <Button 
                         size="small" 
                         color="success" 
                         onClick={handleConfirmOrder}
-                        style={{ flex: '1' }}
                       >
-                        确认订单
+                        支付
                       </Button>
                     </div>
                   )}
@@ -1018,33 +1014,39 @@ function UserOrder() {
                         <div className="empty-category">暂无菜品</div>
                       ) : (
                         <div className="popup-dishes-list">
-                          {categoryDishes.map(dish => (
-                            <div key={dish._id} className="popup-dish-card">
-                              <div className="popup-dish-info">
-                                <div className="popup-dish-name">{dish.name}</div>
-                                {dish.description && (
-                                  <div className="popup-dish-description">
-                                    {dish.description}
+                          {categoryDishes.map(dish => {
+                            const selected = dishQuantities[dish._id] >= 1;
+                            return (
+                              <div
+                                key={dish._id}
+                                className={`popup-dish-card${selected ? ' popup-dish-card-selected' : ''}`}
+                              >
+                                <div className="popup-dish-info">
+                                  <div className="popup-dish-name">{dish.name}</div>
+                                  {dish.description && (
+                                    <div className="popup-dish-description">
+                                      {dish.description}
+                                    </div>
+                                  )}
+                                  <div className="popup-dish-tags">
+                                    {dish.isSpicy && <span key={`${dish._id}-spicy`} className="tag spicy">🌶️ 辣</span>}
+                                    {dish.hasScallions && <span key={`${dish._id}-scallions`} className="tag">🧅 葱</span>}
+                                    {dish.hasCilantro && <span key={`${dish._id}-cilantro`} className="tag">🌿 香菜</span>}
+                                    {dish.hasGarlic && <span key={`${dish._id}-garlic`} className="tag">🧄 蒜</span>}
                                   </div>
-                                )}
-                                <div className="popup-dish-tags">
-                                  {dish.isSpicy && <span className="tag spicy">🌶️ 辣</span>}
-                                  {dish.hasScallions && <span className="tag">🧅 葱</span>}
-                                  {dish.hasCilantro && <span className="tag">🌿 香菜</span>}
-                                  {dish.hasGarlic && <span className="tag">🧄 蒜</span>}
-                                </div>
-                                <div className="popup-dish-bottom">
-                                  <span className="popup-dish-price">¥{dish.price}</span>
-                                  <Stepper
-                                    value={dishQuantities[dish._id] || 0}
-                                    onChange={(value) => handleDishQuantityChange(dish._id, value)}
-                                    min={0}
-                                    max={99}
-                                  />
+                                  <div className="popup-dish-bottom">
+                                    <span className="popup-dish-price">¥{dish.price}</span>
+                                    <Stepper
+                                      value={dishQuantities[dish._id] || 0}
+                                      onChange={(value) => handleDishQuantityChange(dish._id, value)}
+                                      min={0}
+                                      max={99}
+                                    />
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -1062,10 +1064,10 @@ function UserOrder() {
             </div>
             <Button
               color="primary"
-              onClick={handleConfirmSelection}
+              onClick={handleConfirmOrder}
               className="confirm-btn"
             >
-              确认
+              支付
             </Button>
           </div>
         </div>

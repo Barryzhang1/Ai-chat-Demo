@@ -166,6 +166,18 @@ export class SeatService {
     return seat;
   }
 
+  async getSeatOccupiedInfo(id: string): Promise<SeatOccupiedInfo | null> {
+    const occupiedInfoStr = await this.redisService.get(
+      `${SEAT_STATUS_OCCUPIED_PREFIX}${id}`,
+    );
+    
+    if (occupiedInfoStr) {
+      return JSON.parse(occupiedInfoStr);
+    }
+    
+    return null;
+  }
+
   async releaseSeatBySocketId(socketId: string): Promise<Seat | null> {
     // 1. 遍历所有座位，查找被该 socketId 占用的座位
     const allSeats = await this.findAll();

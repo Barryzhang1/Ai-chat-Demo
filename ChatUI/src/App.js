@@ -5,7 +5,6 @@ import zhCN from 'antd-mobile/es/locales/zh-CN';
 import enUS from 'antd-mobile/es/locales/en-US';
 import Register from './pages/Register/Register';
 import RoleSelect from './pages/RoleSelect/RoleSelect';
-import Chat from './pages/Chat/Chat';
 import UserOrder from './pages/UserOrder/UserOrder';
 import MenuBrowse from './pages/MenuBrowse/MenuBrowse';
 import MerchantDashboard from './pages/MerchantDashboard/MerchantDashboard';
@@ -33,7 +32,6 @@ function AppRoutes() {
         <div className="App">
           <Routes>
             <Route path="/" element={<Register />} />
-            <Route path="/chat" element={<Chat />} />
             <Route
               path="/role-select"
               element={

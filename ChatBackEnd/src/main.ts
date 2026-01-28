@@ -17,7 +17,7 @@ async function bootstrap(): Promise<void> {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: false, // 改为 false，允许额外属性但会被过滤
       transform: true,
       transformOptions: {
         enableImplicitConversion: true,

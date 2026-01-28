@@ -145,14 +145,13 @@ export class OrderingController {
       limitNum,
     );
 
-    if (!result) {
-      throw new NotFoundException('聊天历史不存在');
-    }
+    // 如果没有历史记录，返回空数组或 null，而不是抛出 404 错误
+    // 这样前端就不会在控制台看到红色报错
 
     return {
       code: 0,
       message: '获取成功',
-      data: result,
+      data: result || [],
     };
   }
 }

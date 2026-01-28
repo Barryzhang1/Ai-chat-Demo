@@ -93,12 +93,9 @@ ChatUI/
 │   │   ├── MerchantDashboard/
 │   │   │   ├── MerchantDashboard.js # Merchant backend
 │   │   │   └── MerchantDashboard.css
-│   │   ├── Home/               # (Legacy - not in use)
-│   │   │   ├── Home.js
-│   │   │   └── Home.css
-│   │   └── Chat/               # (Legacy - not in use)
-│   │       ├── Chat.js
-│   │       └── Chat.css
+│   │   └── Home/               # (Legacy - not in use)
+│   │       ├── Home.js
+│   │       └── Home.css
 │   ├── utils/                  # Utility functions (NEW)
 │   │   ├── storage.js          # LocalStorage wrapper
 │   │   ├── validators.js       # Validation functions

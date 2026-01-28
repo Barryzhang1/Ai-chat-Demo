@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ChatModule } from './modules/chat/chat.module';
 import { DeepseekModule } from './modules/deepseek/deepseek.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DishModule } from './modules/dish/dish.module';
@@ -25,7 +24,7 @@ import { RedisModule } from './redis/redis.module';
         const password = configService.get<string>('MONGO_PASSWORD', '');
         const database = configService.get<string>(
           'MONGO_DATABASE',
-          'chat-demo',
+          'restaurant',
         );
         const authSource = configService.get<string>(
           'MONGO_AUTH_SOURCE',
@@ -46,7 +45,6 @@ import { RedisModule } from './redis/redis.module';
       },
     }),
     RedisModule,
-    ChatModule,
     DeepseekModule,
     AuthModule,
     DishModule,

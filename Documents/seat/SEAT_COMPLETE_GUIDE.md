@@ -31,6 +31,7 @@
 - ✅ **座位 CRUD 操作**：商家可创建、更新、删除座位
 - ✅ **自动释放机制**：用户断线时自动释放座位
 - ✅ **高性能存储**：使用 Redis 存储实时状态，响应速度快
+- ✅ **心跳检测机制**：每10秒检测用户在线状态，离线立即释放座位
 
 ### 适用场景
 
@@ -300,6 +301,9 @@ async handleRequestSeat(
 
 ```typescript
 async handleDisconnect(@ConnectedSocket() client: Socket) {
+  // 停止心跳检测
+  this.stopHeartbeat(client.id);
+
   // 1. 释放座位（从 Redis 删除占用信息）
   const releasedSeat = await this.seatService.releaseSeatBySocketId(client.id);
 
@@ -316,7 +320,203 @@ async handleDisconnect(@ConnectedSocket() client: Socket) {
 }
 ```
 
-#### 3. 占用座位逻辑 (seat.service.ts)
+#### 3. 心跳检测机制 (seat.gateway.ts)
+
+**心跳检测是座位管理系统的关键功能，用于检测用户在线状态，防止用户异常离线导致座位长时间占用。**
+
+##### 3.1 心跳检测参数配置
+
+```typescript
+export class SeatGateway {
+  // 心跳检测相关
+  private heartbeatIntervals: Map<string, NodeJS.Timeout> = new Map(); // socketId -> interval
+  private readonly HEARTBEAT_INTERVAL = 10000; // 10秒检测一次
+}
+```
+
+##### 3.2 启动心跳检测
+
+当用户获得座位时，系统会自动启动心跳检测：
+
+```typescript
+private startHeartbeat(socketId: string) {
+  // 如果已存在，先停止
+  this.stopHeartbeat(socketId);
+
+  // 创建心跳定时器
+  const interval = setInterval(async () => {
+    // 检查用户是否还在线（socket是否还连接）
+    const socket = this.server.sockets.sockets.get(socketId);
+    
+    if (!socket || !socket.connected) {
+      this.logger.warn(
+        `Client ${socketId} is offline, releasing seat...`
+      );
+
+      // 停止心跳检测
+      this.stopHeartbeat(socketId);
+
+      // 释放座位
+      const releasedSeat = await this.seatService.releaseSeatBySocketId(socketId);
+
+      if (releasedSeat) {
+        this.logger.log(
+          `Seat ${releasedSeat.seatNumber} released due to user offline`
+        );
+
+        // 广播座位状态更新
+        await this.notifyMerchantSeatChange();
+
+        // 处理队列中等待的用户
+        await this.processQueue();
+      }
+    } else {
+      this.logger.debug(`Client ${socketId} is still online`);
+    }
+  }, this.HEARTBEAT_INTERVAL);
+
+  // 保存定时器引用
+  this.heartbeatIntervals.set(socketId, interval);
+}
+```
+
+##### 3.3 商家端主动清理
+
+商家端打开座位管理页面时，会触发清理所有离线用户：
+
+```typescript
+@SubscribeMessage('cleanupOfflineUsers')
+async handleCleanupOfflineUsers(@ConnectedSocket() client: Socket) {
+  this.logger.log(`Merchant ${client.id} requested cleanup of offline users`);
+  await this.cleanupOfflineUsers();
+  // 清理完成后返回最新状态
+  await this.handleGetMerchantSeatStatus(client);
+}
+
+private async cleanupOfflineUsers() {
+  this.logger.log('Starting cleanup of offline users...');
+  
+  // 获取所有占用座位的用户
+  const allSeats = await this.seatService.findAll();
+  let cleanedCount = 0;
+
+  for (const seat of allSeats) {
+    const occupiedInfo = await this.seatService.getSeatOccupiedInfo(seat._id.toString());
+    
+    if (occupiedInfo) {
+      const socketId = occupiedInfo.socketId;
+      const socket = this.server.sockets.sockets.get(socketId);
+      
+      // 如果用户不在线，释放座位
+      if (!socket || !socket.connected) {
+        this.logger.log(`Cleaning up offline user ${socketId} from seat ${seat.seatNumber}`);
+        
+        await this.seatService.releaseSeat(seat._id.toString());
+        this.stopHeartbeat(socketId);
+        cleanedCount++;
+      }
+    }
+  }
+
+  if (cleanedCount > 0) {
+    this.logger.log(`Cleaned up ${cleanedCount} offline users`);
+    
+    // 广播座位状态更新
+    await this.notifyMerchantSeatChange();
+    
+    // 处理队列中等待的用户
+    await this.processQueue();
+  }
+}
+```
+
+##### 3.4 前端商家端实现 (SeatManagement.js)
+
+```javascript
+useEffect(() => {
+  socket = io('http://localhost:3001/seat', {
+    transports: ['websocket'],
+  });
+
+  socket.on('connect', () => {
+    console.log('Merchant socket connected');
+    // 请求清理离线用户并获取座位状态
+    socket.emit('cleanupOfflineUsers');
+  });
+
+  // 监听座位状态更新
+  socket.on('merchantSeatStatus', (data) => {
+    setSeats(data.seats || []);
+    setStatistics(data.statistics || {});
+    setQueueLength(data.statistics?.queueLength || 0);
+  });
+}, []);
+```
+
+##### 3.5 心跳检测流程图
+
+```
+┌─────────────┐
+│ 用户获得座位 │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────┐
+│ 启动心跳检测定时器   │ ──────┐
+└─────────────────────┘       │
+                              │
+       ┌──────────────────────┘
+       │ 每10秒执行
+       ▼
+┌─────────────────────┐
+│ 检查Socket连接状态   │
+└──────┬──────┬───────┘
+       │      │
+  在线 │      │离线
+       │      │
+       ▼      ▼
+┌───────────┐ ┌──────────────┐
+│ 继续监控  │ │ 立即释放座位  │
+│           │ │ 停止心跳     │
+└───────────┘ │ 处理队列     │
+              └──────────────┘
+
+商家端打开页面:
+┌───────────────────┐
+│ 打开座位管理页面   │
+└──────┬────────────┘
+       │
+       ▼
+┌──────────────────────┐
+│ 发送cleanupOfflineUsers│
+└──────┬───────────────┘
+       │
+       ▼
+┌──────────────────────┐
+│ 遍历所有占用的座位    │
+│ 检查用户是否在线      │
+└──────┬───────────────┘
+       │
+       ▼
+┌──────────────────────┐
+│ 释放所有离线用户座位  │
+│ 更新商家端状态        │
+│ 处理排队队列          │
+└──────────────────────┘
+```
+
+##### 3.6 心跳检测的优势
+
+| 优势 | 说明 |
+|------|------|
+| **实时性** | 每10秒检测一次，快速发现离线用户 |
+| **准确性** | 直接检测Socket连接状态，100%准确 |
+| **主动清理** | 商家端打开页面时主动清理离线用户 |
+| **资源优化** | 不再需要消息往返，减少网络开销 |
+| **用户体验** | 用户无需任何操作，完全透明 |
+| **座位利用率** | 及时释放无人使用的座位，提高利用率 |
+
+#### 4. 占用座位逻辑 (seat.service.ts)
 
 ```typescript
 async occupySeat(id: string, socketId: string, nickname?: string): Promise<Seat> {
@@ -352,7 +552,7 @@ async occupySeat(id: string, socketId: string, nickname?: string): Promise<Seat>
 }
 ```
 
-#### 4. 获取可用座位 (seat.service.ts)
+#### 5. 获取可用座位 (seat.service.ts)
 
 ```typescript
 async findAvailableSeats(): Promise<Seat[]> {
@@ -376,7 +576,7 @@ async findAvailableSeats(): Promise<Seat[]> {
 }
 ```
 
-#### 5. 排队系统 (seat.service.ts)
+#### 6. 排队系统 (seat.service.ts)
 
 ```typescript
 // 加入排队
@@ -684,7 +884,9 @@ const socket = io('http://localhost:3001/seat', {
 | `requestSeat` | `{ nickname?: string }` | 请求分配座位 | 用户进入聊天 |
 | `leaveSeat` | 无 | 主动离开座位 | 用户点击离开按钮 |
 | `getMerchantSeatStatus` | 无 | 请求座位状态 | 商家端初始化 |
+| `cleanupOfflineUsers` | 无 | 清理离线用户 | 商家端打开页面 |
 | `getQueueStatus` | 无 | 查询排队状态 | 用户查询排队 |
+
 
 ### 服务器 → 客户端事件
 
@@ -694,7 +896,7 @@ const socket = io('http://localhost:3001/seat', {
 | `needQueue` | `{ position, queueLength }` | 需要排队 | 单个用户 |
 | `queueUpdate` | `{ position, queueLength }` | 排队位置更新 | 单个用户 |
 | `called` | `{ message }` | 叫号通知 | 单个用户 |
-| `seatReleased` | `{ message }` | 座位已释放 | 单个用户 |
+| `seatReleased` | `{ message, reason? }` | 座位已释放 | 单个用户 |
 | `merchantSeatStatus` | 座位详细信息 | 初始座位状态 | 单个商家 |
 | `merchantSeatUpdate` | 座位详细信息 | 座位状态更新 | 所有商家 |
 | `seatStatus` | `{ total, available, occupied, closed }` | 统计信息 | 所有客户端 |

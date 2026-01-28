@@ -20,21 +20,6 @@ export class Dish {
   @Prop({ default: false })
   isDelisted: boolean;
 
-  @Prop({ default: false })
-  isSpicy: boolean;
-
-  @Prop({ default: false })
-  hasScallions: boolean;
-
-  @Prop({ default: false })
-  hasCilantro: boolean;
-
-  @Prop({ default: false })
-  hasGarlic: boolean;
-
-  @Prop({ default: 0 })
-  cookingTime: number;
-
   @Prop({ type: [String], default: [] })
   tags: string[];
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NavBar, List, Button, Toast, Popup, Form, SideBar, Divider, Empty } from 'antd-mobile';
+import { NavBar, List, Button, Toast, Popup, Form, SideBar, Divider, Empty, Tag, Space } from 'antd-mobile';
 import { AddOutline } from 'antd-mobile-icons';
 import { dishApi } from '../../api/dishApi';
 import { categoryApi } from '../../api/categoryApi';
@@ -222,14 +222,22 @@ function Inventory() {
                           key={item._id}
                           description={
                             <div>
-                              <div>{item.description}</div>
-                              <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
-                                {item.isSpicy && <span style={{ marginRight: '8px', color: '#ff4d4f' }}>🌶️ 辣</span>}
-                                {item.hasScallions && <span style={{ marginRight: '8px' }}>🧅 有葱</span>}
-                                {item.hasCilantro && <span style={{ marginRight: '8px' }}>🌿 有香菜</span>}
-                                {item.hasGarlic && <span style={{ marginRight: '8px' }}>🧄 有蒜</span>}
-                                {item.cookingTime && <span>⏱️ {item.cookingTime}分钟</span>}
-                              </div>
+                              <div style={{ marginBottom: '8px' }}>{item.description}</div>
+                              {/* 显示标签 */}
+                              {item.tags && item.tags.length > 0 && (
+                                <Space wrap style={{ marginTop: '8px' }}>
+                                  {item.tags.map((tag, index) => (
+                                    <Tag
+                                      key={index}
+                                      color="primary"
+                                      fill="outline"
+                                      style={{ fontSize: '12px' }}
+                                    >
+                                      {tag}
+                                    </Tag>
+                                  ))}
+                                </Space>
+                              )}
                             </div>
                           }
                           extra={
@@ -298,22 +306,15 @@ function Inventory() {
           }}
           editMode={!!editingDish}
           initialValues={editingDish ? {
+            _id: editingDish._id,
             name: editingDish.name,
             price: editingDish.price,
             categoryId: editingDish.categoryId,
             description: editingDish.description,
-            isSpicy: editingDish.isSpicy || false,
-            hasScallions: editingDish.hasScallions || false,
-            hasCilantro: editingDish.hasCilantro || false,
-            hasGarlic: editingDish.hasGarlic || false,
-            cookingTime: editingDish.cookingTime || 15,
+            tags: editingDish.tags || [],
           } : {
             categoryId: categories.length > 0 ? categories[0]._id : undefined,
-            isSpicy: false,
-            hasScallions: false,
-            hasCilantro: false,
-            hasGarlic: false,
-            cookingTime: 15,
+            tags: [],
           }}
         />
       </Popup>
