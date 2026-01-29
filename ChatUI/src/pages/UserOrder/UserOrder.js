@@ -237,33 +237,86 @@ function UserOrder() {
     const fetchHistory = async () => {
        try {
          const res = await orderApi.getChatHistory();
-         if (res.data && res.data.length > 0) {
+         // 后端返回格式: { data: { messages: [...], total: number }, message: string }
+         if (res.data && res.data.messages && res.data.messages.length > 0) {
+            // 获取所有菜品数据，用于匹配历史记录中的菜品名称
+            let allDishesMap = {};
+            try {
+              const dishesData = await dishApi.getDishes();
+              allDishesMap = (dishesData || []).reduce((map, dish) => {
+                map[dish.name] = dish;
+                return map;
+              }, {});
+            } catch (e) {
+              console.log('Failed to load dishes for history', e);
+            }
+            
             // Transform history to match UI
-            const history = res.data.map(msg => ({
-              role: msg.role,
-              content: msg.content,
-              menu: msg.metadata?.dishes?.length > 0 ? msg.metadata.dishes.map(d => ({
-                  id: d._id || d.id,
-                  name: d.name,
-                  price: d.price,
-                  description: d.description,
-                  image: d.image || d.imageUrl || `https://picsum.photos/200/200?random=${d.price}`,
-                  quantity: 1, // Default to 1 for display
-                  isSpicy: d.isSpicy || false
-              })) : null,
-              totalPrice: msg.metadata?.totalPrice || 0,
-              timestamp: new Date(msg.createdAt),
-              isUserOrder: msg.role === 'user' && msg.content === '我已选好菜品', // Heuristic
-              // Not handling audioUrl yet as API doesn't seem to return it typically or it's binary
-            })).reverse();
-            setMessages(history);
+            const history = res.data.messages.map(msg => {
+              // 解析 assistant 消息中的 JSON 内容
+              let parsedContent = msg.content;
+              let menu = null;
+              let totalPrice = 0;
+              
+              if (msg.role === 'assistant') {
+                try {
+                  // 尝试解析 JSON 格式的 content
+                  const jsonMatch = msg.content.match(/\{[\s\S]*\}/);
+                  if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    parsedContent = parsed.message || msg.content;
+                    
+                    // 如果有菜品数据，构建菜单
+                    if (parsed.dishes && parsed.dishes.length > 0) {
+                      menu = parsed.dishes.map((dishName, index) => {
+                        const dishData = allDishesMap[dishName];
+                        return {
+                          id: dishData?._id || `${msg.timestamp}_${index}`,
+                          name: dishName,
+                          price: dishData?.price || 0,
+                          description: dishData?.description || '',
+                          image: dishData?.imageUrl || `https://picsum.photos/200/200?random=${index}`,
+                          quantity: 1,
+                          isSpicy: dishData?.isSpicy || false
+                        };
+                      });
+                      
+                      // 计算总价
+                      totalPrice = menu.reduce((sum, dish) => sum + (dish.price * dish.quantity), 0);
+                    }
+                  }
+                } catch (e) {
+                  // 解析失败，使用原始内容
+                  console.log('Content is not JSON, using as plain text');
+                }
+              }
+              
+              return {
+                role: msg.role,
+                content: parsedContent,
+                menu: menu,
+                totalPrice: totalPrice,
+                timestamp: new Date(msg.timestamp),
+                isHistoryMessage: true, // 标记为历史消息
+              };
+            });
+            
+            // 历史记录 + 欢迎词（欢迎词在最底部）
+            const welcomeMessage = {
+              role: 'assistant',
+              content: '您好！欢迎使用智能点餐系统。请告诉我您的点餐需求，比如：人数、预算、口味偏好、忌口等信息，我会为您推荐合适的菜品。',
+              timestamp: new Date(),
+              isHistoryMessage: true, // 标记为历史消息，不显示支付按钮
+            };
+            
+            setMessages([...history, welcomeMessage]);
             return;
          }
        } catch (e) {
          console.error("Failed to load history", e);
        }
        
-       // Fallback or empty history
+       // Fallback or empty history - 只显示欢迎词
        setMessages([
         {
           role: 'assistant',
@@ -811,7 +864,7 @@ function UserOrder() {
                     </div>
                   </div>
                   
-                  {!orderConfirmed && (
+                  {!orderConfirmed && !message.isHistoryMessage && (
                     <div className="menu-actions" style={{ display: 'flex', justifyContent: 'flex-end' }}>
                       <Button 
                         size="small" 

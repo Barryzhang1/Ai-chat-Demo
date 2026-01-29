@@ -421,10 +421,9 @@ export class OrderingService {
     }
 
     const total = chatHistory.messages.length;
-    // 按时间倒序返回（最新的在前）
+    // 按时间正序返回（最旧的在前）
     const messages = chatHistory.messages
       .slice(-limit)
-      .reverse()
       .map((msg) => ({
         role: msg.role,
         content: msg.content,
