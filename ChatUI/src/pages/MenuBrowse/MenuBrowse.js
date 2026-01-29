@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NavBar, SideBar, Toast, Divider, Empty } from 'antd-mobile';
+import { NavBar, SideBar, Toast, Divider, Empty, Tag, Space } from 'antd-mobile';
 import { dishApi } from '../../api/dishApi';
 import { categoryApi } from '../../api/categoryApi';
 import './MenuBrowse.css';
@@ -175,20 +175,23 @@ function MenuBrowse() {
                                   {dish.description}
                                 </div>
                               )}
-                              <div className="dish-tags">
-                                {dish.isSpicy && (
-                                  <span className="tag spicy">🌶️ 辣</span>
-                                )}
-                                {dish.hasScallions && (
-                                  <span className="tag">🧅 葱</span>
-                                )}
-                                {dish.hasCilantro && (
-                                  <span className="tag">🌿 香菜</span>
-                                )}
-                                {dish.hasGarlic && (
-                                  <span className="tag">🧄 蒜</span>
-                                )}
-                              </div>
+                              {/* 显示菜品标签 */}
+                              {dish.tags && dish.tags.length > 0 && (
+                                <div className="dish-tags" style={{ marginTop: '8px', marginBottom: '8px' }}>
+                                  <Space wrap>
+                                    {dish.tags.map((tag, index) => (
+                                      <Tag
+                                        key={index}
+                                        color="primary"
+                                        fill="outline"
+                                        style={{ fontSize: '12px' }}
+                                      >
+                                        {tag}
+                                      </Tag>
+                                    ))}
+                                  </Space>
+                                </div>
+                              )}
                               <div className="dish-price">
                                 ¥{dish.price}
                               </div>
