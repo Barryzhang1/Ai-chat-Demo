@@ -16,6 +16,17 @@ export class ChatMessage {
 
   @Prop({ type: Date, default: Date.now })
   timestamp: Date;
+
+  @Prop({ type: Object })
+  cart?: {
+    dishes: Array<{
+      dishId: string;
+      name: string;
+      price: number;
+      quantity: number;
+    }>;
+    totalPrice: number;
+  };
 }
 
 const ChatMessageSchema = SchemaFactory.createForClass(ChatMessage);

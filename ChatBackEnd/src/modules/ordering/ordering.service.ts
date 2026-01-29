@@ -34,28 +34,12 @@ interface ParsedAIResponse {
     price: number;
     quantity: number;
   }>;
-  preferences?: {
-    numberOfPeople?: number;
-    tags?: string[];
-    excludeTags?: string[];
-    limit?: number;
-  };
   queries?: Array<{
     tags?: string[];
     excludeTags?: string[];
     limit?: number;
     description?: string;
   }>;
-}
-
-interface QueryPreferences {
-  numberOfPeople?: number;
-  tags?: string[];
-  excludeTags?: string[];
-  limit?: number;
-  minPrice?: number;
-  maxPrice?: number;
-  totalBudget?: number;
 }
 
 interface QueryCondition {
@@ -65,6 +49,7 @@ interface QueryCondition {
   description?: string;
   minPrice?: number;
   maxPrice?: number;
+  totalBudget?: number; // 总预算，会自动分配到每道菜
 }
 
 @Injectable()
@@ -109,6 +94,30 @@ export class OrderingService {
   }
 
   /**
+   * 获取数据库中所有可用的 tags（去重）
+   */
+  private async getAllAvailableTags(): Promise<string[]> {
+    try {
+      const dishes = await this.dishModel
+        .find({ isDelisted: false })
+        .select('tags')
+        .exec();
+
+      const allTags = new Set<string>();
+      dishes.forEach((dish) => {
+        if (dish.tags && Array.isArray(dish.tags)) {
+          dish.tags.forEach((tag) => allTags.add(tag));
+        }
+      });
+
+      return Array.from(allTags).sort();
+    } catch (error) {
+      this.logger.error('Failed to get available tags: ' + String(error));
+      return [];
+    }
+  }
+
+  /**
    * AI智能点餐
    */
   async aiOrder(
@@ -132,8 +141,8 @@ export class OrderingService {
     // 获取聊天历史
     const history = await this.getChatHistory(userId);
 
-    // 构建系统提示词
-    const systemPrompt = this.buildSystemPrompt();
+    // 构建系统提示词（异步获取数据库tags）
+    const systemPrompt = await this.buildSystemPrompt();
 
     // 调用DeepSeek API
     const aiResponse = await this.callDeepSeekAPI(
@@ -147,15 +156,13 @@ export class OrderingService {
     const {
       message: responseMessage,
       dishes,
-      preferences,
       queries,
     } = this.parseAIResponse(aiResponse);
 
-    // 优先使用queries（多条件查询），否则使用preferences（单条件查询）
-    let recommendedDishes: DishDocument[] = [];
+    // 如果有 queries，执行批量查询
     if (queries && queries.length > 0) {
       // 使用多查询条件（例如：8个荤菜 + 8个素菜 + 3个主食 + 2个饮料）
-      recommendedDishes = await this.queryDishesBatch(queries);
+      const recommendedDishes = await this.queryDishesBatch(queries);
 
       // 将查询到的菜品直接添加到购物车
       await this.clearCartDishes(userId);
@@ -166,45 +173,18 @@ export class OrderingService {
         quantity: 1,
       }));
 
-      const cart = await this.updateCart(
-        userId,
-        dishesToAdd,
-        preferences,
-        queries,
-      );
+      const cart = await this.updateCart(userId, dishesToAdd, queries);
 
-      // 保存聊天历史
-      await this.saveChatHistory(userId, message, aiResponse);
-
-      return {
-        message: responseMessage,
-        cart: {
-          dishes: cart.dishes.map((item) => ({
-            dishId: item.dishId.toString(),
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-          })),
-          totalPrice: cart.totalPrice,
-        },
-      };
-    } else if (preferences) {
-      // 使用单一查询条件（兼容旧逻辑）
-      recommendedDishes = await this.queryDishes(preferences);
-
-      // 将查询到的菜品直接添加到购物车
-      await this.clearCartDishes(userId);
-
-      // 将推荐的菜品添加到购物车，每个菜品数量为1
-      const dishesToAdd = recommendedDishes.map((dish) => ({
-        name: dish.name,
-        quantity: 1,
-      }));
-
-      const cart = await this.updateCart(userId, dishesToAdd, preferences);
-
-      // 保存聊天历史
-      await this.saveChatHistory(userId, message, aiResponse);
+      // 保存聊天历史（包含购物车数据）
+      await this.saveChatHistory(userId, message, aiResponse, {
+        dishes: cart.dishes.map((item) => ({
+          dishId: item.dishId.toString(),
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        totalPrice: cart.totalPrice,
+      });
 
       return {
         message: responseMessage,
@@ -220,11 +200,19 @@ export class OrderingService {
       };
     }
 
-    // 如果用户明确添加/移除菜品（没有偏好设置）
-    const cart = await this.updateCart(userId, dishes, preferences);
+    // 如果用户明确添加/移除菜品
+    const cart = await this.updateCart(userId, dishes, queries);
 
-    // 保存聊天历史
-    await this.saveChatHistory(userId, message, aiResponse);
+    // 保存聊天历史（包含购物车数据）
+    await this.saveChatHistory(userId, message, aiResponse, {
+      dishes: cart.dishes.map((item) => ({
+        dishId: item.dishId.toString(),
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+      totalPrice: cart.totalPrice,
+    });
 
     return {
       message: responseMessage,
@@ -265,21 +253,13 @@ export class OrderingService {
     }
 
     // 检查是否有保存的查询条件
-    if ((!cart.queries || cart.queries.length === 0) && !cart.preferences) {
+    if (!cart.queries || cart.queries.length === 0) {
       throw new BadRequestException('没有保存的查询条件，请先进行AI点餐');
     }
 
-    let dishes: DishDocument[];
-
-    // 优先使用保存的queries（批量查询条件）
-    if (cart.queries && cart.queries.length > 0) {
-      this.logger.log('Using saved queries for refresh with random sorting');
-      dishes = await this.queryDishesBatchRandom(cart.queries);
-    } else {
-      // 使用单一偏好设置查询
-      const preferences = cart.preferences || { limit: 5 };
-      dishes = await this.queryDishesRandom(preferences);
-    }
+    // 使用保存的queries（批量查询条件）
+    this.logger.log('Using saved queries for refresh with random sorting');
+    const dishes = await this.queryDishesBatchRandom(cart.queries);
 
     // 更新购物车
     const dishesToAdd = dishes.map((dish) => ({
@@ -291,7 +271,6 @@ export class OrderingService {
     const updatedCart = await this.updateCart(
       userId,
       dishesToAdd,
-      cart.preferences,
       cart.queries,
     );
 
@@ -346,11 +325,10 @@ export class OrderingService {
       note: createOrderDto.note,
     });
 
-    // 清空购物车（包括查询条件和偏好设置）
+    // 清空购物车（包括查询条件）
     cart.dishes = [];
     cart.totalPrice = 0;
     cart.queries = [];
-    cart.preferences = undefined;
     await cart.save();
 
     return {
@@ -441,17 +419,15 @@ export class OrderingService {
 
     // 获取所有唯一的 userId
     const userIds = [...new Set(orders.map((order) => order.userId))];
-    
+
     // 批量查询用户信息
     const users = await this.userModel
       .find({ id: { $in: userIds } })
       .select('id nickname')
       .exec();
-    
+
     // 创建 userId 到 nickname 的映射
-    const userMap = new Map(
-      users.map((user) => [user.id, user.nickname])
-    );
+    const userMap = new Map(users.map((user) => [user.id, user.nickname]));
 
     const totalPages = Math.ceil(total / limit);
 
@@ -499,13 +475,11 @@ export class OrderingService {
 
     const total = chatHistory.messages.length;
     // 按时间正序返回（最旧的在前）
-    const messages = chatHistory.messages
-      .slice(-limit)
-      .map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-        timestamp: msg.timestamp,
-      }));
+    const messages = chatHistory.messages.slice(-limit).map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+      timestamp: msg.timestamp,
+    }));
 
     return {
       messages,
@@ -534,9 +508,7 @@ export class OrderingService {
     createdAt: Date;
     updatedAt: Date;
   }> {
-    this.logger.log(
-      `Updating order status: ${orderId}, status: ${status}`,
-    );
+    this.logger.log(`Updating order status: ${orderId}, status: ${status}`);
 
     // 查找订单 (使用MongoDB的_id)
     const order = await this.orderModel.findById(orderId).exec();
@@ -566,84 +538,49 @@ export class OrderingService {
   }
 
   /**
-   * 构建系统提示词
+   * 构建系统提示词（异步，基于数据库实际数据）
    */
-  private buildSystemPrompt(): string {
-    return `你是一个智能点餐助手。你的任务是帮助用户点餐并管理购物车。
+  private async buildSystemPrompt(): Promise<string> {
+    // 从数据库获取所有可用的 tags
+    const availableTags = await this.getAllAvailableTags();
 
-数据库中的菜品标签分类：
-- 菜系分类："凉菜"、"热菜"、"汤"、"主食"、"饮料"
-- 食材分类："素食"、"猪肉"、"牛肉"、"羊肉"、"鸡肉"、"鸭肉"、"鱼"、"海鲜"
-- 口味分类："辣"、"特辣"、"不辣"、"甜口"
-- 其他："性价比"、"儿童"、"爸妈"、"带领导"、"相亲"、"清真"、"健康"、"经典"、"热门"等
+    return `你是智能点餐助手，将用户需求精准转化为数据库查询。
 
-价格限定：
-- 当用户提到预算（如"预算500"、"人均100"、"每个菜不超过50"）时，需要计算价格范围
-- totalBudget: 总预算（会自动分配到每道菜）
-- minPrice/maxPrice: 单个菜品的价格范围
+【可用标签】${availableTags.map((tag) => `"${tag}"`).join('、')}
 
-用户可以：
-1. 询问菜品信息
-2. 表达就餐偏好（例如："我们3个人，想吃点辣的，不吃海鲜"）
-3. 表达多样化需求（例如："我们7个人，给我来八荤八素，三个主食，两个饮料"）
-4. 明确添加/调整特定菜品（例如："再加2个宫保鸡丁"、"去掉鱼香肉丝"）
+【用户意图识别】
+- 数量："八荤八素" → limit
+- 预算："预算800"/"人均100" → totalBudget 或 maxPrice
+- 食材："不吃辣"/"想吃鱼" → tags/excludeTags
+- 添加："再来宫保鸡丁" → dishes (quantity>0)
+- 删除："米饭不要了" → dishes (quantity<0)
 
-重要：当用户要求多种类菜品时（如"八荤八素三个主食"），需要使用queries数组拆分成多个查询：
-- 荤菜 = 带有肉类标签且不含"素食"标签的"热菜"（猪肉、牛肉、羊肉、鸡肉、鸭肉、鱼、海鲜）
-- 素菜 = 带有"素食"标签的"热菜"或"凉菜"
-- 主食 = 带有"主食"标签
-- 饮料 = 带有"饮料"标签
+【查询规则】
+荤菜：{"tags":["猪肉"],"excludeTags":["素食"],"limit":8}
+素菜：{"tags":["素食"],"limit":8}
+主食：{"tags":["主食"],"limit":3}
+饮料：{"tags":["饮料"],"limit":2}
 
-你需要根据用户的输入，返回JSON格式的响应：
+【价格】
+- 总预算 → totalBudget（设置在第一个query，系统按总菜品数分配）
+- 单价 → maxPrice
+- 人均×人数 → totalBudget
+
+【重要】
+- 只用上述可用标签，无此标签需告诉用户暂时没有此菜品
+- 所有查询用queries数组，明确菜品用dishes
+- totalBudget只在第一个query设置，后续不设置
+
+【响应格式】纯JSON：
 {
-  "message": "给用户的回复消息",
-  "dishes": [],
-  "queries": [
-    {
-      "tags": ["热菜", "猪肉"],
-      "excludeTags": ["素食"],
-      "limit": 8,
-      "description": "荤菜",
-      "maxPrice": 60
-    },
-    {
-      "tags": ["素食"],
-      "limit": 8,
-      "description": "素菜",
-      "maxPrice": 40
-    },
-    {
-      "tags": ["主食"],
-      "limit": 3,
-      "description": "主食",
-      "maxPrice": 20
-    },
-    {
-      "tags": ["饮料"],
-      "limit": 2,
-      "description": "饮料",
-      "maxPrice": 15
-    }
+  "message":"友好回复",
+  "dishes":[{"name":"宫保鸡丁","quantity":2}],
+  "queries":[
+    {"tags":["猪肉"],"excludeTags":["素食"],"limit":8,"totalBudget":500,"description":"荤菜"},
+    {"tags":["素食"],"limit":8,"description":"素菜"},
+    {"tags":["主食"],"limit":3,"description":"主食"}
   ]
-}
-
-查询规则：
-1. 荤菜查询：tags包含"热菜"和任一肉类标签，excludeTags包含"素食"
-2. 素菜查询：tags包含"素食"即可，可以是"热菜"或"凉菜"
-3. 主食查询：tags包含"主食"
-4. 饮料查询：tags包含"饮料"
-5. 如果用户只说"想吃辣的"这种简单需求，可以不用queries，用旧的preferences即可
-6. 价格处理：
-   - 如果提到总预算（如"预算500"），设置totalBudget字段，系统会自动分配
-   - 如果提到单价范围（如"每个菜不超过50"），设置maxPrice字段
-   - 如果提到人均（如"人均100"），用人均×人数计算totalBudget
-
-注意：
-- 只返回JSON，不要添加任何其他文字
-- message字段用中文回复，要友好热情
-- 优先使用queries数组进行多条件查询（适合"八荤八素"这种需求）
-- 简单需求可以用preferences（适合"想吃辣的"这种需求）
-- 如果用户只是询问或闲聊：dishes、queries、preferences都为空`;
+}`;
   }
 
   /**
@@ -744,7 +681,6 @@ export class OrderingService {
       return {
         message: parsed.message || '好的，已为您处理',
         dishes: Array.isArray(parsed.dishes) ? parsed.dishes : [],
-        preferences: parsed.preferences,
         queries: Array.isArray(parsed.queries) ? parsed.queries : undefined,
       };
     } catch (error) {
@@ -767,6 +703,16 @@ export class OrderingService {
     this.logger.log('');
     this.logger.log('🔍 Batch Query - ' + queries.length + ' conditions');
     this.logger.log('');
+
+    // 提取总预算（只从第一个query提取）
+    const totalBudget = queries[0]?.totalBudget;
+    const totalDishCount = queries.reduce((sum, q) => sum + (q.limit || 0), 0);
+    
+    if (totalBudget && totalDishCount > 0) {
+      this.logger.log(
+        `💰 Total Budget: ¥${totalBudget}, Total Dishes: ${totalDishCount}, Avg per dish: ¥${Math.floor(totalBudget / totalDishCount)}`,
+      );
+    }
 
     const allDishes: DishDocument[] = [];
     const dishIds = new Set<string>(); // 用于去重
@@ -799,11 +745,20 @@ export class OrderingService {
       }
 
       // 处理价格范围
+      let calculatedMaxPrice: number | undefined;
+
+      // 如果有总预算，按总菜品数计算每道菜的平均价格上限
+      if (totalBudget && totalDishCount > 0) {
+        calculatedMaxPrice = Math.floor(totalBudget / totalDishCount);
+      }
+
+      // 使用计算出的价格或手动设置的价格
+      const effectiveMaxPrice = calculatedMaxPrice ?? queryCondition.maxPrice;
+
       if (
         (queryCondition.minPrice !== undefined &&
           queryCondition.minPrice !== null) ||
-        (queryCondition.maxPrice !== undefined &&
-          queryCondition.maxPrice !== null)
+        (effectiveMaxPrice !== undefined && effectiveMaxPrice !== null)
       ) {
         query.price = {} as { $gte?: number; $lte?: number };
         if (
@@ -813,21 +768,23 @@ export class OrderingService {
           (query.price as { $gte?: number; $lte?: number }).$gte =
             queryCondition.minPrice;
         }
-        if (
-          queryCondition.maxPrice !== undefined &&
-          queryCondition.maxPrice !== null
-        ) {
+        if (effectiveMaxPrice !== undefined && effectiveMaxPrice !== null) {
           (query.price as { $gte?: number; $lte?: number }).$lte =
-            queryCondition.maxPrice;
+            effectiveMaxPrice;
         }
       }
 
       const limit = queryCondition.limit || 5;
 
+      // 有预算时按价格降序（接近预算），无预算时按创建时间降序（最新菜品）
+      const sortOrder: { price: -1 } | { createdAt: -1 } = totalBudget
+        ? { price: -1 }
+        : { createdAt: -1 };
+
       MongoLogger.logQuery(
         'dishes',
         query,
-        { limit, sort: { createdAt: -1 } },
+        { limit, sort: sortOrder },
         queryCondition.description || 'unknown',
       );
 
@@ -835,7 +792,7 @@ export class OrderingService {
       const dishes = await this.dishModel
         .find(query)
         .limit(limit)
-        .sort({ createdAt: -1 })
+        .sort(sortOrder as any)
         .exec();
       const queryTime = Date.now() - startTime;
 
@@ -877,136 +834,6 @@ export class OrderingService {
   }
 
   /**
-   * 查询菜品（单条件）
-   */
-  private async queryDishes(
-    preferences: QueryPreferences,
-  ): Promise<DishDocument[]> {
-    const query: Record<string, unknown> = { isDelisted: false };
-
-    // 处理标签（同时处理包含和排除）
-    if (preferences.tags && preferences.tags.length > 0) {
-      if (preferences.excludeTags && preferences.excludeTags.length > 0) {
-        // 同时有包含和排除标签
-        query.tags = {
-          $in: preferences.tags,
-          $nin: preferences.excludeTags,
-        };
-      } else {
-        // 只有包含标签
-        query.tags = { $in: preferences.tags };
-      }
-    } else if (preferences.excludeTags && preferences.excludeTags.length > 0) {
-      // 只有排除标签
-      query.tags = { $nin: preferences.excludeTags };
-    }
-
-    // 处理价格范围
-    if (
-      (preferences.minPrice !== undefined && preferences.minPrice !== null) ||
-      (preferences.maxPrice !== undefined && preferences.maxPrice !== null)
-    ) {
-      query.price = {} as { $gte?: number; $lte?: number };
-      if (preferences.minPrice !== undefined && preferences.minPrice !== null) {
-        (query.price as { $gte?: number; $lte?: number }).$gte =
-          preferences.minPrice;
-      }
-      if (preferences.maxPrice !== undefined && preferences.maxPrice !== null) {
-        (query.price as { $gte?: number; $lte?: number }).$lte =
-          preferences.maxPrice;
-      }
-    }
-
-    const limit = preferences.limit || 5;
-
-    MongoLogger.logQuery(
-      'dishes',
-      query,
-      { limit, sort: { createdAt: -1 } },
-      'Single Query',
-    );
-
-    const startTime = Date.now();
-    const dishes = await this.dishModel
-      .find(query)
-      .limit(limit)
-      .sort({ createdAt: -1 })
-      .exec();
-    const queryTime = Date.now() - startTime;
-
-    MongoLogger.logResult(
-      dishes.length,
-      queryTime,
-      dishes.map((d) => d.name),
-    );
-
-    return dishes;
-  }
-
-  /**
-   * 查询菜品（单条件，随机排序）- 用于刷新菜单
-   */
-  private async queryDishesRandom(
-    preferences: QueryPreferences,
-  ): Promise<DishDocument[]> {
-    const query: Record<string, unknown> = { isDelisted: false };
-
-    // 处理标签（同时处理包含和排除）
-    if (preferences.tags && preferences.tags.length > 0) {
-      if (preferences.excludeTags && preferences.excludeTags.length > 0) {
-        query.tags = {
-          $in: preferences.tags,
-          $nin: preferences.excludeTags,
-        };
-      } else {
-        query.tags = { $in: preferences.tags };
-      }
-    } else if (preferences.excludeTags && preferences.excludeTags.length > 0) {
-      query.tags = { $nin: preferences.excludeTags };
-    }
-
-    // 处理价格范围
-    if (
-      (preferences.minPrice !== undefined && preferences.minPrice !== null) ||
-      (preferences.maxPrice !== undefined && preferences.maxPrice !== null)
-    ) {
-      query.price = {} as { $gte?: number; $lte?: number };
-      if (preferences.minPrice !== undefined && preferences.minPrice !== null) {
-        (query.price as { $gte?: number; $lte?: number }).$gte =
-          preferences.minPrice;
-      }
-      if (preferences.maxPrice !== undefined && preferences.maxPrice !== null) {
-        (query.price as { $gte?: number; $lte?: number }).$lte =
-          preferences.maxPrice;
-      }
-    }
-
-    const limit = preferences.limit || 5;
-
-    // 使用聚合管道进行随机采样
-    const startTime = Date.now();
-    const dishes = await this.dishModel
-      .aggregate([{ $match: query }, { $sample: { size: limit } }])
-      .exec();
-    const queryTime = Date.now() - startTime;
-
-    this.logger.log(
-      '🎲 Random Query: db.dishes.aggregate([{$match:' +
-        JSON.stringify(query) +
-        '},{$sample:{size:' +
-        limit +
-        '}}])',
-    );
-    MongoLogger.logResult(
-      dishes.length,
-      queryTime,
-      dishes.map((d) => d.name),
-    );
-
-    return dishes;
-  }
-
-  /**
    * 批量查询菜品（随机排序）- 用于刷新菜单
    */
   private async queryDishesBatchRandom(
@@ -1017,6 +844,10 @@ export class OrderingService {
       '🎲 Random Batch Query - ' + queries.length + ' conditions',
     );
     this.logger.log('');
+
+    // 提取总预算（只从第一个query提取）
+    const totalBudget = queries[0]?.totalBudget;
+    const totalDishCount = queries.reduce((sum, q) => sum + (q.limit || 0), 0);
 
     const allDishes: DishDocument[] = [];
     const dishIds = new Set<string>();
@@ -1044,11 +875,20 @@ export class OrderingService {
       }
 
       // 处理价格范围
+      let calculatedMaxPrice: number | undefined;
+
+      // 如果有总预算，按总菜品数计算每道菜的平均价格上限
+      if (totalBudget && totalDishCount > 0) {
+        calculatedMaxPrice = Math.floor(totalBudget / totalDishCount);
+      }
+
+      // 使用计算出的价格或手动设置的价格
+      const effectiveMaxPrice = calculatedMaxPrice ?? queryCondition.maxPrice;
+
       if (
         (queryCondition.minPrice !== undefined &&
           queryCondition.minPrice !== null) ||
-        (queryCondition.maxPrice !== undefined &&
-          queryCondition.maxPrice !== null)
+        (effectiveMaxPrice !== undefined && effectiveMaxPrice !== null)
       ) {
         query.price = {} as { $gte?: number; $lte?: number };
         if (
@@ -1058,20 +898,24 @@ export class OrderingService {
           (query.price as { $gte?: number; $lte?: number }).$gte =
             queryCondition.minPrice;
         }
-        if (
-          queryCondition.maxPrice !== undefined &&
-          queryCondition.maxPrice !== null
-        ) {
+        if (effectiveMaxPrice !== undefined && effectiveMaxPrice !== null) {
           (query.price as { $gte?: number; $lte?: number }).$lte =
-            queryCondition.maxPrice;
+            effectiveMaxPrice;
         }
       }
 
       const limit = queryCondition.limit || 5;
 
+      // 有预算时按价格降序（接近预算），无预算时按创建时间降序（最新菜品）
+      const sortOrder: { price: -1 } | { createdAt: -1 } = totalBudget
+        ? { price: -1 }
+        : { createdAt: -1 };
+
       const startTime = Date.now();
       const dishes = await this.dishModel
-        .aggregate([{ $match: query }, { $sample: { size: limit } }])
+        .find(query)
+        .limit(limit)
+        .sort(sortOrder as any)
         .exec();
       const queryTime = Date.now() - startTime;
 
@@ -1118,13 +962,12 @@ export class OrderingService {
 
   /**
    * 更新购物车
-   * 如果 dishes 为空数组，则只更新偏好设置，不修改购物车内容
+   * 如果 dishes 为空数组，则只更新查询条件，不修改购物车内容
    * 如果 dishes 有内容，则根据数量添加或移除菜品
    */
   private async updateCart(
     userId: string,
     dishes: Array<{ name: string; quantity: number }>,
-    preferences?: QueryPreferences,
     queries?: QueryCondition[],
   ): Promise<CartDocument> {
     let cart = await this.cartModel.findOne({ userId }).exec();
@@ -1134,15 +977,11 @@ export class OrderingService {
       cart = await this.cartModel.create({
         userId: userId,
         dishes: [],
-        preferences: preferences || {},
         queries: queries || [],
         totalPrice: 0,
       });
     } else {
-      // 更新偏好设置和查询条件
-      if (preferences) {
-        cart.preferences = preferences;
-      }
+      // 更新查询条件
       if (queries) {
         cart.queries = queries;
         this.logger.log(
@@ -1150,6 +989,7 @@ export class OrderingService {
         );
       }
     }
+
 
     // 只在有菜品变更时才处理
     if (dishes && dishes.length > 0) {
@@ -1206,7 +1046,7 @@ export class OrderingService {
   }
 
   /**
-   * 清空购物车中的菜品（但保留偏好设置）
+   * 清空购物车中的菜品（但保留查询条件）
    */
   private async clearCartDishes(userId: string): Promise<void> {
     const cart = await this.cartModel.findOne({ userId }).exec();
@@ -1381,6 +1221,15 @@ export class OrderingService {
     userId: string,
     userMessage: string,
     assistantMessage: string,
+    cart?: {
+      dishes: Array<{
+        dishId: string;
+        name: string;
+        price: number;
+        quantity: number;
+      }>;
+      totalPrice: number;
+    },
   ): Promise<void> {
     let chatHistory = await this.chatHistoryModel.findOne({ userId }).exec();
 
@@ -1401,6 +1250,7 @@ export class OrderingService {
       role: 'assistant',
       content: assistantMessage,
       timestamp: new Date(),
+      cart: cart,
     });
 
     // 只保留最近20条消息
@@ -1451,11 +1301,9 @@ export class OrderingService {
       0,
     );
 
-    MongoLogger.logResult(
-      orders.length,
-      queryTime,
-      [`Total Revenue: ¥${totalRevenue.toFixed(2)}`],
-    );
+    MongoLogger.logResult(orders.length, queryTime, [
+      `Total Revenue: ¥${totalRevenue.toFixed(2)}`,
+    ]);
 
     this.logger.log(
       `📊 Revenue Report: Date=${targetDate.toISOString().split('T')[0]}, Orders=${orders.length}, Total=¥${totalRevenue.toFixed(2)}`,
@@ -1472,9 +1320,7 @@ export class OrderingService {
    * 获取菜品排行榜
    * @param limit 返回的菜品数量，默认10
    */
-  async getDishRanking(
-    limit: number = 10,
-  ): Promise<
+  async getDishRanking(limit: number = 10): Promise<
     Array<{
       dishId: string;
       dishName: string;
