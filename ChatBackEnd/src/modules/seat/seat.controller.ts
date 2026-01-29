@@ -141,4 +141,60 @@ export class SeatController {
     await this.seatGateway.notifyMerchantSeatChange();
     return nextUser;
   }
+
+  // ==================== 大厅开关门接口 ====================
+
+  @Post('hall/close')
+  @ApiOperation({ summary: '关门（商家操作）- 清空所有Redis记录（座位+排队）' })
+  @ApiResponse({ status: 200, description: '关门成功' })
+  async closeHall() {
+    const result = await this.seatService.closeHall();
+    // 停止所有被清除用户的心跳检测
+    this.seatGateway.stopHeartbeatsForUsers(result.clearedSocketIds);
+    // 通知所有客户端大厅已关闭
+    this.seatGateway.notifyHallClosed();
+    await this.seatGateway.notifyMerchantSeatChange();
+    return {
+      message: result.message,
+      clearedSeats: result.clearedSeats,
+      clearedQueue: result.clearedQueue,
+    };
+  }
+
+  @Post('hall/open')
+  @ApiOperation({ summary: '开门（商家操作）- 按排队顺序分配座位' })
+  @ApiResponse({ status: 200, description: '开门成功' })
+  async openHall() {
+    const result = await this.seatService.openHall();
+    
+    // 通知所有客户端大厅已开放
+    this.seatGateway.notifyHallOpened();
+    
+    // 通知每个被分配座位的用户
+    for (const user of result.assignedUsers) {
+      this.seatGateway.notifySeatAssigned(user.socketId, {
+        seatId: user.seatId,
+        seatNumber: user.seatNumber,
+      });
+      // 启动心跳检测
+      this.seatGateway.startHeartbeatForUser(user.socketId);
+    }
+    
+    // 更新商家端显示
+    await this.seatGateway.notifyMerchantSeatChange();
+    
+    // 处理队列中剩余的用户
+    await this.seatGateway.processQueuePublic();
+    
+    return {
+      message: result.message,
+      assignedCount: result.assignedCount,
+    };
+  }
+
+  @Get('hall/status')
+  @ApiOperation({ summary: '获取大厅状态' })
+  getHallStatus() {
+    return this.seatService.getHallStatus();
+  }
 }

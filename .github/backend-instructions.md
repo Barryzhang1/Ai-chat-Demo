@@ -217,6 +217,8 @@ curl -X GET http://localhost:3001/api/auth/me \
 | POST | `/refresh-menu` | 刷新菜单 | ✅ |
 | POST | `/create-order` | 创建订单 | ✅ |
 | GET | `/history` | 获取订单历史 | ✅ |
+| GET | `/reports/today-revenue` | 查询今日总收入 | ❌ |
+| GET | `/reports/dish-ranking` | 查询菜品排行榜 | ❌ |
 
 #### POST `/ai-order` - AI 智能点餐推荐
 
@@ -325,6 +327,75 @@ curl -X GET http://localhost:3001/api/auth/me \
   ]
 }
 ```
+
+#### GET `/reports/today-revenue` - 查询今日总收入
+
+**查询参数**：
+- `date` (可选): 查询日期，格式YYYY-MM-DD，不传则查询今日
+
+**示例请求**：
+```bash
+GET /api/ordering/reports/today-revenue
+GET /api/ordering/reports/today-revenue?date=2026-01-28
+```
+
+**返回数据**：
+```json
+{
+  "code": 0,
+  "message": "查询成功",
+  "data": {
+    "date": "2026-01-29",           // 查询日期
+    "totalRevenue": 1580.50,        // 总收入（已完成订单）
+    "orderCount": 15                // 订单数量
+  }
+}
+```
+
+**功能说明**：
+- 只统计status为'completed'的订单
+- 按照订单创建时间(createdAt)过滤指定日期
+- 日期范围：00:00:00 到 23:59:59
+
+#### GET `/reports/dish-ranking` - 查询菜品排行榜
+
+**查询参数**：
+- `limit` (可选): 返回菜品数量，默认10，最大50
+
+**示例请求**：
+```bash
+GET /api/ordering/reports/dish-ranking
+GET /api/ordering/reports/dish-ranking?limit=20
+```
+
+**返回数据**：
+```json
+{
+  "code": 0,
+  "message": "查询成功",
+  "data": [
+    {
+      "dishId": "507f1f77bcf86cd799439011",  // 菜品ID
+      "dishName": "宫保鸡丁",                 // 菜品名称
+      "totalQuantity": 128,                   // 总销量
+      "totalRevenue": 3584.00,                // 总收入
+      "orderCount": 98                        // 出现在订单中的次数
+    },
+    {
+      "dishId": "507f1f77bcf86cd799439012",
+      "dishName": "鱼香肉丝",
+      "totalQuantity": 115,
+      "totalRevenue": 3220.00,
+      "orderCount": 87
+    }
+  ]
+}
+```
+
+**功能说明**：
+- 只统计status为'completed'的订单
+- 按照菜品总销量(totalQuantity)降序排列
+- 使用MongoDB聚合管道统计各菜品的销量和收入
 
 **AI 推荐特性**：
 - 基于用户偏好的智能推荐

@@ -63,7 +63,32 @@ export class SeatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { nickname?: string },
   ) {
     try {
-      // 检查是否有可用座位
+      // 1. 检查大厅是否开放
+      const isHallOpen = await this.seatService.isHallOpen();
+
+      if (!isHallOpen) {
+        // 大厅关闭，强制进入排队
+        const position = await this.seatService.joinQueue(
+          client.id,
+          data?.nickname,
+          1,
+        );
+
+        client.emit('hallClosed', {
+          message: '大厅已关闭，您已自动加入排队',
+          position,
+          queueLength: await this.seatService.getQueueLength(),
+        });
+
+        this.logger.log(
+          `Hall is closed, user ${client.id} added to queue at position ${position}`,
+        );
+
+        await this.notifyMerchantSeatChange();
+        return;
+      }
+
+      // 2. 大厅开放，检查是否有可用座位
       const availableSeats = await this.seatService.findAvailableSeats();
 
       if (availableSeats.length > 0) {
@@ -232,6 +257,11 @@ export class SeatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.updateQueuePositions();
   }
 
+  // 公开方法供 Controller 调用
+  async processQueuePublic() {
+    await this.processQueue();
+  }
+
   // 更新队列中所有用户的排队位置
   private async updateQueuePositions() {
     const queueList = await this.seatService.getQueueList();
@@ -315,6 +345,16 @@ export class SeatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.heartbeatIntervals.delete(socketId);
       this.logger.log(`Heartbeat stopped for ${socketId}`);
     }
+  }
+
+  /**
+   * 批量停止心跳检测（供关门时使用）
+   */
+  stopHeartbeatsForUsers(socketIds: string[]) {
+    socketIds.forEach(socketId => {
+      this.stopHeartbeat(socketId);
+    });
+    this.logger.log(`Stopped heartbeats for ${socketIds.length} users`);
   }
 
   /**
@@ -409,5 +449,49 @@ export class SeatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (error) {
       this.logger.error(`Error notifying merchant seat change: ${error.message}`);
     }
+  }
+
+  // ==================== 大厅开关门通知方法 ====================
+
+  /**
+   * 通知所有客户端大厅已关闭
+   */
+  notifyHallClosed() {
+    this.server.emit('hallStatusChanged', {
+      status: 'closed',
+      message: '大厅已关闭，所有用户已被移出座位',
+      timestamp: new Date().toISOString(),
+    });
+    this.logger.log('Hall closed notification sent to all clients');
+  }
+
+  /**
+   * 通知所有客户端大厅已开放
+   */
+  notifyHallOpened() {
+    this.server.emit('hallStatusChanged', {
+      status: 'open',
+      message: '大厅已开放，正在为排队用户分配座位',
+      timestamp: new Date().toISOString(),
+    });
+    this.logger.log('Hall opened notification sent to all clients');
+  }
+
+  /**
+   * 通知指定用户座位已分配（供 Controller 调用）
+   */
+  notifySeatAssigned(socketId: string, seatInfo: { seatId: string; seatNumber: number }) {
+    this.server.to(socketId).emit('seatAssigned', {
+      seatNumber: seatInfo.seatNumber,
+      seatId: seatInfo.seatId,
+    });
+    this.logger.log(`Seat ${seatInfo.seatNumber} assigned to user ${socketId}`);
+  }
+
+  /**
+   * 启动心跳检测（供 Controller 调用）
+   */
+  startHeartbeatForUser(socketId: string) {
+    this.startHeartbeat(socketId);
   }
 }

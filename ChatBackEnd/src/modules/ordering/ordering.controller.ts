@@ -26,15 +26,16 @@ import { OrderingService } from './ordering.service';
 import { AiOrderDto } from './dto/ai-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { ReportQueryDto } from './dto/report-query.dto';
 
 @ApiTags('ordering')
 @Controller('ordering')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class OrderingController {
   constructor(private readonly orderingService: OrderingService) {}
 
   @Post('ai-order')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'AI智能点餐' })
   @ApiResponse({
@@ -58,6 +59,8 @@ export class OrderingController {
   }
 
   @Post('refresh-menu')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '刷新菜单' })
   @ApiResponse({
@@ -79,6 +82,8 @@ export class OrderingController {
   }
 
   @Post('create-order')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: '创建订单' })
   @ApiResponse({
@@ -106,6 +111,8 @@ export class OrderingController {
   }
 
   @Get('cart')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '获取购物车' })
   @ApiResponse({
     status: 200,
@@ -124,6 +131,8 @@ export class OrderingController {
   }
 
   @Get('orders')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '获取订单列表' })
   @ApiQuery({
     name: 'page',
@@ -170,6 +179,8 @@ export class OrderingController {
   }
 
   @Get('chat-history')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '获取聊天历史记录' })
   @ApiQuery({
     name: 'limit',
@@ -217,17 +228,13 @@ export class OrderingController {
     status: 200,
     description: '订单状态修改成功',
   })
-  @ApiResponse({ status: 400, description: '无权限修改此订单或请求参数错误' })
+  @ApiResponse({ status: 400, description: '请求参数错误' })
   @ApiResponse({ status: 404, description: '订单不存在' })
-  @ApiResponse({ status: 401, description: '未授权' })
   async updateOrderStatus(
-    @Request() req: ExpressRequest & { user: { id: string } },
     @Param('orderId') orderId: string,
     @Body() updateOrderStatusDto: UpdateOrderStatusDto,
   ) {
-    const userId = req.user.id;
     const result = await this.orderingService.updateOrderStatus(
-      userId,
       orderId,
       updateOrderStatusDto.status,
     );
@@ -235,6 +242,81 @@ export class OrderingController {
     return {
       code: 0,
       message: '订单状态修改成功',
+      data: result,
+    };
+  }
+
+  @Get('reports/today-revenue')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '查询今日总收入' })
+  @ApiQuery({
+    name: 'date',
+    required: false,
+    type: String,
+    description: '查询日期（YYYY-MM-DD格式），不传则查询今日',
+    example: '2026-01-29',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '查询成功',
+    schema: {
+      example: {
+        code: 0,
+        message: '查询成功',
+        data: {
+          date: '2026-01-29',
+          totalRevenue: 1580.5,
+          orderCount: 15,
+        },
+      },
+    },
+  })
+  async getTodayRevenue(@Query('date') date?: string) {
+    const result = await this.orderingService.getTodayRevenue(date);
+
+    return {
+      code: 0,
+      message: '查询成功',
+      data: result,
+    };
+  }
+
+  @Get('reports/dish-ranking')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '查询菜品排行榜' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: '返回的菜品数量，默认10，最大50',
+    example: 10,
+  })
+  @ApiResponse({
+    status: 200,
+    description: '查询成功',
+    schema: {
+      example: {
+        code: 0,
+        message: '查询成功',
+        data: [
+          {
+            dishId: '507f1f77bcf86cd799439011',
+            dishName: '宫保鸡丁',
+            totalQuantity: 128,
+            totalRevenue: 3584.0,
+            orderCount: 98,
+          },
+        ],
+      },
+    },
+  })
+  async getDishRanking(@Query('limit') limit?: number) {
+    const limitNum = limit ? Math.min(Math.max(1, Number(limit)), 50) : 10;
+    const result = await this.orderingService.getDishRanking(limitNum);
+
+    return {
+      code: 0,
+      message: '查询成功',
       data: result,
     };
   }

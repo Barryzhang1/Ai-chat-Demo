@@ -391,12 +391,51 @@ function UserOrder() {
       });
     });
 
+    // 监听大厅状态变更
+    socket.on('hallStatusChanged', (data) => {
+      if (data.status === 'closed') {
+        // 大厅关闭，退出聊天界面
+        Toast.show({
+          icon: 'fail',
+          content: '大厅已打烊，感谢您的光临！',
+          duration: 3000,
+        });
+        
+        // 使用 setTimeout 确保在 Toast 显示后执行退出操作
+        setTimeout(() => {
+          // 断开socket连接
+          if (socket) {
+            socket.disconnect();
+          }
+          // 返回角色选择页面
+          navigate('/role-select', { replace: true });
+        }, 3000);
+      } else if (data.status === 'open') {
+        Toast.show({
+          icon: 'success',
+          content: '大厅已开放，欢迎光临！',
+          duration: 2000,
+        });
+      }
+    });
+
+    // 监听关门时的强制排队通知
+    socket.on('hallClosed', (data) => {
+      setQueueInfo(data);
+      setSeatInfo(null);
+      Toast.show({
+        icon: 'fail',
+        content: `${data.message}，您的排队位置：第${data.position}位`,
+        duration: 3000,
+      });
+    });
+
     return () => {
       if (socket) {
         socket.disconnect();
       }
     };
-  }, []);
+  }, [navigate]);
 
   // 流式展示系统消息
   useEffect(() => {

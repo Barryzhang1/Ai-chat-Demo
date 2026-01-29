@@ -517,7 +517,6 @@ export class OrderingService {
    * 更新订单状态
    */
   async updateOrderStatus(
-    userId: string,
     orderId: string,
     status: string,
   ): Promise<{
@@ -536,18 +535,13 @@ export class OrderingService {
     updatedAt: Date;
   }> {
     this.logger.log(
-      `Updating order status: ${orderId}, user: ${userId}, status: ${status}`,
+      `Updating order status: ${orderId}, status: ${status}`,
     );
 
     // 查找订单 (使用MongoDB的_id)
     const order = await this.orderModel.findById(orderId).exec();
     if (!order) {
       throw new NotFoundException('订单不存在');
-    }
-
-    // 验证订单所属用户
-    if (order.userId !== userId) {
-      throw new BadRequestException('无权限修改此订单');
     }
 
     // 更新订单状态
@@ -1415,5 +1409,134 @@ export class OrderingService {
     }
 
     await chatHistory.save();
+  }
+
+  /**
+   * 获取今日总收入
+   * @param date 查询日期 (YYYY-MM-DD)，不传则查询今日
+   */
+  async getTodayRevenue(
+    date?: string,
+  ): Promise<{ date: string; totalRevenue: number; orderCount: number }> {
+    // 确定查询日期
+    const targetDate = date ? new Date(date) : new Date();
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    this.logger.log(
+      `Calculating revenue for date: ${targetDate.toISOString().split('T')[0]}, from ${startOfDay.toISOString()} to ${endOfDay.toISOString()}`,
+    );
+
+    // 查询当天已完成的订单
+    const query = {
+      status: 'completed',
+      createdAt: {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      },
+    };
+
+    MongoLogger.logQuery('orders', query, {}, 'Today Revenue Query');
+
+    const startTime = Date.now();
+    const orders = await this.orderModel.find(query).exec();
+    const queryTime = Date.now() - startTime;
+
+    // 计算总收入
+    const totalRevenue = orders.reduce(
+      (sum, order) => sum + order.totalPrice,
+      0,
+    );
+
+    MongoLogger.logResult(
+      orders.length,
+      queryTime,
+      [`Total Revenue: ¥${totalRevenue.toFixed(2)}`],
+    );
+
+    this.logger.log(
+      `📊 Revenue Report: Date=${targetDate.toISOString().split('T')[0]}, Orders=${orders.length}, Total=¥${totalRevenue.toFixed(2)}`,
+    );
+
+    return {
+      date: targetDate.toISOString().split('T')[0],
+      totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+      orderCount: orders.length,
+    };
+  }
+
+  /**
+   * 获取菜品排行榜
+   * @param limit 返回的菜品数量，默认10
+   */
+  async getDishRanking(
+    limit: number = 10,
+  ): Promise<
+    Array<{
+      dishId: string;
+      dishName: string;
+      totalQuantity: number;
+      totalRevenue: number;
+      orderCount: number;
+    }>
+  > {
+    this.logger.log(`Getting dish ranking, limit: ${limit}`);
+
+    // 使用聚合管道统计菜品销量
+    const startTime = Date.now();
+
+    const aggregationPipeline: any[] = [
+      // 只统计已完成的订单
+      { $match: { status: 'completed' } },
+      // 展开订单中的菜品数组
+      { $unwind: '$dishes' },
+      // 按菜品ID分组并统计
+      {
+        $group: {
+          _id: '$dishes.dishId',
+          dishName: { $first: '$dishes.name' },
+          totalQuantity: { $sum: '$dishes.quantity' },
+          totalRevenue: {
+            $sum: { $multiply: ['$dishes.price', '$dishes.quantity'] },
+          },
+          orderCount: { $sum: 1 },
+        },
+      },
+      // 按销量降序排序
+      { $sort: { totalQuantity: -1 } },
+      // 限制返回数量
+      { $limit: limit },
+    ];
+
+    this.logger.log(
+      `Aggregation Pipeline: ${JSON.stringify(aggregationPipeline)}`,
+    );
+
+    const result = await this.orderModel.aggregate(aggregationPipeline).exec();
+    const queryTime = Date.now() - startTime;
+
+    MongoLogger.logResult(
+      result.length,
+      queryTime,
+      result.map((item) => `${item.dishName} (${item.totalQuantity}份)`),
+    );
+
+    this.logger.log('📊 Dish Ranking:');
+    result.forEach((item, index) => {
+      this.logger.log(
+        `  ${index + 1}. ${item.dishName} - ${item.totalQuantity}份, ¥${item.totalRevenue.toFixed(2)}`,
+      );
+    });
+
+    return result.map((item) => ({
+      dishId: item._id.toString(),
+      dishName: item.dishName,
+      totalQuantity: item.totalQuantity,
+      totalRevenue: parseFloat(item.totalRevenue.toFixed(2)),
+      orderCount: item.orderCount,
+    }));
   }
 }

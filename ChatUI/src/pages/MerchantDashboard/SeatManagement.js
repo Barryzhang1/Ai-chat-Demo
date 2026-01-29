@@ -18,9 +18,12 @@ const SeatManagement = () => {
     available: 0,
     occupied: 0,
     closed: 0,
+    hallStatus: 'open', // 大厅状态
   });
   const [queueLength, setQueueLength] = useState(0);
+  const [queueList, setQueueList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [hallLoading, setHallLoading] = useState(false);
 
   useEffect(() => {
     // 初始化 Socket.IO 连接
@@ -44,6 +47,7 @@ const SeatManagement = () => {
       setSeats(data.seats || []);
       setStatistics(data.statistics || statistics);
       setQueueLength(data.queueLength || 0);
+      setQueueList(data.queueList || []);
     });
 
     socket.on('merchantSeatUpdate', (data) => {
@@ -51,6 +55,7 @@ const SeatManagement = () => {
       setSeats(data.seats || []);
       setStatistics(data.statistics || statistics);
       setQueueLength(data.queueLength || 0);
+      setQueueList(data.queueList || []);
     });
 
     socket.on('seatStatus', (stats) => {
@@ -64,9 +69,20 @@ const SeatManagement = () => {
       setQueueLength(data.queueLength || 0);
     });
 
+    // 监听大厅状态变更
+    socket.on('hallStatusChanged', (data) => {
+      console.log('Hall status changed:', data);
+      Toast.show({
+        icon: data.status === 'open' ? 'success' : 'fail',
+        content: data.message,
+      });
+      fetchStatistics();
+    });
+
     // 初始加载座位数据
     fetchSeats();
     fetchStatistics();
+    fetchQueueList();
 
     return () => {
       if (socket) {
@@ -96,6 +112,108 @@ const SeatManagement = () => {
       }
     } catch (error) {
       console.error('获取统计信息失败:', error);
+    }
+  };
+
+  const fetchQueueList = async () => {
+    try {
+      const response = await fetch(`${config.apiUrl}/seats/queue/list`);
+      if (response.ok) {
+        const data = await response.json();
+        setQueueList(data || []);
+      }
+    } catch (error) {
+      console.error('获取排队列表失败:', error);
+    }
+  };
+
+  // 关门操作
+  const handleCloseHall = async () => {
+    const result = await Dialog.confirm({
+      content: '确定要关门吗？所有用户将被移出座位，新用户只能排队。',
+      confirmText: '确定关门',
+      cancelText: '取消',
+    });
+
+    if (result) {
+      setHallLoading(true);
+      try {
+        const response = await fetch(`${config.apiUrl}/seats/hall/close`, {
+          method: 'POST',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          Toast.show({
+            icon: 'success',
+            content: data.message || '大厅已关闭',
+          });
+          await fetchSeats();
+          await fetchStatistics();
+          await fetchQueueList();
+          if (socket) {
+            socket.emit('getMerchantSeatStatus');
+          }
+        } else {
+          const error = await response.json();
+          Toast.show({
+            icon: 'fail',
+            content: error.message || '关门失败',
+          });
+        }
+      } catch (error) {
+        Toast.show({
+          icon: 'fail',
+          content: '网络错误',
+        });
+      } finally {
+        setHallLoading(false);
+      }
+    }
+  };
+
+  // 开门操作
+  const handleOpenHall = async () => {
+    const result = await Dialog.confirm({
+      content: '确定要开门吗？将按排队顺序为用户分配座位。',
+      confirmText: '确定开门',
+      cancelText: '取消',
+    });
+
+    if (result) {
+      setHallLoading(true);
+      try {
+        const response = await fetch(`${config.apiUrl}/seats/hall/open`, {
+          method: 'POST',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          Toast.show({
+            icon: 'success',
+            content: data.message || '大厅已开放',
+          });
+          await fetchSeats();
+          await fetchStatistics();
+          await fetchQueueList();
+          if (socket) {
+            socket.emit('getMerchantSeatStatus');
+          }
+        } else {
+          const error = await response.json();
+          Toast.show({
+            icon: 'fail',
+            content: error.message || '开门失败',
+          });
+        }
+      } catch (error) {
+        Toast.show({
+          icon: 'fail',
+          content: '网络错误',
+        });
+      } finally {
+        setHallLoading(false);
+      }
     }
   };
 
@@ -324,16 +442,88 @@ const SeatManagement = () => {
 
       {/* 操作按钮 */}
       <div className="action-bar">
-        <Button
-          color="primary"
-          size="large"
-          onClick={handleAddSeat}
-          loading={loading}
-          block
-        >
-          <AddOutline /> 添加座位
-        </Button>
+        <Space direction="vertical" block style={{ '--gap': '12px' }}>
+          {/* 大厅开关门按钮 */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {statistics.hallStatus === 'open' ? (
+              <Button
+                color="warning"
+                size="large"
+                onClick={handleCloseHall}
+                loading={hallLoading}
+                block
+              >
+                <CloseOutline /> 关门
+              </Button>
+            ) : (
+              <Button
+                color="success"
+                size="large"
+                onClick={handleOpenHall}
+                loading={hallLoading}
+                block
+              >
+                <CheckOutline /> 开门
+              </Button>
+            )}
+            <Button
+              color="primary"
+              size="large"
+              onClick={handleAddSeat}
+              loading={loading}
+              block
+            >
+              <AddOutline /> 添加座位
+            </Button>
+          </div>
+          
+          {/* 大厅状态提示 */}
+          <div style={{ 
+            padding: '8px 12px', 
+            background: statistics.hallStatus === 'open' ? '#f6ffed' : '#fff2e8',
+            border: `1px solid ${statistics.hallStatus === 'open' ? '#b7eb8f' : '#ffbb96'}`,
+            borderRadius: '8px',
+            fontSize: '14px',
+            color: statistics.hallStatus === 'open' ? '#52c41a' : '#fa8c16',
+            textAlign: 'center'
+          }}>
+            当前状态：{statistics.hallStatus === 'open' ? '🟢 营业中' : '🔴 已打烊'}
+          </div>
+        </Space>
       </div>
+
+      {/* 排队用户列表 */}
+      {queueList.length > 0 && (
+        <Card title={`排队列表 (${queueList.length}人)`} className="queue-list-card">
+          <div className="queue-list">
+            {queueList.map((user, index) => (
+              <div key={user.socketId} className="queue-item">
+                <div className="queue-position">
+                  <Tag color="primary" style={{ fontSize: '14px', padding: '4px 12px' }}>
+                    第{index + 1}位
+                  </Tag>
+                </div>
+                <div className="queue-info">
+                  <div className="queue-nickname">
+                    {user.nickname || '游客'}
+                  </div>
+                  <div className="queue-time">
+                    {new Date(user.queuedAt).toLocaleString('zh-CN', {
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </div>
+                </div>
+                {user.partySize > 1 && (
+                  <Tag color="default">{user.partySize}人</Tag>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* 座位列表 */}
       <div className="seats-list">

@@ -10,6 +10,7 @@ import { RedisService } from '../../redis/redis.service';
 const SEAT_STATUS_OCCUPIED_PREFIX = 'seat:status:occupied:';
 const QUEUE_KEY = 'seat:queue';
 const QUEUE_INFO_PREFIX = 'seat:queue:info:';
+const HALL_STATUS_KEY = 'seat:hall:status'; // 大厅状态：open/closed
 
 // 座位占用信息接口
 export interface SeatOccupiedInfo {
@@ -217,6 +218,7 @@ export class SeatService {
     const seats = await this.findAll();
     const availableSeats = await this.findAvailableSeats();
     const queueLength = await this.getQueueLength();
+    const hallStatus = await this.getHallStatus();
     
     return {
       total: seats.length,
@@ -224,6 +226,7 @@ export class SeatService {
       occupied: seats.length - availableSeats.length,
       closed: 0, // 当前版本未实现关闭状态
       queueLength,
+      hallStatus: hallStatus.status, // 添加大厅状态
     };
   }
 
@@ -393,5 +396,138 @@ export class SeatService {
       status,
       occupiedInfo,
     };
+  }
+
+  // ==================== 大厅开关门方法 ====================
+
+  /**
+   * 关门 - 清空所有Redis记录（座位占用信息 + 排队队列）
+   * 返回被清除座位的用户socketId列表，用于停止心跳检测
+   */
+  async closeHall(): Promise<{ 
+    message: string; 
+    clearedSeats: number;
+    clearedQueue: number;
+    clearedSocketIds: string[];
+  }> {
+    // 1. 获取所有座位ID
+    const allSeats = await this.findAll();
+    let clearedSeatsCount = 0;
+    const clearedSocketIds: string[] = [];
+
+    // 2. 清空所有座位的占用信息，并记录socketId
+    for (const seat of allSeats) {
+      const occupiedInfoStr = await this.redisService.get(
+        `${SEAT_STATUS_OCCUPIED_PREFIX}${seat._id}`,
+      );
+      if (occupiedInfoStr) {
+        const occupiedInfo = JSON.parse(occupiedInfoStr);
+        clearedSocketIds.push(occupiedInfo.socketId);
+        
+        await this.redisService.del(`${SEAT_STATUS_OCCUPIED_PREFIX}${seat._id}`);
+        clearedSeatsCount++;
+      }
+    }
+
+    // 3. 清空排队队列
+    // 3.1 获取所有排队用户的socketId
+    const queueSocketIds = await this.redisService.lrange(QUEUE_KEY, 0, -1);
+    const clearedQueueCount = queueSocketIds.length;
+
+    // 3.2 删除所有排队详细信息
+    for (const socketId of queueSocketIds) {
+      await this.redisService.del(`${QUEUE_INFO_PREFIX}${socketId}`);
+    }
+
+    // 3.3 清空排队列表
+    await this.redisService.del(QUEUE_KEY);
+
+    // 4. 设置大厅状态为关闭
+    await this.redisService.set(HALL_STATUS_KEY, 'closed');
+
+    return {
+      message: `大厅已关闭，清空了 ${clearedSeatsCount} 个座位的占用信息，${clearedQueueCount} 个排队记录`,
+      clearedSeats: clearedSeatsCount,
+      clearedQueue: clearedQueueCount,
+      clearedSocketIds,
+    };
+  }
+
+  /**
+   * 开门 - 按排队顺序分配座位
+   */
+  async openHall(): Promise<{ 
+    message: string; 
+    assignedCount: number;
+    assignedUsers: { socketId: string; seatId: string; seatNumber: number; nickname?: string }[];
+  }> {
+    // 1. 设置大厅状态为开放
+    await this.redisService.set(HALL_STATUS_KEY, 'open');
+
+    // 2. 获取排队列表和可用座位
+    const queueList = await this.getQueueList();
+    const availableSeats = await this.findAvailableSeats();
+
+    let assignedCount = 0;
+    const assignedUsers: { socketId: string; seatId: string; seatNumber: number; nickname?: string }[] = [];
+
+    // 3. 按顺序为排队用户分配座位
+    while (queueList.length > 0 && availableSeats.length > 0) {
+      const nextUser = await this.callNext(); // 从队列头部取出
+      const seat = availableSeats.shift(); // 取出一个可用座位
+
+      if (!nextUser || !seat) {
+        break;
+      }
+
+      try {
+        // 占用座位（写入Redis）
+        await this.occupySeat(
+          seat._id.toString(),
+          nextUser.socketId,
+          nextUser.nickname,
+        );
+
+        assignedUsers.push({
+          socketId: nextUser.socketId,
+          seatId: seat._id.toString(),
+          seatNumber: seat.seatNumber,
+          nickname: nextUser.nickname,
+        });
+
+        assignedCount++;
+      } catch (error) {
+        // 如果分配失败，将用户重新加入队列
+        await this.joinQueue(
+          nextUser.socketId,
+          nextUser.nickname,
+          nextUser.partySize,
+        );
+        break;
+      }
+    }
+
+    return {
+      message: `大厅已开放，为 ${assignedCount} 位用户分配了座位`,
+      assignedCount,
+      assignedUsers,
+    };
+  }
+
+  /**
+   * 检查大厅是否开放
+   */
+  async isHallOpen(): Promise<boolean> {
+    const status = await this.redisService.get(HALL_STATUS_KEY);
+    // 如果没有设置状态，默认为开放
+    return status !== 'closed';
+  }
+
+  /**
+   * 获取大厅状态
+   */
+  async getHallStatus(): Promise<{ status: 'open' | 'closed' }> {
+    const isOpen = await this.isHallOpen();
+    return { status: isOpen ? 'open' : 'closed' };
   }
 }
