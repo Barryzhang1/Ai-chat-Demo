@@ -16,6 +16,7 @@ import {
   ChatHistoryDocument,
 } from './schemas/chat-history.schema';
 import { Dish, DishDocument } from '../dish/entities/dish.entity';
+import { User, UserDocument } from '../auth/schemas/user.schema';
 import { AiOrderDto } from './dto/ai-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { MongoLogger } from '../../common/utils/mongo-logger.util';
@@ -86,6 +87,7 @@ export class OrderingService {
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     @InjectModel(ChatHistory.name)
     private chatHistoryModel: Model<ChatHistoryDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Dish.name) private dishModel: Model<DishDocument>,
   ) {
     this.deepseekApiKey = process.env.DEEPSEEK_API_KEY || '';
@@ -402,6 +404,77 @@ export class OrderingService {
   }
 
   /**
+   * 获取订单列表
+   */
+  async getOrders(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+    status?: string,
+  ): Promise<{
+    orders: Array<any>;
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    this.logger.log(
+      `Getting orders for user: ${userId}, page: ${page}, limit: ${limit}, status: ${status || 'all'}`,
+    );
+
+    const query: any = { userId };
+    if (status) {
+      query.status = status;
+    }
+
+    const skip = (page - 1) * limit;
+
+    // 查询订单总数
+    const total = await this.orderModel.countDocuments(query).exec();
+
+    // 查询订单列表，按创建时间倒序
+    const orders = await this.orderModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .exec();
+
+    // 获取所有唯一的 userId
+    const userIds = [...new Set(orders.map((order) => order.userId))];
+    
+    // 批量查询用户信息
+    const users = await this.userModel
+      .find({ id: { $in: userIds } })
+      .select('id nickname')
+      .exec();
+    
+    // 创建 userId 到 nickname 的映射
+    const userMap = new Map(
+      users.map((user) => [user.id, user.nickname])
+    );
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      orders: orders.map((order) => ({
+        _id: order._id,
+        userId: order.userId,
+        userName: userMap.get(order.userId) || '未知用户',
+        dishes: order.dishes,
+        totalPrice: order.totalPrice,
+        status: order.status,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+      })),
+      total,
+      page,
+      limit,
+      totalPages,
+    };
+  }
+
+  /**
    * 获取聊天历史记录（公开方法）
    */
   async getChatHistoryMessages(
@@ -438,6 +511,64 @@ export class OrderingService {
     return {
       messages,
       total,
+    };
+  }
+
+  /**
+   * 更新订单状态
+   */
+  async updateOrderStatus(
+    userId: string,
+    orderId: string,
+    status: string,
+  ): Promise<{
+    orderId: string;
+    userId: string;
+    status: string;
+    dishes: Array<{
+      dishId: string;
+      name: string;
+      price: number;
+      quantity: number;
+    }>;
+    totalPrice: number;
+    note?: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }> {
+    this.logger.log(
+      `Updating order status: ${orderId}, user: ${userId}, status: ${status}`,
+    );
+
+    // 查找订单 (使用MongoDB的_id)
+    const order = await this.orderModel.findById(orderId).exec();
+    if (!order) {
+      throw new NotFoundException('订单不存在');
+    }
+
+    // 验证订单所属用户
+    if (order.userId !== userId) {
+      throw new BadRequestException('无权限修改此订单');
+    }
+
+    // 更新订单状态
+    order.status = status;
+    await order.save();
+
+    return {
+      orderId: order.orderId,
+      userId: order.userId,
+      status: order.status,
+      dishes: order.dishes.map((item) => ({
+        dishId: item.dishId.toString(),
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+      totalPrice: order.totalPrice,
+      note: order.note,
+      createdAt: order.createdAt || new Date(),
+      updatedAt: order.updatedAt || new Date(),
     };
   }
 

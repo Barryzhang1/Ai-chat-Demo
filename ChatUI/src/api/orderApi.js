@@ -98,12 +98,14 @@ export const orderApi = {
   // 创建订单 (原有接口，保留但可能需要鉴权)
   createOrder: async (orderData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/orders`, {
+      const response = await fetch(`${API_BASE_URL}/ordering/create-order`, {
         method: 'POST',
         headers: getHeaders(), // Use getHeaders
         body: JSON.stringify(orderData),
       });
-      return await response.json();
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || '创建订单失败');
+      return data;
     } catch (error) {
       console.error('Create order error:', error);
       throw error;
@@ -111,10 +113,26 @@ export const orderApi = {
   },
 
   // 获取订单列表
-  getOrders: async () => {
+  getOrders: async (params = {}) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/orders`);
-      return await response.json();
+      const { page = 1, limit = 10, status } = params;
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', page.toString());
+      queryParams.append('limit', limit.toString());
+      if (status) {
+        queryParams.append('status', status);
+      }
+      
+      const response = await fetch(
+        `${API_BASE_URL}/ordering/orders?${queryParams.toString()}`,
+        {
+          method: 'GET',
+          headers: getHeaders(),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || '获取订单列表失败');
+      return data;
     } catch (error) {
       console.error('Get orders error:', error);
       throw error;
@@ -128,6 +146,23 @@ export const orderApi = {
       return await response.json();
     } catch (error) {
       console.error('Get order error:', error);
+      throw error;
+    }
+  },
+
+  // 修改订单状态
+  updateOrderStatus: async (orderId, status) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ordering/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || '修改订单状态失败');
+      return data;
+    } catch (error) {
+      console.error('Update order status error:', error);
       throw error;
     }
   },

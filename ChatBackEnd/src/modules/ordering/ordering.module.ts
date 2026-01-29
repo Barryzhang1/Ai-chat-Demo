@@ -6,6 +6,7 @@ import { Cart, CartSchema } from './schemas/cart.schema';
 import { Order, OrderSchema } from './schemas/order.schema';
 import { ChatHistory, ChatHistorySchema } from './schemas/chat-history.schema';
 import { Dish, DishSchema } from '../dish/entities/dish.entity';
+import { User, UserSchema } from '../auth/schemas/user.schema';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
@@ -15,6 +16,7 @@ import { AuthModule } from '../auth/auth.module';
       { name: Order.name, schema: OrderSchema },
       { name: ChatHistory.name, schema: ChatHistorySchema },
       { name: Dish.name, schema: DishSchema },
+      { name: User.name, schema: UserSchema },
     ]),
     AuthModule,
   ],

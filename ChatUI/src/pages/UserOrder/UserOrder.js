@@ -239,56 +239,61 @@ function UserOrder() {
          const res = await orderApi.getChatHistory();
          // 后端返回格式: { data: { messages: [...], total: number }, message: string }
          if (res.data && res.data.messages && res.data.messages.length > 0) {
-            // 获取所有菜品数据，用于匹配历史记录中的菜品名称
-            let allDishesMap = {};
-            try {
-              const dishesData = await dishApi.getDishes();
-              allDishesMap = (dishesData || []).reduce((map, dish) => {
-                map[dish.name] = dish;
-                return map;
-              }, {});
-            } catch (e) {
-              console.log('Failed to load dishes for history', e);
-            }
+            console.log('Loading chat history, total messages:', res.data.messages.length);
             
             // Transform history to match UI
-            const history = res.data.messages.map(msg => {
+            const history = res.data.messages.map((msg, index) => {
+              console.log(`Processing message ${index}:`, msg.role, msg.content.substring(0, 100));
+              
+              // 用户消息直接返回
+              if (msg.role === 'user') {
+                return {
+                  role: msg.role,
+                  content: msg.content,
+                  timestamp: new Date(msg.timestamp),
+                  isHistoryMessage: true,
+                };
+              }
+              
               // 解析 assistant 消息中的 JSON 内容
               let parsedContent = msg.content;
               let menu = null;
               let totalPrice = 0;
               
-              if (msg.role === 'assistant') {
-                try {
-                  // 尝试解析 JSON 格式的 content
-                  const jsonMatch = msg.content.match(/\{[\s\S]*\}/);
-                  if (jsonMatch) {
-                    const parsed = JSON.parse(jsonMatch[0]);
-                    parsedContent = parsed.message || msg.content;
+              try {
+                // 尝试解析 JSON 格式的 content
+                const jsonMatch = msg.content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  console.log(`Found JSON in message ${index}, parsing...`);
+                  const parsed = JSON.parse(jsonMatch[0]);
+                  parsedContent = parsed.message || msg.content;
+                  console.log(`Parsed message content:`, parsedContent.substring(0, 100));
+                  
+                  // 如果有菜品数据，构建菜单（新的数据结构是完整的菜品对象数组）
+                  if (parsed.dishes && parsed.dishes.length > 0) {
+                    console.log(`Found ${parsed.dishes.length} dishes in history`);
+                    menu = parsed.dishes.map(d => ({
+                      id: d.dishId || d.id,
+                      name: d.name,
+                      price: d.price || 0,
+                      description: d.description || '',
+                      image: d.image || d.imageUrl || `https://picsum.photos/200/200?random=${d.dishId}`,
+                      quantity: d.quantity || 1,
+                      isSpicy: d.isSpicy || false
+                    }));
                     
-                    // 如果有菜品数据，构建菜单
-                    if (parsed.dishes && parsed.dishes.length > 0) {
-                      menu = parsed.dishes.map((dishName, index) => {
-                        const dishData = allDishesMap[dishName];
-                        return {
-                          id: dishData?._id || `${msg.timestamp}_${index}`,
-                          name: dishName,
-                          price: dishData?.price || 0,
-                          description: dishData?.description || '',
-                          image: dishData?.imageUrl || `https://picsum.photos/200/200?random=${index}`,
-                          quantity: 1,
-                          isSpicy: dishData?.isSpicy || false
-                        };
-                      });
-                      
-                      // 计算总价
-                      totalPrice = menu.reduce((sum, dish) => sum + (dish.price * dish.quantity), 0);
-                    }
+                    // 计算总价
+                    totalPrice = menu.reduce((sum, dish) => sum + (dish.price * dish.quantity), 0);
+                  } else {
+                    console.log(`No dishes in message ${index}, dishes:`, parsed.dishes);
                   }
-                } catch (e) {
-                  // 解析失败，使用原始内容
-                  console.log('Content is not JSON, using as plain text');
+                } else {
+                  console.log(`No JSON found in message ${index}, using raw content`);
                 }
+              } catch (e) {
+                // 解析失败，使用原始内容
+                console.error('Failed to parse JSON in assistant message:', e);
+                parsedContent = msg.content;
               }
               
               return {
@@ -301,6 +306,8 @@ function UserOrder() {
               };
             });
             
+            console.log('History transformed, total messages:', history.length);
+            
             // 历史记录 + 欢迎词（欢迎词在最底部）
             const welcomeMessage = {
               role: 'assistant',
@@ -310,6 +317,7 @@ function UserOrder() {
             };
             
             setMessages([...history, welcomeMessage]);
+            console.log('Messages state updated with history');
             return;
          }
        } catch (e) {
@@ -456,12 +464,12 @@ function UserOrder() {
 
     try {
        const res = await orderApi.aiOrder(content);
-       // 后端返回结构 data: { message: string, dishes: any[] }
-       // dishes 数组中每个对象包含: dishId, name, price, quantity
-       const { message: reply, dishes } = res.data || {};
+       // 后端返回结构 data: { message: string, cart: { dishes: any[], totalPrice: number } }
+       const { message, cart } = res.data || {};
+       const dishes = cart?.dishes || [];
        
        let menu = null;
-       let totalPrice = 0;
+       let totalPrice = cart?.totalPrice || 0;
        
        if (dishes && dishes.length > 0) {
           menu = dishes.map(d => ({
@@ -473,7 +481,6 @@ function UserOrder() {
              isSpicy: d.isSpicy || false,
              quantity: d.quantity || 1
           }));
-          totalPrice = menu.reduce((sum, dish) => sum + (dish.price * dish.quantity), 0);
           setCurrentMenu(menu);
        }
 
@@ -484,7 +491,7 @@ function UserOrder() {
            const newMsgs = [...prev];
            newMsgs[idx] = {
              role: 'assistant',
-             content: reply || '收到您的需求，正在为您处理...',
+             content: message || '收到您的需求，正在为您处理...',
              menu: menu,
              totalPrice: totalPrice,
              timestamp: new Date(),
@@ -496,7 +503,7 @@ function UserOrder() {
              ...prev,
              {
                role: 'assistant',
-               content: reply || '收到您的需求，正在为您处理...',
+               content: message || '收到您的需求，正在为您处理...',
                menu: menu,
                totalPrice: totalPrice,
                timestamp: new Date(),
@@ -538,29 +545,62 @@ function UserOrder() {
 
   // 确认订单
   const handleConfirmOrder = async () => {
-    if (!currentMenu) return;
-
-    try {
-      // 构造符合后端 CreateOrderDto 的数据
-      const items = currentMenu.map(dish => ({
+    // 情况1：从AI推荐菜单创建订单（使用currentMenu）
+    // 情况2：从手动选择创建订单（使用dishQuantities）
+    let orderItems = [];
+    let totalPrice = 0;
+    
+    if (currentMenu && currentMenu.length > 0) {
+      // AI推荐的菜单
+      orderItems = currentMenu.map(dish => ({
         dishId: dish.id || dish._id,
         quantity: dish.quantity || 1
       }));
-      const totalPrice = currentMenu.reduce((sum, dish) => sum + (dish.price * (dish.quantity || 1)), 0);
-      // 调用后端创建订单
-      const res = await orderApi.createOrder({ items });
-      // 成功后处理
-      const orderId = res.data?._id || `ORDER${Date.now()}`;
+      totalPrice = currentMenu.reduce((sum, dish) => sum + (dish.price * (dish.quantity || 1)), 0);
+    } else {
+      // 手动选择的菜单
+      Object.entries(dishQuantities).forEach(([dishId, quantity]) => {
+        if (quantity > 0) {
+          const dish = allDishes.find(d => d._id === dishId);
+          if (dish) {
+            orderItems.push({
+              dishId: dishId,
+              quantity: quantity
+            });
+            totalPrice += dish.price * quantity;
+          }
+        }
+      });
+    }
+
+    if (orderItems.length === 0) {
+      Toast.show({ icon: 'fail', content: '请先选择菜品' });
+      return;
+    }
+
+    try {
+      // 调用后端创建订单接口
+      const res = await orderApi.createOrder({ items: orderItems });
+      
+      // 后端返回格式: { code: 0, message: '订单创建成功', data: { orderId, dishes, totalPrice, status, ... } }
+      const orderData = res.data;
+      const orderId = orderData.orderId || `ORDER${Date.now()}`;
+      
       setOrderConfirmed(true);
       setShowMenuPopup(false);
+      setCurrentMenu(null); // 清空当前菜单
+      setDishQuantities({}); // 清空选择的菜品
+      
+      // 显示订单确认消息
       const confirmMessage = {
         role: 'assistant',
-        content: `订单创建成功！\n订单号：${orderId}\n总金额：¥${totalPrice}\n感谢您的订购！`,
+        content: `订单创建成功！\n订单号：${orderId}\n总金额：¥${totalPrice.toFixed(2)}\n感谢您的订购！`,
         timestamp: new Date(),
         isOrderConfirm: true,
       };
       setMessages(prev => [...prev, confirmMessage]);
-      // 发送游戏推荐消息
+      
+      // 1秒后发送游戏推荐消息
       setTimeout(() => {
         const gameMessage = {
           role: 'assistant',
@@ -572,8 +612,9 @@ function UserOrder() {
       }, 1000);
 
     } catch (e) {
-      console.error(e);
-      Toast.show({ icon: 'fail', content: '订单创建失败，请重试' });
+      console.error('创建订单失败:', e);
+      const errorMsg = e.response?.data?.message || '订单创建失败，请重试';
+      Toast.show({ icon: 'fail', content: errorMsg });
     }
   };
 
@@ -827,7 +868,7 @@ function UserOrder() {
                 ) : (
                   <div className="message-content">
                     {typeof message.content === 'string'
-                      ? (message.role === 'assistant' && !message.menu && !message.audioUrl && !message.isContinueOrder && !message.isGameRecommend && !message.isOrderConfirm
+                      ? (message.role === 'assistant' && !message.menu && !message.audioUrl && !message.isContinueOrder && !message.isGameRecommend && !message.isOrderConfirm && !message.isHistoryMessage
                           ? message.content.slice(0, streamCharCounts[index] || 0)
                           : message.content)
                       : message.content}

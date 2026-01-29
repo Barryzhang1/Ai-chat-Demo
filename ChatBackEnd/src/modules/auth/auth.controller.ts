@@ -22,9 +22,10 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /**
-   * 用户注册
+   * 用户注册/登录
    * @param registerDto 注册信息
    * @returns 注册响应
+   * @description 如果用户已存在则登录，否则注册新用户
    */
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
@@ -37,7 +38,7 @@ export class AuthController {
 
     return {
       code: 0,
-      message: '注册成功',
+      message: '操作成功',
       data,
     };
   }

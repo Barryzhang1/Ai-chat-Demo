@@ -18,6 +18,11 @@
 - **功能描述**：基于购物车内容生成正式订单，保存到数据库
 - **详细需求**：[创建订单需求](./ordering/create-order.md)
 
+### 4. 修改订单状态
+- **功能描述**：允许用户修改自己订单的状态，用于订单状态流转管理
+- **详细需求**：支持将订单状态在 pending, confirmed, preparing, completed, cancelled 之间切换
+- **测试用例**：[修改订单状态测试用例](./ordering/update-order-status.testcase.md)
+
 ## 技术方案
 
 ### 技术栈
@@ -116,7 +121,9 @@
 ### API 端点
 
 | 方法 | 路径 | 描述 | 需要认证 |
-|------|------|------|---------|
+|------|------|------|orders | 获取订单列表 | ✅ |
+| GET | /api/ordering/chat-history | 获取聊天历史记录 | ✅ |
+| PATCH | /api/ordering/orders/:orderId/status | 修改订单状态
 | POST | /api/ordering/ai-order | AI智能点餐对话 | ✅ |
 | POST | /api/ordering/refresh-menu | 刷新菜单（随机采样） | ✅ |
 | POST | /api/ordering/create-order | 创建订单 | ✅ |

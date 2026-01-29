@@ -2,8 +2,10 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   Request,
+  Param,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -17,11 +19,13 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
+  ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrderingService } from './ordering.service';
 import { AiOrderDto } from './dto/ai-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
 @ApiTags('ordering')
 @Controller('ordering')
@@ -119,6 +123,55 @@ export class OrderingController {
     };
   }
 
+  @Get('orders')
+  @ApiOperation({ summary: '获取订单列表' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: '页码，默认为1',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: '每页数量，默认10条，最大50条',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: String,
+    description: '订单状态过滤：pending(待支付)、paid(已支付)、preparing(制作中)、completed(已完成)、cancelled(已取消)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+  })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async getOrders(
+    @Request() req: ExpressRequest & { user: { id: string } },
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('status') status?: string,
+  ) {
+    const userId = req.user.id;
+    const pageNum = page ? Math.max(1, Number(page)) : 1;
+    const limitNum = limit ? Math.min(Math.max(1, Number(limit)), 50) : 10;
+
+    const result = await this.orderingService.getOrders(
+      userId,
+      pageNum,
+      limitNum,
+      status,
+    );
+
+    return {
+      code: 0,
+      message: '获取成功',
+      data: result,
+    };
+  }
+
   @Get('chat-history')
   @ApiOperation({ summary: '获取聊天历史记录' })
   @ApiQuery({
@@ -152,6 +205,40 @@ export class OrderingController {
       code: 0,
       message: '获取成功',
       data: result || [],
+    };
+  }
+
+  @Patch('orders/:orderId/status')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '修改订单状态' })
+  @ApiParam({
+    name: 'orderId',
+    description: '订单ID',
+    type: String,
+  })
+  @ApiResponse({
+    status: 200,
+    description: '订单状态修改成功',
+  })
+  @ApiResponse({ status: 400, description: '无权限修改此订单或请求参数错误' })
+  @ApiResponse({ status: 404, description: '订单不存在' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async updateOrderStatus(
+    @Request() req: ExpressRequest & { user: { id: string } },
+    @Param('orderId') orderId: string,
+    @Body() updateOrderStatusDto: UpdateOrderStatusDto,
+  ) {
+    const userId = req.user.id;
+    const result = await this.orderingService.updateOrderStatus(
+      userId,
+      orderId,
+      updateOrderStatusDto.status,
+    );
+
+    return {
+      code: 0,
+      message: '订单状态修改成功',
+      data: result,
     };
   }
 }

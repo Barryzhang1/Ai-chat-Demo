@@ -26,9 +26,10 @@ export class AuthService {
   ) {}
 
   /**
-   * 用户注册
+   * 用户注册/登录
    * @param registerDto 注册信息
    * @returns 注册响应，包含token和用户信息
+   * @description 如果用户已存在，则直接登录；否则创建新用户
    */
   async register(registerDto: RegisterDto): Promise<RegisterResponseDto> {
     const { nickname } = registerDto;
@@ -37,9 +38,22 @@ export class AuthService {
       // 检查昵称是否已存在
       const existingUser = await this.userModel.findOne({ nickname }).exec();
       if (existingUser) {
-        throw new ConflictException('昵称已被使用');
+        // 用户已存在，直接登录
+        const token = this.generateJwtToken(existingUser.id, existingUser.nickname);
+        
+        const userDto: RegisterUserDto = {
+          id: existingUser.id,
+          nickname: existingUser.nickname,
+          createdAt: existingUser.createdAt!.toISOString(),
+        };
+
+        return {
+          token,
+          user: userDto,
+        };
       }
 
+      // 用户不存在，创建新用户
       // 生成用户ID
       const userId = randomUUID();
 
@@ -67,17 +81,7 @@ export class AuthService {
         user: userDto,
       };
     } catch (error) {
-      // 处理MongoDB唯一索引冲突
-      if (error.code === 11000) {
-        throw new ConflictException('昵称已被使用');
-      }
-      
-      // 如果是已知的ConflictException，直接抛出
-      if (error instanceof ConflictException) {
-        throw error;
-      }
-
-      console.error('注册失败:', error);
+      console.error('注册/登录失败:', error);
       throw new InternalServerErrorException('服务器内部错误');
     }
   }
