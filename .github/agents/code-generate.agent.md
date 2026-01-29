@@ -24,21 +24,22 @@ tools: ['read', 'search', 'edit', 'create', 'terminal', 'runTests', 'usages', 'p
    - 按照步骤2-3完成一个子需求后，再进行下一个
    - 所有子需求完成后，执行步骤4写入总体文档
 5. 如果需求文档不存在，询问用户是否需要先创建需求文档
+6. 告知用户你识别到的项目和子需求列表，并等待用户确认后再继续
 
 ### 步骤2：代码实现与优化
 
 当识别到需要修改的项目则读取对应项目的skills和instructions文档，
-**注意：告诉用户你参考了哪些文档**
 
 1. ChatBackEnd 项目参考文档
-    - #file:backend-code-specifications.md
-    - #file:backend-code-specifications.md
+    - #file:backend-instructions.md
 2. ChatUI 项目参考文档
     - #file:fontend-instructions.md
     - #file:web-ui-specification-instruction.md
-    - #file:fontend-code-specifications.md
 3. FlappyBird 项目参考文档
     - #file:FlappyBird/README.md
+    
+4. **注意：告诉用户你参考了哪些文档**
+
 
 ### 步骤3：测试
 
