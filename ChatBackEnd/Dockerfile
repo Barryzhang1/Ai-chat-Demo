@@ -32,6 +32,9 @@ RUN npm ci --only=production
 # 从构建阶段复制编译后的文件
 COPY --from=builder /app/dist ./dist
 
+# 复制生产环境配置文件
+COPY .env.production .env
+
 # 暴露端口
 EXPOSE 3001
 

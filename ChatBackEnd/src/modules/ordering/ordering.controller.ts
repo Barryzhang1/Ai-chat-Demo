@@ -149,17 +149,14 @@ export class OrderingController {
   })
   @ApiResponse({ status: 401, description: '未授权' })
   async getOrders(
-    @Request() req: ExpressRequest & { user: { id: string } },
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: string,
   ) {
-    const userId = req.user.id;
     const pageNum = page ? Math.max(1, Number(page)) : 1;
     const limitNum = limit ? Math.min(Math.max(1, Number(limit)), 50) : 10;
 
     const result = await this.orderingService.getOrders(
-      userId,
       pageNum,
       limitNum,
       status,

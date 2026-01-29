@@ -407,7 +407,6 @@ export class OrderingService {
    * 获取订单列表
    */
   async getOrders(
-    userId: string,
     page: number = 1,
     limit: number = 10,
     status?: string,
@@ -419,10 +418,10 @@ export class OrderingService {
     totalPages: number;
   }> {
     this.logger.log(
-      `Getting orders for user: ${userId}, page: ${page}, limit: ${limit}, status: ${status || 'all'}`,
+      `Getting all orders, page: ${page}, limit: ${limit}, status: ${status || 'all'}`,
     );
 
-    const query: any = { userId };
+    const query: any = {};
     if (status) {
       query.status = status;
     }
