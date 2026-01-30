@@ -7,7 +7,11 @@ import { DishModule } from './modules/dish/dish.module';
 import { OrderingModule } from './modules/ordering/ordering.module';
 import { CategoryModule } from './modules/category/category.module';
 import { SeatModule } from './modules/seat/seat.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
+import { PurchaseOrderModule } from './modules/purchase-order/purchase-order.module';
+import { InventoryLossModule } from './modules/inventory-loss/inventory-loss.module';
 import { RedisModule } from './redis/redis.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -51,6 +55,10 @@ import { RedisModule } from './redis/redis.module';
     OrderingModule,
     CategoryModule,
     SeatModule,
+    InventoryModule,
+    PurchaseOrderModule,
+    InventoryLossModule,
+    UsersModule,
   ],
   controllers: [],
   providers: [],

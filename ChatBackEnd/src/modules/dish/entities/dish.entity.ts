@@ -22,6 +22,9 @@ export class Dish {
 
   @Prop({ type: [String], default: [] })
   tags: string[];
+
+  @Prop({ type: [String], default: [] })
+  ingredients: string[];
 }
 
 export const DishSchema = SchemaFactory.createForClass(Dish);

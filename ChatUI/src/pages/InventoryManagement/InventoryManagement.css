@@ -1,0 +1,109 @@
+.page-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.inventory-stats {
+  padding: 16px;
+  background: #fff;
+  margin-bottom: 8px;
+}
+
+.inventory-stats-item {
+  text-align: center;
+}
+
+.inventory-stats-value {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.inventory-stats-label {
+  font-size: 12px;
+  color: #999;
+}
+
+.order-item {
+  padding: 12px;
+  background: #fff;
+  margin-bottom: 8px;
+  border-radius: 8px;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.order-no {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.order-detail {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.item-card {
+  background: #f9f9f9;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.item-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.history-item {
+  padding: 12px;
+  background: #fff;
+  margin-bottom: 8px;
+  border-radius: 8px;
+}
+
+.change-positive {
+  color: #52c41a;
+  font-weight: bold;
+}
+
+.change-negative {
+  color: #ff4d4f;
+  font-weight: bold;
+}
+
+.status-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.status-pending {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.status-approved {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.status-completed {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.status-cancelled {
+  background: #f5f5f5;
+  color: #999;
+}

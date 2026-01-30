@@ -312,9 +312,11 @@ function Inventory() {
             categoryId: editingDish.categoryId,
             description: editingDish.description,
             tags: editingDish.tags || [],
+            ingredients: editingDish.ingredients || [],
           } : {
             categoryId: categories.length > 0 ? categories[0]._id : undefined,
             tags: [],
+            ingredients: [],
           }}
         />
       </Popup>

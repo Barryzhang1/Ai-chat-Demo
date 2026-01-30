@@ -7,7 +7,9 @@ import {
   HistogramOutline, 
   PieOutline,
   TagOutline,
-  TeamOutline
+  TeamOutline,
+  FileOutline,
+  UserOutline
 } from 'antd-mobile-icons';
 import { dishApi } from '../../api/dishApi';
 import DishFormPopup from '../../components/DishFormPopup';
@@ -31,6 +33,20 @@ function MerchantDashboard() {
       icon: <AppstoreOutline fontSize={32} />,
       path: '/merchant/inventory',
       color: '#52c41a'
+    },
+    {
+      key: 'inventory-management',
+      title: '库存管理',
+      icon: <FileOutline fontSize={32} />,
+      path: '/merchant/inventory/list',
+      color: '#13c2c2'
+    },
+    {
+      key: 'purchase-order',
+      title: '进货管理',
+      icon: <FileOutline fontSize={32} />,
+      path: '/merchant/inventory/purchase-order',
+      color: '#fa8c16'
     },
     {
       key: 'seats',
@@ -59,6 +75,13 @@ function MerchantDashboard() {
       icon: <PieOutline fontSize={32} />,
       path: '/merchant/reports',
       color: '#eb2f96'
+    },
+    {
+      key: 'permissions',
+      title: '权限管理',
+      icon: <UserOutline fontSize={32} />,
+      path: '/merchant/permissions',
+      color: '#1890ff'
     },
   ];
 

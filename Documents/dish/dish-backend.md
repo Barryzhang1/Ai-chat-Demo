@@ -92,6 +92,9 @@ export class Dish {
   @Prop({ type: [String], default: [] })
   tags: string[];                  // 标签数组
 
+  @Prop({ type: [String], default: [] })
+  ingredients: string[];           // 绑定的库存食材ID数组（2026-01-30新增）
+
   createdAt?: Date;                // 创建时间（自动生成）
   updatedAt?: Date;                // 更新时间（自动更新）
 }
@@ -108,8 +111,15 @@ export class Dish {
 | `description` | String | 否 | - | 菜品描述，如"麻辣鲜香的经典川菜" | - |
 | `isDelisted` | Boolean | 否 | false | 是否下架，true表示已下架 | - |
 | `tags` | String[] | 否 | [] | 标签数组，如["热菜","辣","鸡肉"] | - |
+| `ingredients` | String[] | 否 | [] | 🆕 绑定的库存食材ID数组，关联inventory集合 | - |
 | `createdAt` | Date | - | 自动 | 创建时间 | ✅ 自动 |
 | `updatedAt` | Date | - | 自动 | 最后更新时间 | ✅ 自动 |
+
+> **🆕 新增字段说明 (2026-01-30)**：
+> - `ingredients`: 用于存储菜品所需的库存食材ID数组
+> - 支持绑定多个食材，用于库存追踪和成本核算
+> - 可选字段，不影响现有功能
+> - 参考文档：[菜品绑定食材功能需求](../dish-ingredient-binding/dish-ingredient-binding.md)
 
 #### 数据示例
 
@@ -121,6 +131,7 @@ export class Dish {
   "categoryId": "507f191e810c19729de860ea",
   "description": "麻辣鲜香的经典川菜",
   "tags": ["热菜", "辣", "鸡肉", "经典"],
+  "ingredients": ["507f1f77bcf86cd799439012", "507f1f77bcf86cd799439013"],
   "createdAt": "2026-01-28T10:30:00.000Z",
   "updatedAt": "2026-01-28T10:30:00.000Z"
 }
@@ -157,6 +168,7 @@ Content-Type: application/json
   price: number;             // 必填：价格
   categoryId: string;        // 必填：分类ID
   description?: string;      // 可选：描述
+  ingredients?: string[];    // 可选：绑定的库存食材ID数组 🆕
   tags?: string[];           // 可选：标签数组
 }
 ```
@@ -168,7 +180,8 @@ Content-Type: application/json
   "name": "宫保鸡丁",
   "price": 38,
   "categoryId": "507f191e810c19729de860ea",
-  "description": "麻辣鲜香的经典川菜",
+  "description": "麻辣鲜香的经典川菜,
+  "ingredients": ["507f1f77bcf86cd799439012", "507f1f77bcf86cd799439013"]",
   "tags": ["热菜", "辣", "鸡肉"]
 }
 ```
@@ -185,6 +198,7 @@ Content-Type: application/json
   "categoryId": "507f191e810c19729de860ea",
   "description": "麻辣鲜香的经典川菜",
   "isDelisted": false,
+  "ingredients": ["507f1f77bcf86cd799439012", "507f1f77bcf86cd799439013"],
   "tags": ["热菜", "辣", "鸡肉"],
   "createdAt": "2026-01-28T10:30:00.000Z",
   "updatedAt": "2026-01-28T10:30:00.000Z"

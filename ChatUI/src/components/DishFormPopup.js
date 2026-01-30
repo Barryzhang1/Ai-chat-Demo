@@ -1,10 +1,61 @@
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, Selector, Tag, Space } from 'antd-mobile';
+import { Form, Input, Button, Picker, Selector, Tag, Space, Toast } from 'antd-mobile';
 import { CloseOutline } from 'antd-mobile-icons';
+import inventoryApi from '../api/inventory/inventoryApi';
 
 function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValues = {}, categories = [] }) {
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
+  const [availableIngredients, setAvailableIngredients] = useState([]);
+  const [selectedIngredients, setSelectedIngredients] = useState([]);
+
+  // 获取库存食材列表
+  useEffect(() => {
+    const fetchIngredients = async () => {
+      try {
+        const response = await inventoryApi.getInventoryList();
+        console.log('库存食材API响应:', response); // 调试日志
+        
+        let ingredientsList = [];
+        
+        if (Array.isArray(response)) {
+          // 情况1: 直接返回数组
+          ingredientsList = response;
+        } else if (response && response.code === 0 && response.data) {
+          // 情况2: {code: 0, data: {...}}
+          if (Array.isArray(response.data)) {
+            // data直接是数组
+            ingredientsList = response.data;
+          } else if (response.data.items && Array.isArray(response.data.items)) {
+            // data.items是数组
+            ingredientsList = response.data.items;
+          } else if (response.data.list && Array.isArray(response.data.list)) {
+            // data.list是数组
+            ingredientsList = response.data.list;
+          } else if (response.data.records && Array.isArray(response.data.records)) {
+            // data.records是数组
+            ingredientsList = response.data.records;
+          } else {
+            console.log('data对象结构:', Object.keys(response.data));
+          }
+        } else if (response && response.data && Array.isArray(response.data)) {
+          // 情况3: 其他格式的response.data
+          ingredientsList = response.data;
+        }
+        
+        console.log('设置食材列表:', ingredientsList); // 调试日志
+        setAvailableIngredients(ingredientsList);
+      } catch (error) {
+        console.error('获取库存食材失败:', error);
+        Toast.show({
+          icon: 'fail',
+          content: '加载食材列表失败',
+        });
+      }
+    };
+    
+    fetchIngredients();
+  }, []);
 
   useEffect(() => {
     // 每次打开弹窗时初始化
@@ -16,9 +67,16 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
       } else {
         setTags([]);
       }
+      // 初始化ingredients
+      if (initialValues.ingredients && Array.isArray(initialValues.ingredients)) {
+        setSelectedIngredients(initialValues.ingredients);
+      } else {
+        setSelectedIngredients([]);
+      }
     } else {
-      // 新增模式，清空tags
+      // 新增模式，清空tags和ingredients
       setTags([]);
+      setSelectedIngredients([]);
       form.resetFields();
     }
     // 清空输入框
@@ -41,6 +99,19 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
     const newTags = tags.filter(tag => tag !== tagToDelete);
     setTags(newTags);
     form.setFieldsValue({ tags: newTags });
+  };
+
+  // 删除食材
+  const handleDeleteIngredient = (ingredientId) => {
+    const newIngredients = selectedIngredients.filter(id => id !== ingredientId);
+    setSelectedIngredients(newIngredients);
+    form.setFieldsValue({ ingredients: newIngredients });
+  };
+
+  // 根据ID获取食材名称
+  const getIngredientName = (ingredientId) => {
+    const ingredient = availableIngredients.find(item => item._id === ingredientId);
+    return ingredient ? ingredient.productName : ingredientId;
   };
 
   // 处理Enter键添加标签
@@ -138,10 +209,9 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <Input
-                placeholder="输入标签后按回车或点击添加"
                 value={tagInput}
                 onChange={setTagInput}
-                onKeyPress={handleTagInputKeyPress}
+                placeholder="输入标签名称"
                 style={{ flex: 1 }}
               />
               <Button
@@ -155,6 +225,74 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
             </div>
           </div>
         </Form.Item>
+
+        <Form.Item
+          name="ingredients"
+          label="绑定食材"
+          help="选择制作此菜品所需的库存食材（可多选）"
+        >
+          <div>
+            <div style={{ marginBottom: '8px' }}>
+              <Space wrap>
+                {selectedIngredients.map((ingredientId) => (
+                  <Tag
+                    key={ingredientId}
+                    color="success"
+                    fill="outline"
+                    style={{ 
+                      fontSize: '14px',
+                      padding: '4px 12px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    {getIngredientName(ingredientId)}
+                    <CloseOutline
+                      fontSize={14}
+                      onClick={() => handleDeleteIngredient(ingredientId)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </Tag>
+                ))}
+              </Space>
+            </div>
+            {availableIngredients.length > 0 ? (
+              <Picker
+                columns={[
+                  availableIngredients
+                    .filter(item => !selectedIngredients.includes(item._id))
+                    .map(item => ({
+                      label: `${item.productName} (库存: ${item.quantity || 0})`,
+                      value: item._id
+                    }))
+                ]}
+                onConfirm={(val) => {
+                  if (val[0] && !selectedIngredients.includes(val[0])) {
+                    const newIngredients = [...selectedIngredients, val[0]];
+                    setSelectedIngredients(newIngredients);
+                    form.setFieldsValue({ ingredients: newIngredients });
+                  }
+                }}
+              >
+                {(items, actions) => (
+                  <Button
+                    size="small"
+                    fill="outline"
+                    onClick={actions.open}
+                    block
+                  >
+                    请选择食材
+                  </Button>
+                )}
+              </Picker>
+            ) : (
+              <div style={{ color: '#999', padding: '12px 0' }}>
+                暂无库存食材，请先添加食材库存
+              </div>
+            )}
+          </div>
+        </Form.Item>
         </Form>
       </div>
       <div style={{
@@ -164,15 +302,15 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
           display: 'flex',
           gap: '12px'
         }}>
-          <Button
-            block
-            onClick={onCancel}
-          >
-            取消
-          </Button>
-          <Button block color="primary" onClick={() => form.submit()}>
-            {editMode ? '确认修改' : '确认上新'}
-          </Button>
+        <Button
+          block
+          onClick={onCancel}
+        >
+          取消
+        </Button>
+        <Button block color="primary" onClick={() => form.submit()}>
+          {editMode ? '确认修改' : '确认上新'}
+        </Button>
       </div>
     </div>
   );

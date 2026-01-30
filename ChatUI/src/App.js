@@ -15,6 +15,13 @@ import GameRankings from './pages/MerchantDashboard/GameRankings';
 import DataReports from './pages/MerchantDashboard/DataReports';
 import AddDish from './pages/MerchantDashboard/AddDish';
 import CategoryManagement from './pages/MerchantDashboard/CategoryManagement';
+import PermissionManagement from './pages/PermissionManagement/PermissionManagement';
+import {
+  PurchaseOrderList,
+  CreatePurchaseOrder,
+  InventoryList,
+  InventoryHistory,
+} from './pages/InventoryManagement';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { authUtils } from './utils/auth';
 import './App.css';
@@ -54,7 +61,12 @@ function AppRoutes() {
             <Route path="/merchant/rankings" element={<GameRankings />} />
             <Route path="/merchant/categories" element={<CategoryManagement />} />
             <Route path="/merchant/reports" element={<DataReports />} />
+            <Route path="/merchant/permissions" element={<PermissionManagement />} />
             <Route path="/merchant/add-dish" element={<AddDish />} />
+            <Route path="/merchant/inventory/purchase-order" element={<PurchaseOrderList />} />
+            <Route path="/merchant/inventory/purchase-order/create" element={<CreatePurchaseOrder />} />
+            <Route path="/merchant/inventory/list" element={<InventoryList />} />
+            <Route path="/merchant/inventory/history" element={<InventoryHistory />} />
             <Route
               path="/user-order"
               element={

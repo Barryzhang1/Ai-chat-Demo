@@ -20,4 +20,9 @@ export class UpdateDishDto {
   @IsArray()
   @IsOptional()
   tags?: string[];
+
+  @IsArray()
+  @IsOptional()
+  @IsString({ each: true })
+  ingredients?: string[];
 }

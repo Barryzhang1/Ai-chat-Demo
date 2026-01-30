@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { UserRole } from '../enums/user-role.enum';
 
 /**
  * 用户文档类型
@@ -35,6 +36,16 @@ export class User {
     index: true,
   })
   nickname: string;
+
+  /**
+   * 用户角色
+   */
+  @Prop({
+    required: true,
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  role: UserRole;
 
   /**
    * 创建时间（自动生成）
