@@ -114,6 +114,12 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
     return ingredient ? ingredient.productName : ingredientId;
   };
 
+  // 检查食材是否缺货
+  const isIngredientOutOfStock = (ingredientId) => {
+    const ingredient = availableIngredients.find(item => item._id === ingredientId);
+    return ingredient && ingredient.quantity === 0;
+  };
+
   // 处理Enter键添加标签
   const handleTagInputKeyPress = (e) => {
     if (e.key === 'Enter') {
@@ -234,27 +240,32 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
           <div>
             <div style={{ marginBottom: '8px' }}>
               <Space wrap>
-                {selectedIngredients.map((ingredientId) => (
-                  <Tag
-                    key={ingredientId}
-                    color="success"
-                    fill="outline"
-                    style={{ 
-                      fontSize: '14px',
-                      padding: '4px 12px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    {getIngredientName(ingredientId)}
-                    <CloseOutline
-                      fontSize={14}
-                      onClick={() => handleDeleteIngredient(ingredientId)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                  </Tag>
-                ))}
+                {selectedIngredients.map((ingredientId) => {
+                  const isOutOfStock = isIngredientOutOfStock(ingredientId);
+                  return (
+                    <Tag
+                      key={ingredientId}
+                      color={isOutOfStock ? 'danger' : 'success'}
+                      fill="outline"
+                      style={{ 
+                        fontSize: '14px',
+                        padding: '4px 12px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontWeight: isOutOfStock ? 'bold' : 'normal'
+                      }}
+                    >
+                      {isOutOfStock && '⚠️ '}
+                      {getIngredientName(ingredientId)}
+                      <CloseOutline
+                        fontSize={14}
+                        onClick={() => handleDeleteIngredient(ingredientId)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </Tag>
+                  );
+                })}
               </Space>
             </div>
             {availableIngredients.length > 0 ? (

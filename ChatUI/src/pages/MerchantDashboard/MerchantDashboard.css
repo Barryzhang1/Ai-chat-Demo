@@ -362,6 +362,7 @@
 .inventory-dishes-list .adm-list-item-content {
   border-bottom: none !important;
   border-top: none !important;
+  align-items: flex-end !important;
 }
 
 /* 支持 iOS 安全区域 */

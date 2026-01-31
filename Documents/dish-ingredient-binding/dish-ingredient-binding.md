@@ -360,16 +360,156 @@ db.dishes.updateMany(
 
 ---
 
+## 菜品食材不足警告功能
+
+### 功能描述
+在菜品库存列表页面，当菜品绑定的食材数量为0时，系统自动显示视觉警告，提醒商家及时补充库存。
+
+### 业务价值
+- **及时预警**：避免顾客点餐后因食材不足无法制作
+- **库存管理**：帮助商家快速识别需要补货的食材
+- **用户体验**：减少因缺货导致的用户投诉
+
+### UI设计
+
+#### 警告样式
+1. **红色边框**
+   - 样式：`2px solid #ff4d4f`（danger红色）
+   - 圆角：`8px`
+   - 底部间距：`8px`
+
+2. **警告标签**
+   - 组件：antd-mobile `<Tag color="danger">`
+   - 文字：「食材不足」
+   - 位置：菜品描述下方，现有标签上方
+
+#### 显示位置
+```
+菜品名称
+------------
+菜品描述
+🔴 食材不足        <- 警告标签
+🏷️ 招牌菜 微辣     <- 现有标签
+```
+
+### 前端实现
+
+#### 数据获取
+```javascript
+// 获取食材库存列表
+const fetchInventoryList = async () => {
+  try {
+    const response = await inventoryApi.getInventoryList();
+    if (response && Array.isArray(response.items)) {
+      setInventoryList(response.items);
+    } else {
+      setInventoryList([]);
+    }
+  } catch (error) {
+    console.error('Failed to fetch inventory list:', error);
+    setInventoryList([]);
+  }
+};
+```
+
+#### 检查逻辑
+```javascript
+// 检查菜品的食材是否有数量为0的
+const hasOutOfStockIngredient = (dish) => {
+  if (!dish.ingredients || dish.ingredients.length === 0) {
+    return false; // 未绑定食材，不显示警告
+  }
+  
+  return dish.ingredients.some(ingredientId => {
+    const ingredient = inventoryList.find(item => item._id === ingredientId);
+    return ingredient && ingredient.quantity === 0; // 数量为0则返回true
+  });
+};
+```
+
+#### 渲染实现
+```jsx
+{categoryDishes.map(item => {
+  const isOutOfStock = hasOutOfStockIngredient(item);
+  return (
+    <List.Item
+      key={item._id}
+      style={isOutOfStock ? {
+        border: '2px solid #ff4d4f',
+        borderRadius: '8px',
+        marginBottom: '8px'
+      } : {}}
+      description={
+        <div>
+          <div>{item.description}</div>
+          {/* 食材不足警告 */}
+          {isOutOfStock && (
+            <Tag color="danger" style={{ marginBottom: '8px' }}>
+              食材不足
+            </Tag>
+          )}
+          {/* 现有标签 */}
+          {item.tags && item.tags.length > 0 && (
+            <Space wrap>
+              {item.tags.map((tag, index) => (
+                <Tag key={index} color="primary" fill="outline">
+                  {tag}
+                </Tag>
+              ))}
+            </Space>
+          )}
+        </div>
+      }
+    >
+      {item.name}
+    </List.Item>
+  );
+})}
+```
+
+### 实现文件
+- **文件路径**：`ChatUI/src/pages/MerchantDashboard/Inventory.js`
+- **修改内容**：
+  1. 导入`inventoryApi`模块
+  2. 添加`inventoryList`状态管理
+  3. 添加`fetchInventoryList`函数
+  4. 添加`hasOutOfStockIngredient`检查函数
+  5. 在菜品列表渲染中应用警告样式和标签
+
+### 触发条件
+只要菜品绑定的食材中**任意一个**的`quantity`字段值为`0`，就触发警告显示。
+
+### 交互行为
+1. **页面加载**：自动获取食材库存数据并检查
+2. **警告显示**：立即显示红色边框和警告标签
+3. **编辑功能**：警告不影响菜品的编辑、上下架等操作
+4. **更新机制**：刷新页面后重新检查食材状态
+
+### 注意事项
+1. **未绑定食材的菜品**：不显示警告（正常情况）
+2. **所有食材充足**：不显示警告
+3. **部分食材不足**：显示警告（只要有一个为0即可）
+4. **所有食材不足**：显示警告（不重复显示）
+5. **实时性限制**：需要刷新页面才能更新警告状态
+
+### 测试文档
+详细测试用例请参考：[食材不足警告功能测试用例](./ingredient-shortage-warning.testcase.md)
+
+---
+
 ## 未来扩展
 
 ### 第一期（当前）
 - ✓ 基础的食材绑定功能
 - ✓ 多选食材
+- ✓ 食材不足警告功能（红色边框+标签）
 
 ### 第二期（计划）
 - 为每个食材设置用量（如：鸡肉500g，花生100g）
 - 根据菜品销量自动预警食材库存不足
 - 根据食材价格计算菜品成本
+- 低库存预警（quantity < 阈值时显示黄色警告）
+- 点击警告标签查看详细缺货食材列表
 
 ### 第三期（规划）
 - 菜品制作时自动扣减食材库存
@@ -393,3 +533,4 @@ db.dishes.updateMany(
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
 | 2026-01-30 | v1.0 | 初始版本，定义菜品绑定食材功能需求 | AI Assistant |
+| 2026-01-31 | v1.1 | 新增食材不足警告功能需求和实现说明 | AI Assistant |

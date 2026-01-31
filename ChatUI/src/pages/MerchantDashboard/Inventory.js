@@ -4,6 +4,7 @@ import { NavBar, List, Button, Toast, Popup, Form, SideBar, Divider, Empty, Tag,
 import { AddOutline } from 'antd-mobile-icons';
 import { dishApi } from '../../api/dishApi';
 import { categoryApi } from '../../api/categoryApi';
+import inventoryApi from '../../api/inventory/inventoryApi';
 import DishFormPopup from '../../components/DishFormPopup';
 import './MerchantDashboard.css';
 
@@ -13,6 +14,7 @@ function Inventory() {
   const [editingDish, setEditingDish] = useState(null);
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [activeKey, setActiveKey] = useState('');
+  const [inventoryList, setInventoryList] = useState([]);
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const contentRef = useRef(null);
@@ -51,9 +53,29 @@ function Inventory() {
     }
   };
 
+  const fetchInventoryList = async () => {
+    try {
+      const response = await inventoryApi.getInventoryList();
+      console.log('库存API返回数据:', response);
+      
+      // 后端返回格式: { code: 0, message: '查询成功', data: { list: [...], total, page, pageSize } }
+      if (response && response.code === 0 && response.data && Array.isArray(response.data.list)) {
+        console.log('设置库存列表，数量:', response.data.list.length);
+        setInventoryList(response.data.list);
+      } else {
+        console.warn('库存API返回格式不正确:', response);
+        setInventoryList([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch inventory list:', error);
+      setInventoryList([]);
+    }
+  };
+
   useEffect(() => {
     fetchDishes();
     fetchCategories();
+    fetchInventoryList();
   }, []);
 
   const handleStatusChange = async (dish) => {
@@ -104,6 +126,22 @@ function Inventory() {
       console.error('Operation failed:', error);
       Toast.show({ icon: 'fail', content: '操作失败，请重试' });
     }
+  };
+
+  // 检查菜品的食材是否有数量为0的
+  const hasOutOfStockIngredient = (dish) => {
+    if (!dish.ingredients || dish.ingredients.length === 0) {
+      return false;
+    }
+    
+    const result = dish.ingredients.some(ingredientId => {
+      const ingredient = inventoryList.find(item => item._id === ingredientId);
+      console.log(`检查食材 ${ingredientId}:`, ingredient, '数量:', ingredient?.quantity);
+      return ingredient && ingredient.quantity === 0;
+    });
+    
+    console.log(`菜品 ${dish.name} 是否缺料:`, result, '库存列表长度:', inventoryList.length);
+    return result;
   };
 
   // 按分类分组菜品
@@ -217,59 +255,78 @@ function Inventory() {
                     </div>
                   ) : (
                     <List className="inventory-dishes-list">
-                      {categoryDishes.map(item => (
-                        <List.Item
-                          key={item._id}
-                          description={
-                            <div>
-                              <div style={{ marginBottom: '8px' }}>{item.description}</div>
-                              {/* 显示标签 */}
-                              {item.tags && item.tags.length > 0 && (
-                                <Space wrap style={{ marginTop: '8px' }}>
-                                  {item.tags.map((tag, index) => (
-                                    <Tag
-                                      key={index}
-                                      color="primary"
-                                      fill="outline"
-                                      style={{ fontSize: '12px' }}
-                                    >
-                                      {tag}
-                                    </Tag>
-                                  ))}
-                                </Space>
-                              )}
-                            </div>
-                          }
-                          extra={
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '12px' }}>
-                              <div className="item-price" style={{ fontSize: '18px', fontWeight: 'bold', color: '#ff4d4f' }}>¥{item.price}</div>
-                              <div style={{ display: 'flex', gap: '8px' }}>
-                                <Button
-                                  size="small"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEdit(item);
-                                  }}
-                                >
-                                  编辑
-                                </Button>
-                                <Button
-                                  size="small"
-                                  color={item.isDelisted ? 'primary' : 'danger'}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleStatusChange(item);
-                                  }}
-                                >
-                                  {item.isDelisted ? '上架' : '下架'}
-                                </Button>
+                      {categoryDishes.map(item => {
+                        const isOutOfStock = hasOutOfStockIngredient(item);
+                        return (
+                          <List.Item
+                            key={item._id}
+                            style={isOutOfStock ? {
+                              border: '3px solid #ff4d4f',
+                              borderRadius: '12px',
+                              marginBottom: '12px',
+                              padding: '8px',
+                              backgroundColor: '#fff1f0',
+                              boxShadow: '0 2px 8px rgba(255, 77, 79, 0.15)'
+                            } : {
+                              marginBottom: '8px'
+                            }}
+                            description={
+                              <div>
+                                <div style={{ marginBottom: '8px' }}>{item.description}</div>
+                                {/* 食材不足警告 */}
+                                {isOutOfStock && (
+                                  <Tag color="danger" style={{ marginBottom: '8px', fontWeight: 'bold' }}>
+                                    ⚠️ 食材不足
+                                  </Tag>
+                                )}
+                                {/* 显示标签 */}
+                                {item.tags && item.tags.length > 0 && (
+                                  <Space wrap style={{ marginTop: '8px' }}>
+                                    {item.tags.map((tag, index) => (
+                                      <Tag
+                                        key={index}
+                                        color="primary"
+                                        fill="outline"
+                                        style={{ fontSize: '12px' }}
+                                      >
+                                        {tag}
+                                      </Tag>
+                                    ))}
+                                  </Space>
+                                )}
                               </div>
-                            </div>
-                          }
-                        >
-                          {item.name}
-                        </List.Item>
-                      ))}
+                            }
+                            extra={
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '12px' }}>
+                                <div className="item-price" style={{ fontSize: '18px', fontWeight: 'bold', color: '#ff4d4f' }}>¥{item.price}</div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <Button
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEdit(item);
+                                    }}
+                                  >
+                                    编辑
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    color={item.isDelisted ? 'primary' : 'danger'}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStatusChange(item);
+                                    }}
+                                  >
+                                    {item.isDelisted ? '上架' : '下架'}
+                                  </Button>
+                                </div>
+                              </div>
+                            }
+                          >
+                            {item.name}
+                          </List.Item>
+                        );
+                      })}
                     </List>
                   )}
                 </div>

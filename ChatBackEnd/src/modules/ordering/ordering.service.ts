@@ -59,7 +59,7 @@ export class OrderingService {
   private readonly deepseekApiLog: boolean;
   private readonly deepseekCacheTTL: number;
   private readonly deepseekApiUrl =
-    'https://api.deepseek.com/v1/chat/completions';
+    'https://api.deepseek.com/chat/completions';
   private readonly cache = new Map<string, CacheEntry>();
   private readonly cacheFilePath = path.join(
     process.cwd(),

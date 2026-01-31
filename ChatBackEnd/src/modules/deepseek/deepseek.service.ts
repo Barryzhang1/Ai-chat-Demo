@@ -9,7 +9,7 @@ import { Dish, DishDocument } from '../dish/entities/dish.entity';
 export class DeepseekService {
   private readonly logger = new Logger(DeepseekService.name);
   private apiKey: string | null = null;
-  private readonly apiUrl = 'https://api.deepseek.com/v1/chat/completions';
+  private readonly apiUrl = 'https://api.deepseek.com/chat/completions';
 
   constructor(
     @InjectModel(Dish.name) private readonly dishModel: Model<DishDocument>,
@@ -71,12 +71,15 @@ export class DeepseekService {
       return (
         data.choices[0]?.message?.content || 'No response from DeepSeek API'
       );
-    } catch (error: unknown) {
+    } catch (error: any) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`DeepSeek API call failed: ${errorMessage}`);
+      // 记录详细错误原因
+      const errorCause = error.cause ? JSON.stringify(error.cause) : '';
+      
+      this.logger.error(`DeepSeek API call failed: ${errorMessage} ${errorCause}`);
       throw new BadRequestException(
-        `Failed to call DeepSeek API: ${errorMessage}`,
+        `Failed to call DeepSeek API: ${errorMessage}. ${errorCause ? 'Cause: ' + errorCause : ''}`,
       );
     }
   }
@@ -331,6 +334,7 @@ db.dishes.aggregate([
           
           this.logger.log(`Query executed successfully, found ${queryResult.length} results`);
         } catch (error) {
+          console.log(error)
           executionRetryCount++;
           lastError = error;
           this.logger.error(`Failed to execute aggregation query (attempt ${executionRetryCount}/${maxExecutionRetries}): ${error.message}`);
@@ -426,6 +430,7 @@ ${error.message}
         authenticated: true,
       };
     } catch (error: unknown) {
+      console.log(error)
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       this.logger.warn('DeepSeek API not available', errorMessage);
