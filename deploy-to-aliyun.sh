@@ -332,25 +332,28 @@ setup_firewall() {
 }
 
 # 显示部署结果
-show_r清理磁盘空间
-    clean_server_space
-    
-    # esult() {
+show_result() {
     print_step "✅ 部署完成"
     
     print_msg $GREEN "🎉 项目已成功部署到阿里云服务器！"
     echo ""
     print_msg $BLUE "📍 访问地址："
-    echo "   前端 UI:    http://$SERVER_IP:3000"
-    echo "   后端 API:   http://$SERVER_IP:3001/api"
+    echo "   主应用:     http://$SERVER_IP （推荐，通过 nginx 代理）"
+    echo "   备用端口:   http://$SERVER_IP:3000"
+    echo "   后端 API:   http://$SERVER_IP:3001/api （直连，用于调试）"
     echo "   游戏:       http://$SERVER_IP:3002"
-    echo "   MongoDB:    mongodb://root:password@$SERVER_IP:27017"
+    echo ""
+    print_msg $YELLOW "⚠️  重要提示："
+    echo "   - 请通过 80 端口或 3000 端口访问，不要直接访问 3001"
+    echo "   - 80/3000 端口通过 nginx 自动代理前后端，避免跨域问题"
+    echo "   - 详细说明请查看: Documents/deployment-guide.md"
     echo ""
     print_msg $YELLOW "💡 管理命令："
-    echo "   查看日志:   ssh $SERVER_USER@$SERVER_IP \"cd $REMOTE_DIR && ./docker.sh logs\""
-    echo "   查看状态:   ssh $SERVER_USER@$SERVER_IP \"cd $REMOTE_DIR && ./docker.sh status\""
-    echo "   重启服务:   ssh $SERVER_USER@$SERVER_IP \"cd $REMOTE_DIR && ./docker.sh restart\""
-    echo "   停止服务:   ssh $SERVER_USER@$SERVER_IP \"cd $REMOTE_DIR && ./docker.sh stop\""
+    echo "   连接服务器:  ./ssh-connect.sh"
+    echo "   查看日志:    ssh $SERVER_USER@$SERVER_IP \"cd $REMOTE_DIR && docker logs -f chatbackend\""
+    echo "   查看状态:    ssh $SERVER_USER@$SERVER_IP \"cd $REMOTE_DIR && docker ps\""
+    echo "   重启服务:    ssh $SERVER_USER@$SERVER_IP \"cd $REMOTE_DIR && docker-compose restart\""
+    echo "   停止服务:    ssh $SERVER_USER@$SERVER_IP \"cd $REMOTE_DIR && docker-compose down\""
     echo ""
     print_msg $BLUE "🔐 SSH 连接:"
     echo "   ssh $SERVER_USER@$SERVER_IP"
@@ -375,6 +378,9 @@ main() {
     
     # 测试连接
     test_connection
+    
+    # 清理磁盘空间
+    clean_server_space
     
     # 安装 Docker
     install_docker
