@@ -6,8 +6,9 @@ WORKDIR /app
 # 复制 package 文件
 COPY package*.json ./
 
-# 安装依赖
-RUN npm ci
+# 安装依赖（清理缓存以节省空间）
+RUN npm ci --prefer-offline --no-audit && \
+    npm cache clean --force
 
 # 复制源代码
 COPY . .
@@ -26,8 +27,9 @@ WORKDIR /app
 # 复制 package 文件
 COPY package*.json ./
 
-# 只安装生产依赖
-RUN npm ci --only=production
+# 只安装生产依赖（清理缓存以节省空间）
+RUN npm ci --only=production --prefer-offline --no-audit && \
+    npm cache clean --force
 
 # 从构建阶段复制编译后的文件
 COPY --from=builder /app/dist ./dist

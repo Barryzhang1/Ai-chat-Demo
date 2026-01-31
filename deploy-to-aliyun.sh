@@ -205,6 +205,50 @@ pull_latest_code() {
     print_msg $GREEN "✅ 代码更新完成"
 }
 
+# 清理服务器磁盘空间
+clean_server_space() {
+    print_step "🧹 清理服务器磁盘空间"
+    
+    # 显示当前磁盘使用情况
+    print_msg $BLUE "当前磁盘使用情况："
+    ssh_cmd "df -h / | tail -1"
+    echo ""
+    
+    # 清理 Docker 资源
+    print_msg $BLUE "清理 Docker 未使用的资源..."
+    ssh_cmd "
+        # 清理停止的容器
+        docker ps -aq -f status=exited | xargs -r docker rm 2>/dev/null || true
+        
+        # 清理悬空镜像
+        docker images -qf 'dangling=true' | xargs -r docker rmi 2>/dev/null || true
+        
+        # 清理构建缓存
+        docker builder prune -f 2>/dev/null || true
+        
+        # 清理未使用的卷和网络
+        docker volume prune -f 2>/dev/null || true
+        docker network prune -f 2>/dev/null || true
+        
+        echo '✅ Docker 清理完成'
+    "
+    
+    # 清理系统日志
+    print_msg $BLUE "清理旧日志文件..."
+    ssh_cmd "
+        find /var/log -type f -name '*.log' -mtime +7 -delete 2>/dev/null || true
+        find /var/log -type f -name '*.gz' -mtime +7 -delete 2>/dev/null || true
+        echo '✅ 日志清理完成'
+    "
+    
+    # 显示清理后的磁盘使用情况
+    print_msg $GREEN "清理后磁盘使用情况："
+    ssh_cmd "df -h / | tail -1"
+    echo ""
+    
+    print_msg $GREEN "✅ 磁盘空间清理完成"
+}
+
 # 配置环境变量
 setup_env() {
     print_step "⚙️  配置环境变量"
@@ -288,7 +332,10 @@ setup_firewall() {
 }
 
 # 显示部署结果
-show_result() {
+show_r清理磁盘空间
+    clean_server_space
+    
+    # esult() {
     print_step "✅ 部署完成"
     
     print_msg $GREEN "🎉 项目已成功部署到阿里云服务器！"
