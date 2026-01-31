@@ -143,7 +143,7 @@ check_git_status() {
         print_msg $RED "❌ 当前目录不是 Git 仓库"
         exit 1
     fi
-    
+    123
     # 检查是否有未提交的更改
     if [[ -n $(git status -s) ]]; then
         print_msg $YELLOW "⚠️  检测到未提交的更改："
@@ -209,27 +209,34 @@ pull_latest_code() {
 setup_env() {
     print_step "⚙️  配置环境变量"
     
-    # 检查服务器上是否已有 .env 文件
-    if ssh_cmd "[ -f $REMOTE_DIR/.env ]"; then
-        print_msg $GREEN "✅ 服务器上已存在 .env 文件"
+    # 生产环境使用 .env.production 文件
+    ENV_FILE=".env.production"
+    
+    # 检查服务器上是否已有 .env.production 文件
+    if ssh_cmd "[ -f $REMOTE_DIR/$ENV_FILE ]"; then
+        print_msg $GREEN "✅ 服务器上已存在 $ENV_FILE 文件"
         
-        # 如果本地也有 .env，自动更新
-        if [ -f ".env" ]; then
-            print_msg $BLUE "检测到本地 .env 文件，自动更新到服务器..."
-            scp_cmd ".env" "$SERVER_USER@$SERVER_IP:$REMOTE_DIR/"
-            print_msg $GREEN "✅ .env 文件已更新"
+        # 如果本地也有 .env.production，自动更新
+        if [ -f "$ENV_FILE" ]; then
+            print_msg $BLUE "检测到本地 $ENV_FILE 文件，自动更新到服务器..."
+            scp_cmd "$ENV_FILE" "$SERVER_USER@$SERVER_IP:$REMOTE_DIR/"
+            # 同时创建 .env 软链接指向 .env.production
+            ssh_cmd "cd $REMOTE_DIR && ln -sf $ENV_FILE .env"
+            print_msg $GREEN "✅ $ENV_FILE 文件已更新"
         else
-            print_msg $YELLOW "本地无 .env 文件，保持服务器配置不变"
+            print_msg $YELLOW "本地无 $ENV_FILE 文件，保持服务器配置不变"
         fi
     else
-        print_msg $YELLOW "⚠️  服务器上未检测到 .env 文件"
+        print_msg $YELLOW "⚠️  服务器上未检测到 $ENV_FILE 文件"
         
-        if [ -f ".env" ]; then
-            print_msg $BLUE "上传本地 .env 文件..."
-            scp_cmd ".env" "$SERVER_USER@$SERVER_IP:$REMOTE_DIR/"
-            print_msg $GREEN "✅ .env 文件已上传"
+        if [ -f "$ENV_FILE" ]; then
+            print_msg $BLUE "上传本地 $ENV_FILE 文件..."
+            scp_cmd "$ENV_FILE" "$SERVER_USER@$SERVER_IP:$REMOTE_DIR/"
+            # 创建 .env 软链接指向 .env.production
+            ssh_cmd "cd $REMOTE_DIR && ln -sf $ENV_FILE .env"
+            print_msg $GREEN "✅ $ENV_FILE 文件已上传"
         else
-            print_msg $YELLOW "⚠️  本地和服务器都没有 .env 文件"
+            print_msg $YELLOW "⚠️  本地和服务器都没有 $ENV_FILE 文件"
             print_msg $YELLOW "服务将使用默认环境变量启动"
         fi
     fi
