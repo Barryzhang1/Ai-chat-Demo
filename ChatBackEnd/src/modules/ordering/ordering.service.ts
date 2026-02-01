@@ -382,7 +382,63 @@ export class OrderingService {
   }
 
   /**
-   * 获取订单列表
+   * 获取当前用户的订单列表
+   */
+  async getUserOrders(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+    status?: string,
+  ): Promise<{
+    orders: Array<any>;
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    this.logger.log(
+      `Getting orders for user ${userId}, page: ${page}, limit: ${limit}, status: ${status || 'all'}`,
+    );
+
+    const query: any = { userId };
+    if (status) {
+      query.status = status;
+    }
+
+    const skip = (page - 1) * limit;
+
+    // 查询订单总数
+    const total = await this.orderModel.countDocuments(query).exec();
+
+    // 查询订单列表，按创建时间倒序
+    const orders = await this.orderModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .exec();
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      orders: orders.map((order) => ({
+        _id: order._id,
+        userId: order.userId,
+        dishes: order.dishes,
+        totalPrice: order.totalPrice,
+        status: order.status,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+      })),
+      total,
+      page,
+      limit,
+      totalPages,
+    };
+  }
+
+  /**
+   * 获取订单列表（全局，用于商家后台）
    */
   async getOrders(
     page: number = 1,

@@ -97,7 +97,7 @@ module.exports = {
       'process.env': JSON.stringify({
         NODE_ENV: process.env.NODE_ENV || 'production',
         REACT_APP_API_URL: process.env.REACT_APP_API_URL || 'http://localhost:3001/api',
-        REACT_APP_GAME_URL: process.env.REACT_APP_GAME_URL || 'http://localhost:3002',
+        REACT_APP_GAME_URL: process.env.REACT_APP_GAME_URL || '/game',
         REACT_APP_NAME: process.env.REACT_APP_NAME || '点餐系统',
       }),
       // 同时提供 process 的 browser 版本
@@ -113,13 +113,37 @@ module.exports = {
     host: '0.0.0.0',
     port: 3000,
     hot: true,
-    historyApiFallback: true,
-    proxy: {
-      '/api': {
+    historyApiFallback: {
+      disableDotRule: true,
+      rewrites: [
+        // 排除代理路径，不应用 historyApiFallback
+        { from: /^\/api/, to: context => context.parsedUrl.pathname },
+        { from: /^\/game/, to: context => context.parsedUrl.pathname },
+      ],
+    },
+    proxy: [
+      {
+        context: ['/api'],
         target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false,
       },
-    },
+      {
+        context: ['/game'],
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+        secure: false,
+        pathRewrite: { '^/game': '' },
+        ws: true,
+        logLevel: 'debug',
+        onProxyReq: (proxyReq, req, res) => {
+          console.log('🎮 代理游戏请求:', req.url, '-> http://localhost:3002');
+        },
+        onError: (err, req, res) => {
+          console.error('❌ 游戏代理错误:', err.message);
+          console.error('   请确保运行: ./start-flappybird.sh');
+        },
+      },
+    ],
   },
 };

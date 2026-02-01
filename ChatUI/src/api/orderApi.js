@@ -112,7 +112,34 @@ export const orderApi = {
     }
   },
 
-  // 获取订单列表
+  // 获取当前用户的订单列表
+  getMyOrders: async (params = {}) => {
+    try {
+      const { page = 1, limit = 10, status } = params;
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', page.toString());
+      queryParams.append('limit', limit.toString());
+      if (status) {
+        queryParams.append('status', status);
+      }
+      
+      const response = await fetch(
+        `${API_BASE_URL}/ordering/my-orders?${queryParams.toString()}`,
+        {
+          method: 'GET',
+          headers: getHeaders(),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || '获取订单列表失败');
+      return data;
+    } catch (error) {
+      console.error('Get my orders error:', error);
+      throw error;
+    }
+  },
+
+  // 获取订单列表（全局，用于商家后台）
   getOrders: async (params = {}) => {
     try {
       const { page = 1, limit = 10, status } = params;

@@ -17,6 +17,8 @@ export const config = {
   apiUrl: process.env.REACT_APP_API_URL || (isDevelopment ? 'http://localhost:3001/api' : '/api'),
   // Socket.IO 服务器地址，开发环境需要指定完整地址，生产环境通过 nginx 代理
   socketUrl: process.env.REACT_APP_SOCKET_URL || getDefaultSocketUrl(),
+  // FlappyBird 游戏地址，通过 nginx 代理访问
+  gameUrl: process.env.REACT_APP_GAME_URL || '/game/',
   appName: '点餐系统',
   isDevelopment,
   isProduction,

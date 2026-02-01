@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NavBar, Input, Button, Toast, Popup, SideBar, Divider, Stepper, Empty, Badge, DotLoading } from 'antd-mobile';
-import { AddCircleOutline, RedoOutline } from 'antd-mobile-icons';
+import { NavBar, Input, Button, Toast, Popup, SideBar, Divider, Stepper, Empty, Badge, DotLoading, List, Tag, InfiniteScroll, PullToRefresh } from 'antd-mobile';
+import { RedoOutline, UnorderedListOutline } from 'antd-mobile-icons';
+import { ShopOutlined } from '@ant-design/icons';
 import { io } from 'socket.io-client';
 import { categoryApi } from '../../api/categoryApi';
 import { dishApi } from '../../api/dishApi';
 import { orderApi } from '../../api/orderApi';
+import inventoryApi from '../../api/inventory/inventoryApi';
 import { config } from '../../config';
 import speakIcon from '../../assets/speak.svg';
 import './UserOrder.css';
@@ -25,13 +27,20 @@ function UserOrder() {
   const [isOverCancel, setIsOverCancel] = useState(false);
   const [playingAudioIndex, setPlayingAudioIndex] = useState(null);
   const [showGamePopup, setShowGamePopup] = useState(false);
+  const [showGameIframe, setShowGameIframe] = useState(false);
   const [seatInfo, setSeatInfo] = useState(null);
   const [queueInfo, setQueueInfo] = useState(null);
   const [showMenuPopup, setShowMenuPopup] = useState(false);
   const [categories, setCategories] = useState([]);
   const [allDishes, setAllDishes] = useState([]);
+  const [inventoryList, setInventoryList] = useState([]);
   const [activeCategory, setActiveCategory] = useState('');
   const [dishQuantities, setDishQuantities] = useState({});
+  const [showOrderHistoryPopup, setShowOrderHistoryPopup] = useState(false);
+  const [orderHistory, setOrderHistory] = useState([]);
+  const [orderHistoryPage, setOrderHistoryPage] = useState(1);
+  const [orderHistoryHasMore, setOrderHistoryHasMore] = useState(true);
+  const [loadingOrderHistory, setLoadingOrderHistory] = useState(false);
   const messagesEndRef = useRef(null);
   const cancelBtnRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -46,9 +55,10 @@ function UserOrder() {
   // 获取菜品和分类数据
   const fetchMenuData = async () => {
     try {
-      const [categoriesData, dishesData] = await Promise.all([
+      const [categoriesData, dishesData, inventoryData] = await Promise.all([
         categoryApi.getCategories(),
-        dishApi.getDishes()
+        dishApi.getDishes(),
+        inventoryApi.getInventoryList({ page: 1, pageSize: 1000 })
       ]);
 
       const sortedCategories = (categoriesData || [])
@@ -58,6 +68,10 @@ function UserOrder() {
       setCategories(sortedCategories);
       const availableDishes = (dishesData || []).filter(dish => !dish.isDelisted);
       setAllDishes(availableDishes);
+      
+      // 保存库存列表
+      const inventory = inventoryData?.data?.items || inventoryData?.data?.list || inventoryData?.data || [];
+      setInventoryList(inventory);
 
       if (sortedCategories.length > 0) {
         setActiveCategory(sortedCategories[0]._id);
@@ -137,13 +151,31 @@ function UserOrder() {
     }
   };
 
+  // 检查菜品的食材是否充足
+  const hasEnoughIngredients = (dish) => {
+    // 如果没有绑定食材，允许展示
+    if (!dish.ingredients || dish.ingredients.length === 0) {
+      return true;
+    }
+    
+    // 检查所有绑定的食材是否都有库存
+    return dish.ingredients.every(ingredientId => {
+      const ingredient = inventoryList.find(item => item._id === ingredientId);
+      // 如果找不到食材或数量为0，则不充足
+      return ingredient && ingredient.quantity > 0;
+    });
+  };
+
   // 按分类分组菜品
   const groupDishesByCategory = () => {
     const grouped = {};
     categories.forEach(category => {
       grouped[category._id] = {
         category,
-        dishes: allDishes.filter(dish => dish.categoryId === category._id)
+        dishes: allDishes.filter(dish => 
+          dish.categoryId === category._id && 
+          hasEnoughIngredients(dish)
+        )
       };
     });
     return grouped;
@@ -239,12 +271,8 @@ function UserOrder() {
          const res = await orderApi.getChatHistory();
          // 后端返回格式: { data: { messages: [...], total: number }, message: string }
          if (res.data && res.data.messages && res.data.messages.length > 0) {
-            console.log('Loading chat history, total messages:', res.data.messages.length);
-            
             // Transform history to match UI
             const history = res.data.messages.map((msg, index) => {
-              console.log(`Processing message ${index}:`, msg.role, msg.content.substring(0, 100));
-              
               // 用户消息直接返回
               if (msg.role === 'user') {
                 return {
@@ -264,14 +292,11 @@ function UserOrder() {
                 // 尝试解析 JSON 格式的 content
                 const jsonMatch = msg.content.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
-                  console.log(`Found JSON in message ${index}, parsing...`);
                   const parsed = JSON.parse(jsonMatch[0]);
                   parsedContent = parsed.message || msg.content;
-                  console.log(`Parsed message content:`, parsedContent.substring(0, 100));
                   
                   // 如果有菜品数据，构建菜单（新的数据结构是完整的菜品对象数组）
                   if (parsed.dishes && parsed.dishes.length > 0) {
-                    console.log(`Found ${parsed.dishes.length} dishes in history`);
                     menu = parsed.dishes.map(d => ({
                       id: d.dishId || d.id,
                       name: d.name,
@@ -284,15 +309,10 @@ function UserOrder() {
                     
                     // 计算总价
                     totalPrice = menu.reduce((sum, dish) => sum + (dish.price * dish.quantity), 0);
-                  } else {
-                    console.log(`No dishes in message ${index}, dishes:`, parsed.dishes);
                   }
-                } else {
-                  console.log(`No JSON found in message ${index}, using raw content`);
                 }
               } catch (e) {
                 // 解析失败，使用原始内容
-                console.error('Failed to parse JSON in assistant message:', e);
                 parsedContent = msg.content;
               }
               
@@ -306,8 +326,6 @@ function UserOrder() {
               };
             });
             
-            console.log('History transformed, total messages:', history.length);
-            
             // 历史记录 + 欢迎词（欢迎词在最底部）
             const welcomeMessage = {
               role: 'assistant',
@@ -317,11 +335,10 @@ function UserOrder() {
             };
             
             setMessages([...history, welcomeMessage]);
-            console.log('Messages state updated with history');
             return;
          }
        } catch (e) {
-         console.error("Failed to load history", e);
+         // Failed to load history
        }
        
        // Fallback or empty history - 只显示欢迎词
@@ -552,7 +569,6 @@ function UserOrder() {
        });
 
     } catch(err) {
-       console.error(err);
        // 失败时也替换loading消息为错误
        setMessages(prev => {
          const idx = prev.findIndex(m => m.isLoading);
@@ -651,7 +667,6 @@ function UserOrder() {
       }, 1000);
 
     } catch (e) {
-      console.error('创建订单失败:', e);
       const errorMsg = e.response?.data?.message || '订单创建失败，请重试';
       Toast.show({ icon: 'fail', content: errorMsg });
     }
@@ -721,7 +736,6 @@ function UserOrder() {
       // 开始录音
       mediaRecorderRef.current.start();
     } catch (error) {
-      console.error('麦克风权限错误:', error);
       Toast.show('无法访问麦克风，请检查权限设置');
       setIsRecording(false);
     }
@@ -828,16 +842,84 @@ function UserOrder() {
        setCurrentMenu(null); // Clear current menu
        
     } catch(e) {
-       console.error(e);
        Toast.show('刷新失败');
     } finally {
        setIsGenerating(false);
     }
   };
 
+  // 加载订单历史
+  const loadOrderHistory = async (isRefresh = false) => {
+    if (loadingOrderHistory) return;
+    
+    setLoadingOrderHistory(true);
+    try {
+      const currentPage = isRefresh ? 1 : orderHistoryPage;
+      const params = {
+        page: currentPage,
+        limit: 10,
+      };
+      
+      const res = await orderApi.getMyOrders(params);
+      const { orders: newOrders, totalPages } = res.data;
+      
+      if (isRefresh) {
+        setOrderHistory(newOrders);
+        setOrderHistoryPage(2);
+        setOrderHistoryHasMore(totalPages > 1);
+      } else {
+        setOrderHistory(prev => [...prev, ...newOrders]);
+        setOrderHistoryPage(currentPage + 1);
+        setOrderHistoryHasMore(currentPage < totalPages);
+      }
+    } catch (error) {
+      Toast.show({ icon: 'fail', content: '加载失败，请重试' });
+    } finally {
+      setLoadingOrderHistory(false);
+    }
+  };
+
+  // 打开订单历史弹窗
+  const handleOpenOrderHistory = () => {
+    setShowOrderHistoryPopup(true);
+    if (orderHistory.length === 0) {
+      loadOrderHistory(true);
+    }
+  };
+
+  // 下拉刷新订单历史
+  const onRefreshOrderHistory = async () => {
+    await loadOrderHistory(true);
+  };
+
+  // 格式化时间
+  const formatOrderTime = (dateStr) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return '刚刚';
+    if (minutes < 60) return `${minutes}分钟前`;
+    if (hours < 24) return `${hours}小时前`;
+    if (days < 7) return `${days}天前`;
+    return date.toLocaleDateString();
+  };
+
   return (
     <div className="user-order-container">
-      <NavBar onBack={() => navigate('/role-select')}>
+      <NavBar 
+        onBack={() => navigate('/role-select')}
+        right={
+          <UnorderedListOutline 
+            fontSize={24} 
+            onClick={handleOpenOrderHistory}
+            style={{ cursor: 'pointer' }}
+          />
+        }
+      >
         智能点餐
         {seatInfo && (
           <span style={{ fontSize: '14px', marginLeft: '10px', color: '#00b578' }}>
@@ -966,43 +1048,56 @@ function UserOrder() {
 
       <div className="bottom-container">
         <div className="input-container">
-          {!isVoiceMode && (
-            <div className="voice-button" onClick={toggleVoiceMode}>
-              <img src={speakIcon} alt="voice" className="voice-icon" />
-            </div>
-          )}
-          <div className={isVoiceMode ? "voice-input-wrapper" : "input-wrapper"}>
-            {isVoiceMode ? (
-              <div 
-                className="voice-input-area"
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                onMouseDown={handleTouchStart}
-                onMouseMove={handleTouchMove}
-                onMouseUp={handleTouchEnd}
-                onContextMenu={(e) => e.preventDefault()}
-              >
-                <span className="voice-input-text">按住 说话</span>
-              </div>
-            ) : (
-              <Input
-                placeholder="发消息或按住说话..."
-                value={inputValue}
-                onChange={setInputValue}
-                onEnterPress={handleSend}
-                className="input-field"
-              />
-            )}
+          <div className="game-tag-container">
+            <Tag 
+              color="primary" 
+              onClick={() => {
+                setShowGameIframe(true);
+              }}
+              style={{ cursor: 'pointer' }}
+            >
+              🎮 FlappyBird
+            </Tag>
           </div>
-          <div className="right-buttons">
-            {isVoiceMode ? (
-              <div className="close-voice-btn" onClick={toggleVoiceMode}>×</div>
-            ) : (
-              <>
-                <AddCircleOutline className="icon-btn" fontSize={24} onClick={handleOpenMenuPopup} />
-              </>
+          <div className="input-row">
+            {!isVoiceMode && (
+              <div className="voice-button" onClick={toggleVoiceMode}>
+                <img src={speakIcon} alt="voice" className="voice-icon" />
+              </div>
             )}
+            <div className={isVoiceMode ? "voice-input-wrapper" : "input-wrapper"}>
+              {isVoiceMode ? (
+                <div 
+                  className="voice-input-area"
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  onMouseDown={handleTouchStart}
+                  onMouseMove={handleTouchMove}
+                  onMouseUp={handleTouchEnd}
+                  onContextMenu={(e) => e.preventDefault()}
+                >
+                  <span className="voice-input-text">按住 说话</span>
+                </div>
+              ) : (
+                <Input
+                  placeholder="发消息或按住说话..."
+                  value={inputValue}
+                  onChange={setInputValue}
+                  onEnterPress={handleSend}
+                  className="input-field"
+                />
+              )}
+            </div>
+            <div className="right-buttons">
+              {isVoiceMode ? (
+                <div className="close-voice-btn" onClick={toggleVoiceMode}>×</div>
+              ) : (
+                <>
+                  <ShopOutlined className="icon-btn" fontSize={32} onClick={handleOpenMenuPopup} />
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1076,7 +1171,10 @@ function UserOrder() {
             ✕
           </Button>
           <iframe
-            src={process.env.REACT_APP_GAME_URL || 'http://localhost:3002'}
+            src={(() => {
+              const userName = localStorage.getItem('userName') || '游客';
+              return `/game/?playerName=${encodeURIComponent(userName)}`;
+            })()}
             style={{
               width: '100%',
               height: '100%',
@@ -1203,6 +1301,124 @@ function UserOrder() {
               支付
             </Button>
           </div>
+        </div>
+      </Popup>
+
+      {/* 订单历史 Popup */}
+      <Popup
+        visible={showOrderHistoryPopup}
+        onMaskClick={() => setShowOrderHistoryPopup(false)}
+        onClose={() => setShowOrderHistoryPopup(false)}
+        bodyStyle={{ 
+          height: '80vh',
+          borderTopLeftRadius: '16px',
+          borderTopRightRadius: '16px',
+          overflow: 'hidden'
+        }}
+      >
+        <div className="order-history-popup-container">
+          <div className="order-history-header">
+            <h3>我的订单</h3>
+          </div>
+          
+          <div className="order-history-content">
+            <PullToRefresh onRefresh={onRefreshOrderHistory}>
+              {orderHistory.length === 0 && !loadingOrderHistory ? (
+                <Empty description="暂无订单" />
+              ) : (
+                <>
+                  <List>
+                    {orderHistory.map(order => {
+                      const statusConfig = {
+                        pending: { text: '待制作', color: 'warning' },
+                        paid: { text: '已支付', color: 'success' },
+                        preparing: { text: '制作中', color: 'primary' },
+                        completed: { text: '已完成', color: 'default' },
+                        cancelled: { text: '已取消', color: 'danger' },
+                      };
+                      const status = statusConfig[order.status] || statusConfig.pending;
+                      
+                      return (
+                        <List.Item
+                          key={order._id}
+                          description={
+                            <div>
+                              <div style={{ marginBottom: '8px' }}>
+                                订单号：{order._id}
+                              </div>
+                              <div style={{ marginBottom: '8px' }}>
+                                <div style={{ fontWeight: '500', marginBottom: '4px' }}>订单详情：</div>
+                                {order.dishes.map((dish, index) => (
+                                  <div key={index} style={{ marginLeft: '8px', color: '#666', fontSize: '13px' }}>
+                                    · {dish.name} × {dish.quantity} <span style={{ color: '#ff6430' }}>¥{dish.price.toFixed(2)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div style={{ color: '#999', fontSize: '12px' }}>
+                                {formatOrderTime(order.createdAt)}
+                              </div>
+                            </div>
+                          }
+                          extra={
+                            <div style={{ textAlign: 'right' }}>
+                              <Tag color={status.color} style={{ marginBottom: '8px' }}>
+                                {status.text}
+                              </Tag>
+                              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#ff6430' }}>
+                                ¥{order.totalPrice.toFixed(2)}
+                              </div>
+                            </div>
+                          }
+                        >
+                          <div style={{ fontWeight: 500 }}>
+                            共 {order.dishes.reduce((sum, d) => sum + d.quantity, 0)} 件商品
+                          </div>
+                        </List.Item>
+                      );
+                    })}
+                  </List>
+                  <InfiniteScroll 
+                    loadMore={() => loadOrderHistory(false)} 
+                    hasMore={orderHistoryHasMore} 
+                  />
+                </>
+              )}
+            </PullToRefresh>
+          </div>
+        </div>
+      </Popup>
+
+      {/* FlappyBird游戏弹窗 */}
+      <Popup
+        visible={showGameIframe}
+        onMaskClick={() => setShowGameIframe(false)}
+        bodyStyle={{
+          height: '80vh',
+          borderTopLeftRadius: '16px',
+          borderTopRightRadius: '16px',
+        }}
+      >
+        <div className="game-popup-container">
+          <div className="game-popup-header">
+            <span className="game-popup-title">🎮 FlappyBird</span>
+            <Button 
+              size="small" 
+              color="default"
+              onClick={() => setShowGameIframe(false)}
+            >
+              关闭
+            </Button>
+          </div>
+          <iframe
+            src={(() => {
+              const userName = localStorage.getItem('userName') || '游客';
+              return `/game/?playerName=${encodeURIComponent(userName)}`;
+            })()}
+            className="game-iframe"
+            title="FlappyBird Game"
+            frameBorder="0"
+            allowFullScreen
+          />
         </div>
       </Popup>
     </div>

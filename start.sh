@@ -86,12 +86,18 @@ if lsof -Pi :3001 -sTCP:LISTEN -t >/dev/null ; then
     lsof -ti:3001 | xargs kill -9 2>/dev/null || true
 fi
 
+if lsof -Pi :3002 -sTCP:LISTEN -t >/dev/null ; then
+    echo "  - 清理端口 3002..."
+    lsof -ti:3002 | xargs kill -9 2>/dev/null || true
+fi
+
 # 定义清理函数，确保脚本退出时关闭子进程
 cleanup() {
     echo ""
     echo -e "${BLUE}🛑 正在停止所有服务...${NC}"
     kill $BACKEND_PID 2>/dev/null || true
     kill $FRONTEND_PID 2>/dev/null || true
+    kill $GAME_PID 2>/dev/null || true
     exit
 }
 
@@ -106,7 +112,16 @@ cd ..
 
 echo "  - 后端 PID: $BACKEND_PID"
 
-# 等待后端稍微启动一下
+# 启动游戏服务 (后台运行)
+echo -e "${GREEN}🎮 启动游戏服务 (Port 3002)...${NC}"
+cd FlappyBird
+npm start &
+GAME_PID=$!
+cd ..
+
+echo "  - 游戏 PID: $GAME_PID"
+
+# 等待后端和游戏稍微启动一下
 sleep 3
 
 # 启动前端 (后台运行，以便我们可以同时监控两者或者让主进程wait)
@@ -123,6 +138,7 @@ echo ""
 echo -e "${GREEN}✨ 服务已启动!${NC}"
 echo -e "   前端访问: ${BLUE}http://localhost:3000${NC}"
 echo -e "   后端 API: ${BLUE}http://localhost:3001${NC}"
+echo -e "   游戏服务: ${BLUE}http://localhost:3002${NC}"
 echo ""
 echo "按 Ctrl+C 停止所有服务..."
 

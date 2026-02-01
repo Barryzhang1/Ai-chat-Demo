@@ -12,7 +12,8 @@ RUN npm ci
 # 复制源代码
 COPY . .
 
-# 构建应用
+# 构建应用（设置环境变量）
+ENV NODE_ENV=production
 RUN npm run build
 
 # 生产阶段 - 使用 nginx 提供静态文件

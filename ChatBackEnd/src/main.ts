@@ -10,8 +10,19 @@ async function bootstrap(): Promise<void> {
   // 设置全局路由前缀
   app.setGlobalPrefix('api');
 
-  // 启用CORS
-  app.enableCors();
+  // CORS配置 - 允许多个源访问
+  app.enableCors({
+    origin: [
+      'http://localhost:3000',  // ChatUI
+      'http://localhost:3001',  // ChatUI备用端口
+      'http://localhost:3002',  // FlappyBird当前端口
+      'http://localhost:8080',  // FlappyBird备用端口
+      ...(process.env.ALLOWED_ORIGINS?.split(',') || [])
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
 
   // 全局验证管道
   app.useGlobalPipes(
@@ -24,14 +35,6 @@ async function bootstrap(): Promise<void> {
       },
     }),
   );
-
-  // CORS配置
-  app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost:3000',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  });
 
   // Swagger API文档配置
   const config = new DocumentBuilder()

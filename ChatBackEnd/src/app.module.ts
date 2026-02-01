@@ -13,6 +13,7 @@ import { InventoryLossModule } from './modules/inventory-loss/inventory-loss.mod
 import { RedisModule } from './redis/redis.module';
 import { UsersModule } from './modules/users/users.module';
 import { RevenueModule } from './modules/revenue/revenue.module';
+import { GameScoreModule } from './modules/game-score/game-score.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { RevenueModule } from './modules/revenue/revenue.module';
     InventoryLossModule,
     UsersModule,
     RevenueModule,
+    GameScoreModule,
   ],
   controllers: [],
   providers: [],

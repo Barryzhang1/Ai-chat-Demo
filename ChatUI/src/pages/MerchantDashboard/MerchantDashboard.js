@@ -10,7 +10,8 @@ import {
   TeamOutline,
   FileOutline,
   UserOutline,
-  PayCircleOutline
+  PayCircleOutline,
+  PlayOutline
 } from 'antd-mobile-icons';
 import { dishApi } from '../../api/dishApi';
 import DishFormPopup from '../../components/DishFormPopup';
@@ -88,6 +89,25 @@ function MerchantDashboard() {
       icon: <HistogramOutline fontSize={32} />,
       path: '/merchant/rankings',
       color: '#faad14'
+    },
+    {
+      key: 'play-game',
+      title: '玩游戏',
+      icon: <PlayOutline fontSize={32} />,
+      action: () => {
+        // 获取当前登录用户名
+        const userName = localStorage.getItem('userName');
+        console.log('当前localStorage.userName:', userName);
+        
+        const finalUserName = userName || '游客';
+        const gameUrl = `/game/?playerName=${encodeURIComponent(finalUserName)}`;
+        
+        console.log('打开游戏 URL:', gameUrl);
+        
+        // 在新标签页打开游戏，通过URL参数传递用户名
+        window.open(gameUrl, '_blank');
+      },
+      color: '#f759ab'
     },
     {
       key: 'categories', 
