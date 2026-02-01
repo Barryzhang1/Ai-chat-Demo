@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   NavBar,
@@ -11,12 +11,13 @@ import {
   DotLoading,
   Card,
   Space,
-  Picker,
   DatePicker,
   SearchBar,
   FloatingBubble,
+  Dropdown,
+  Radio,
 } from 'antd-mobile';
-import { AddOutline, DeleteOutline, FilterOutline } from 'antd-mobile-icons';
+import { AddOutline, DeleteOutline } from 'antd-mobile-icons';
 import { revenueApi } from '../../api/revenueApi';
 import './TransactionList.css';
 
@@ -33,6 +34,8 @@ const TransactionList = () => {
   const [total, setTotal] = useState(0);
   const pageSize = 20;
 
+  const dropdownRef = useRef(null);
+  
   // 筛选条件
   const [filters, setFilters] = useState({
     type: '',
@@ -40,22 +43,14 @@ const TransactionList = () => {
     endDate: '',
     keyword: '',
   });
-  const [showFilters, setShowFilters] = useState(false);
-
-  const typeOptions = [
-    [
-      { label: '全部', value: '' },
-      { label: '收入', value: 'income' },
-      { label: '支出', value: 'expense' },
-    ],
-  ];
+  const [dateRangeType, setDateRangeType] = useState('all');
 
   // 加载列表数据
-  const loadTransactions = async (currentPage = 1) => {
+  const loadTransactions = async (currentPage = 1, currentFilters = filters) => {
     setLoading(true);
     try {
       const params = {
-        ...filters,
+        ...currentFilters,
         page: currentPage,
         pageSize,
       };
@@ -89,6 +84,45 @@ const TransactionList = () => {
     loadTransactions();
   }, []);
 
+  // 快速日期选择
+  const handleDateQuickSelect = (type) => {
+    setDateRangeType(type);
+    
+    if (type === 'custom') return;
+
+    const now = new Date();
+    let start = '';
+    let end = '';
+
+    if (type === 'today') {
+      start = formatDate(now);
+      end = formatDate(now);
+    } else if (type === 'week') {
+      // 近7天（包含今天）
+      const oneWeekAgo = new Date(now);
+      oneWeekAgo.setDate(now.getDate() - 6);
+      start = formatDate(oneWeekAgo);
+      end = formatDate(now);
+    } else if (type === 'month') {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      start = formatDate(firstDay);
+      end = formatDate(now);
+    }
+
+    const newFilters = { ...filters, startDate: start, endDate: end };
+    setFilters(newFilters);
+    loadTransactions(1, newFilters);
+    dropdownRef.current?.close();
+  };
+
+  // 类型选择
+  const handleTypeSelect = (type) => {
+    const newFilters = { ...filters, type };
+    setFilters(newFilters);
+    loadTransactions(1, newFilters);
+    dropdownRef.current?.close();
+  };
+
   // 删除记录
   const handleDelete = async (item) => {
     const result = await Dialog.confirm({
@@ -113,25 +147,16 @@ const TransactionList = () => {
     }
   };
 
-  // 应用筛选
-  const applyFilters = () => {
-    setShowFilters(false);
-    loadTransactions(1);
-  };
-
-  // 重置筛选
-  const resetFilters = () => {
-    setFilters({
-      type: '',
-      startDate: '',
-      endDate: '',
-      keyword: '',
-    });
+  // 确认自定义日期
+  const confirmCustomDate = () => {
+    loadTransactions(1, filters);
+    dropdownRef.current?.close();
   };
 
   // 格式化日期
   const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
+    if (!dateStr) return '';
+    const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
 
@@ -151,94 +176,94 @@ const TransactionList = () => {
     <div className="transaction-list-container">
       <NavBar
         onBack={() => navigate('/revenue')}
-        right={
-          <Button
-            size="small"
-            fill="none"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <FilterOutline />
-          </Button>
-        }
       >
         额外收支管理
       </NavBar>
 
-      <div className="content">
-        {/* 筛选面板 */}
-        {showFilters && (
-          <Card className="filter-panel">
-            <Space direction="vertical" block>
-              <div className="filter-item">
-                <span className="filter-label">类型</span>
-                <Picker
-                  columns={typeOptions}
-                  value={[filters.type]}
-                  onConfirm={(val) => setFilters({ ...filters, type: val[0] })}
-                >
-                  {(items, { open }) => (
-                    <Button size="small" onClick={open}>
-                      {filters.type === 'income'
-                        ? '收入'
-                        : filters.type === 'expense'
-                        ? '支出'
-                        : '全部'}
-                    </Button>
-                  )}
-                </Picker>
-              </div>
-
-              <div className="filter-item">
-                <span className="filter-label">开始日期</span>
-                <DatePicker
-                  value={filters.startDate ? new Date(filters.startDate) : null}
-                  max={new Date()}
-                  onConfirm={(val) => {
-                    setFilters({ ...filters, startDate: formatDate(val) });
-                  }}
-                >
-                  {(value, { open }) => (
-                    <Button size="small" onClick={open}>
-                      {filters.startDate || '选择日期'}
-                    </Button>
-                  )}
-                </DatePicker>
-              </div>
-
-              <div className="filter-item">
-                <span className="filter-label">结束日期</span>
-                <DatePicker
-                  value={filters.endDate ? new Date(filters.endDate) : null}
-                  max={new Date()}
-                  onConfirm={(val) => {
-                    setFilters({ ...filters, endDate: formatDate(val) });
-                  }}
-                >
-                  {(value, { open }) => (
-                    <Button size="small" onClick={open}>
-                      {filters.endDate || '选择日期'}
-                    </Button>
-                  )}
-                </DatePicker>
-              </div>
-
-              <SearchBar
-                placeholder="搜索描述内容"
-                value={filters.keyword}
-                onChange={(val) => setFilters({ ...filters, keyword: val })}
-              />
-
-              <Space block>
-                <Button block color="primary" onClick={applyFilters}>
-                  应用筛选
-                </Button>
-                <Button block onClick={resetFilters}>
-                  重置
-                </Button>
+      <Dropdown ref={dropdownRef}>
+        <Dropdown.Item key='type' title={filters.type === '' ? '类型' : (filters.type === 'income' ? '收入' : '支出')}>
+          <div style={{ padding: 12 }}>
+            <Radio.Group value={filters.type} onChange={handleTypeSelect}>
+              <Space direction='vertical' block>
+                <Radio value=''>全部类型</Radio>
+                <Radio value='income'>收入</Radio>
+                <Radio value='expense'>支出</Radio>
               </Space>
-            </Space>
-          </Card>
-        )}
+            </Radio.Group>
+          </div>
+        </Dropdown.Item>
+        <Dropdown.Item key='date' title={
+          dateRangeType === 'all' ? '日期' : 
+          (dateRangeType === 'custom' ? '自定义' : 
+          (dateRangeType === 'today' ? '今天' : 
+          (dateRangeType === 'week' ? '近7天' : '本月')))
+        }>
+          <div style={{ padding: 12 }}>
+            <Radio.Group value={dateRangeType} onChange={handleDateQuickSelect}>
+              <Space direction='vertical' block>
+                <Radio value='all'>全部日期</Radio>
+                <Radio value='today'>今天</Radio>
+                <Radio value='week'>近7天</Radio>
+                <Radio value='month'>本月</Radio>
+                <Radio value='custom'>自定义范围</Radio>
+              </Space>
+            </Radio.Group>
+            
+            {dateRangeType === 'custom' && (
+              <div style={{ marginTop: 12, borderTop: '1px solid #eee', paddingTop: 12 }}>
+                <Space direction='vertical' block>
+                  <div className="filter-item">
+                    <span className="filter-label">开始日期</span>
+                    <DatePicker
+                      value={filters.startDate ? new Date(filters.startDate) : null}
+                      max={new Date()}
+                      onConfirm={(val) => {
+                        setFilters({ ...filters, startDate: formatDate(val) });
+                      }}
+                    >
+                      {(value, { open }) => (
+                        <Button size="small" onClick={open} block>
+                          {filters.startDate || '选择开始日期'}
+                        </Button>
+                      )}
+                    </DatePicker>
+                  </div>
+                  <div className="filter-item">
+                    <span className="filter-label">结束日期</span>
+                    <DatePicker
+                      value={filters.endDate ? new Date(filters.endDate) : null}
+                      max={new Date()}
+                      onConfirm={(val) => {
+                        setFilters({ ...filters, endDate: formatDate(val) });
+                      }}
+                    >
+                      {(value, { open }) => (
+                        <Button size="small" onClick={open} block>
+                          {filters.endDate || '选择结束日期'}
+                        </Button>
+                      )}
+                    </DatePicker>
+                  </div>
+                  <Button color='primary' block onClick={confirmCustomDate}>确认</Button>
+                </Space>
+              </div>
+            )}
+          </div>
+        </Dropdown.Item>
+      </Dropdown>
+
+      <div style={{ padding: '8px 12px', background: '#fff' }}>
+        <SearchBar 
+          placeholder="搜索描述内容"
+          value={filters.keyword}
+          onChange={(val) => setFilters(prev => ({ ...prev, keyword: val }))}
+          onSearch={() => loadTransactions(1, filters)}
+          style={{ '--background': '#f5f5f5' }}
+        />
+      </div>
+
+      <div className="content">
+
 
         {/* 统计摘要 */}
         <Card className="summary-card">

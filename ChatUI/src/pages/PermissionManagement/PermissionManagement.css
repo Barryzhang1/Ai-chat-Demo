@@ -36,6 +36,7 @@
 .adm-list-item-content-extra {
   display: flex;
   align-items: center;
+  margin-right: 20px;
 }
 
 .adm-tag {

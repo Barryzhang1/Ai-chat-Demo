@@ -272,7 +272,7 @@ function CreatePurchaseOrder() {
                     color="danger"
                     fill="outline"
                     onClick={() => handleRemoveItem(index)}
-                    style={{ fontSize: 12 }}
+                    style={{ fontSize: 12, marginLeft: 20 }}
                   >
                     删除
                   </Button>

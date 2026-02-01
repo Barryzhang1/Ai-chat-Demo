@@ -35,6 +35,7 @@
 
 .adm-list-body {
   background-color: transparent;
+  padding: 8px var(--padding-right) 8px var(--padding-left);
 }
 
 /* 表单中的列表项样式 */
@@ -300,7 +301,6 @@
   flex: 1;
   overflow-y: auto;
   background-color: var(--color-bg, #f5f5f5);
-  padding: 16px;
   -webkit-overflow-scrolling: touch;
 }
 

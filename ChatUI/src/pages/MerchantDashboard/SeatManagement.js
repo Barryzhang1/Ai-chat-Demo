@@ -442,9 +442,9 @@ const SeatManagement = () => {
 
       {/* 操作按钮 */}
       <div className="action-bar">
-        <Space direction="vertical" block style={{ '--gap': '12px' }}>
+        <Space direction="vertical" block style={{ '--gap': '12px', width: '100%' }}>
           {/* 大厅开关门按钮 */}
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
             {statistics.hallStatus === 'open' ? (
               <Button
                 color="warning"
@@ -452,6 +452,7 @@ const SeatManagement = () => {
                 onClick={handleCloseHall}
                 loading={hallLoading}
                 block
+                style={{ flex: 1 }}
               >
                 <CloseOutline /> 关门
               </Button>
@@ -462,6 +463,7 @@ const SeatManagement = () => {
                 onClick={handleOpenHall}
                 loading={hallLoading}
                 block
+                style={{ flex: 1 }}
               >
                 <CheckOutline /> 开门
               </Button>
@@ -472,6 +474,7 @@ const SeatManagement = () => {
               onClick={handleAddSeat}
               loading={loading}
               block
+              style={{ flex: 1 }}
             >
               <AddOutline /> 添加座位
             </Button>

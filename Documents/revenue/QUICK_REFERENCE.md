@@ -98,6 +98,15 @@ curl -X GET "http://localhost:3001/api/revenue/stats/today" \
 - 定期更新食材进货价格
 - 监控低利润菜品
 
+## 🎨 UI 交互升级 (2026-02-02)
+
+### 额外收支列表页
+- **组件替换**：使用 `Dropdown` 替换原有的侧边/弹窗筛选，操作更便捷。
+- **日期筛选**：新增快捷选项（今天、近7天、本月）及自定义日期范围。
+- **搜索优化**：分离出独立的搜索栏，支持实时/回车搜索。
+- **文件位置**：`ChatUI/src/pages/RevenueManagement/TransactionList.js`
+
+
 ## 🚀 下一步
 
 1. ⏳ 启动后端服务测试
