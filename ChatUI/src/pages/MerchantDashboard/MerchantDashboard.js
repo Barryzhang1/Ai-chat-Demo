@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavBar, Grid, Popup, Form, Toast } from 'antd-mobile';
 import { 
@@ -9,17 +9,44 @@ import {
   TagOutline,
   TeamOutline,
   FileOutline,
-  UserOutline
+  UserOutline,
+  PayCircleOutline
 } from 'antd-mobile-icons';
 import { dishApi } from '../../api/dishApi';
 import DishFormPopup from '../../components/DishFormPopup';
+import { canAccessMerchant, isBoss } from '../../utils/permission';
 import './MerchantDashboard.css';
 
 function MerchantDashboard() {
   const navigate = useNavigate();
-  const [form] = Form.useForm();  // 保留 form hook 如果你需要用到它，但如果 render 里没有 Form 使用了它，也可以删除
+  const [form] = Form.useForm();
 
-  const menuItems = [
+  // 权限检查：进入商家后台时验证权限
+  useEffect(() => {
+    if (!canAccessMerchant()) {
+      Toast.show({
+        content: '权限不足，只有老板和员工可以访问商家后台',
+        icon: 'fail',
+        duration: 2000
+      });
+      navigate('/role-select');
+    }
+  }, [navigate]);
+
+  // 权限检查：进入商家后台时验证权限
+  useEffect(() => {
+    if (!canAccessMerchant()) {
+      Toast.show({
+        content: '权限不足，只有老板和员工可以访问商家后台',
+        icon: 'fail',
+        duration: 2000
+      });
+      navigate('/role-select');
+    }
+  }, [navigate]);
+
+  // 基础菜单项（BOSS 和 STAFF 都可以访问）
+  const baseMenuItems = [
     {
       key: 'orders',
       title: '订单列表',
@@ -69,12 +96,23 @@ function MerchantDashboard() {
       path: '/merchant/categories',
       color: '#ff8c00' 
     },
+  ];
+
+  // BOSS 专属菜单项
+  const bossOnlyMenuItems = [
     {
       key: 'reports',
       title: '数据报表',
       icon: <PieOutline fontSize={32} />,
       path: '/merchant/reports',
       color: '#eb2f96'
+    },
+    {
+      key: 'revenue',
+      title: '收入管理',
+      icon: <PayCircleOutline fontSize={32} />,
+      path: '/revenue',
+      color: '#52c41a'
     },
     {
       key: 'permissions',
@@ -84,6 +122,11 @@ function MerchantDashboard() {
       color: '#1890ff'
     },
   ];
+
+  // 根据用户角色动态生成菜单
+  const menuItems = isBoss() 
+    ? [...baseMenuItems, ...bossOnlyMenuItems]
+    : baseMenuItems;
 
   return (
     <div className="merchant-dashboard">

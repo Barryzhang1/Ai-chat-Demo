@@ -17,6 +17,8 @@ import {
 } from 'antd-mobile';
 import { AddOutline, LeftOutline } from 'antd-mobile-icons';
 import { purchaseOrderApi } from '../../api/inventory';
+import { authUtils } from '../../utils/auth';
+import { isBoss } from '../../utils/permission';
 import './InventoryManagement.css';
 
 const statusConfig = {
@@ -215,7 +217,7 @@ function PurchaseOrderList() {
           <Tag color={statusConfig[order.status]?.color}>
             {statusConfig[order.status]?.text}
           </Tag>
-          {order.status === 'pending' && (
+          {order.status === 'pending' && isBoss() && (
             <Space>
               <Button
                 size="small"

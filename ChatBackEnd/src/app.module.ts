@@ -12,6 +12,7 @@ import { PurchaseOrderModule } from './modules/purchase-order/purchase-order.mod
 import { InventoryLossModule } from './modules/inventory-loss/inventory-loss.module';
 import { RedisModule } from './redis/redis.module';
 import { UsersModule } from './modules/users/users.module';
+import { RevenueModule } from './modules/revenue/revenue.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { UsersModule } from './modules/users/users.module';
     PurchaseOrderModule,
     InventoryLossModule,
     UsersModule,
+    RevenueModule,
   ],
   controllers: [],
   providers: [],

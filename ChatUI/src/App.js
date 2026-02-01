@@ -22,12 +22,53 @@ import {
   InventoryList,
   InventoryHistory,
 } from './pages/InventoryManagement';
+import {
+  RevenueStats,
+  TransactionList,
+  BatchCreateTransaction,
+} from './pages/RevenueManagement';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { authUtils } from './utils/auth';
+import { canAccessMerchant, isBoss } from './utils/permission';
+import { Toast } from 'antd-mobile';
 import './App.css';
 
 const ProtectedRoute = ({ children }) => {
   return authUtils.isAuthenticated() ? children : <Navigate to="/" replace />;
+};
+
+// 商家后台路由保护（BOSS 和 STAFF 可访问）
+const MerchantRoute = ({ children }) => {
+  if (!authUtils.isAuthenticated()) {
+    return <Navigate to="/" replace />;
+  }
+  
+  if (!canAccessMerchant()) {
+    Toast.show({
+      content: '权限不足，只有老板和员工可以访问',
+      icon: 'fail'
+    });
+    return <Navigate to="/role-select" replace />;
+  }
+  
+  return children;
+};
+
+// BOSS 专属路由保护（仅 BOSS 可访问）
+const BossOnlyRoute = ({ children }) => {
+  if (!authUtils.isAuthenticated()) {
+    return <Navigate to="/" replace />;
+  }
+  
+  if (!isBoss()) {
+    Toast.show({
+      content: '权限不足，只有老板可以访问此功能',
+      icon: 'fail'
+    });
+    return <Navigate to="/merchant" replace />;
+  }
+  
+  return children;
 };
 
 function AppRoutes() {
@@ -50,23 +91,131 @@ function AppRoutes() {
             <Route
               path="/merchant"
               element={
-                <ProtectedRoute>
+                <MerchantRoute>
                   <MerchantDashboard />
-                </ProtectedRoute>
+                </MerchantRoute>
               }
             />
-            <Route path="/merchant/orders" element={<OrderList />} />
-            <Route path="/merchant/inventory" element={<Inventory />} />
-            <Route path="/merchant/seats" element={<SeatManagement />} />
-            <Route path="/merchant/rankings" element={<GameRankings />} />
-            <Route path="/merchant/categories" element={<CategoryManagement />} />
-            <Route path="/merchant/reports" element={<DataReports />} />
-            <Route path="/merchant/permissions" element={<PermissionManagement />} />
-            <Route path="/merchant/add-dish" element={<AddDish />} />
-            <Route path="/merchant/inventory/purchase-order" element={<PurchaseOrderList />} />
-            <Route path="/merchant/inventory/purchase-order/create" element={<CreatePurchaseOrder />} />
-            <Route path="/merchant/inventory/list" element={<InventoryList />} />
-            <Route path="/merchant/inventory/history" element={<InventoryHistory />} />
+            <Route 
+              path="/merchant/orders" 
+              element={
+                <MerchantRoute>
+                  <OrderList />
+                </MerchantRoute>
+              } 
+            />
+            <Route 
+              path="/merchant/inventory" 
+              element={
+                <MerchantRoute>
+                  <Inventory />
+                </MerchantRoute>
+              } 
+            />
+            <Route 
+              path="/merchant/seats" 
+              element={
+                <MerchantRoute>
+                  <SeatManagement />
+                </MerchantRoute>
+              } 
+            />
+            <Route 
+              path="/merchant/rankings" 
+              element={
+                <MerchantRoute>
+                  <GameRankings />
+                </MerchantRoute>
+              } 
+            />
+            <Route 
+              path="/merchant/categories" 
+              element={
+                <MerchantRoute>
+                  <CategoryManagement />
+                </MerchantRoute>
+              } 
+            />
+            <Route 
+              path="/merchant/reports" 
+              element={
+                <BossOnlyRoute>
+                  <DataReports />
+                </BossOnlyRoute>
+              } 
+            />
+            <Route 
+              path="/merchant/permissions" 
+              element={
+                <BossOnlyRoute>
+                  <PermissionManagement />
+                </BossOnlyRoute>
+              } 
+            />
+            <Route 
+              path="/revenue" 
+              element={
+                <BossOnlyRoute>
+                  <RevenueStats />
+                </BossOnlyRoute>
+              } 
+            />
+            <Route 
+              path="/revenue/transactions" 
+              element={
+                <BossOnlyRoute>
+                  <TransactionList />
+                </BossOnlyRoute>
+              } 
+            />
+            <Route 
+              path="/revenue/transactions/create" 
+              element={
+                <BossOnlyRoute>
+                  <BatchCreateTransaction />
+                </BossOnlyRoute>
+              } 
+            />
+            <Route 
+              path="/merchant/add-dish" 
+              element={
+                <MerchantRoute>
+                  <AddDish />
+                </MerchantRoute>
+              } 
+            />
+            <Route 
+              path="/merchant/inventory/purchase-order" 
+              element={
+                <MerchantRoute>
+                  <PurchaseOrderList />
+                </MerchantRoute>
+              } 
+            />
+            <Route 
+              path="/merchant/inventory/purchase-order/create" 
+              element={
+                <MerchantRoute>
+                  <CreatePurchaseOrder />
+                </MerchantRoute>
+              } 
+            />
+            <Route 
+              path="/merchant/inventory/list" 
+              element={
+                <MerchantRoute>
+                  <InventoryList />
+                </MerchantRoute>
+              } 
+            />
+            <Route 
+              path="/merchant/inventory/history" 
+              element={
+                <MerchantRoute>
+                  <InventoryHistory />
+                </MerchantRoute>
+              } 
+            />
             <Route
               path="/user-order"
               element={

@@ -1,0 +1,53 @@
+.batch-create-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.content {
+  padding: 16px;
+  padding-bottom: 80px;
+}
+
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.count-info {
+  font-size: 14px;
+  color: #999;
+}
+
+.transaction-form-card {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.transaction-form-card .adm-card-header-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.submit-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  background: #fff;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 100;
+}
+
+.adm-form-item-label {
+  font-weight: 500;
+}
+
+.adm-input,
+.adm-text-area-element {
+  font-size: 14px;
+}

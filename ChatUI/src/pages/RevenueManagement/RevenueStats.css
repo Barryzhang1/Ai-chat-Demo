@@ -1,0 +1,142 @@
+.revenue-stats-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.content {
+  padding: 16px;
+}
+
+.action-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.action-bar button {
+  flex: 1;
+}
+
+.section {
+  margin-bottom: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.stat-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.date-info {
+  font-size: 13px;
+  color: #999;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.stat-item.highlighted {
+  background: linear-gradient(90deg, #fff3e0 0%, #ffffff 100%);
+  padding: 12px;
+  border-radius: 8px;
+  margin: 0 -12px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.stat-value.revenue {
+  color: #1677ff;
+}
+
+.stat-value.cost {
+  color: #ff6b6b;
+}
+
+.stat-value.profit {
+  color: #52c41a;
+}
+
+.stat-value.rate {
+  color: #faad14;
+}
+
+.stat-value.net-profit {
+  font-size: 20px;
+  color: #ff6430;
+  font-weight: 700;
+}
+
+.extra-info {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.stat-item-small {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: #f9f9f9;
+  border-radius: 6px;
+}
+
+.stat-item-small span:first-child {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.stat-item-small span:last-child {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.stat-item-small .income {
+  color: #52c41a;
+}
+
+.stat-item-small .expense {
+  color: #ff6b6b;
+}

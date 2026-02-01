@@ -19,6 +19,9 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../auth/enums/user-role.enum';
 import { PurchaseOrderService } from './purchase-order.service';
 import {
   CreatePurchaseOrderDto,
@@ -91,14 +94,16 @@ export class PurchaseOrderController {
   }
 
   @Post(':id/approve')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.BOSS)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '审批进货单' })
+  @ApiOperation({ summary: '审批进货单（仅BOSS）' })
   @ApiResponse({ status: 200, description: '审批成功' })
   @ApiResponse({ status: 400, description: '无效的订单ID或订单状态不允许审批' })
   @ApiResponse({ status: 404, description: '订单不存在' })
   @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 403, description: '权限不足，只有老板可以审批' })
   async approve(
     @Request() req: ExpressRequest & { user: { id: string } },
     @Param('id') id: string,
