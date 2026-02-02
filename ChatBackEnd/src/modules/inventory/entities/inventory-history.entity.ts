@@ -7,6 +7,7 @@ export enum InventoryChangeType {
   PURCHASE = 'purchase', // 进货入库
   LOSS = 'loss', // 损耗出库
   MANUAL_ADJUST = 'manual_adjust', // 手动调整
+  ORDER_CONSUME = 'order_consume', // 订单消耗
 }
 
 @Schema({ timestamps: { createdAt: true, updatedAt: false } })

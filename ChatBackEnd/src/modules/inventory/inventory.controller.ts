@@ -66,6 +66,43 @@ export class InventoryController {
     };
   }
 
+  @Get('history/list')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '查询库存变更历史' })
+  @ApiResponse({ status: 200, description: '查询成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async findHistory(@Query() query: QueryInventoryHistoryDto) {
+    const data = await this.inventoryService.findHistory(query);
+    return {
+      code: 0,
+      message: '查询成功',
+      data,
+    };
+  }
+
+  @Get(':id/consume-history')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '查询食材消耗记录（订单消耗）' })
+  @ApiResponse({ status: 200, description: '查询成功' })
+  @ApiResponse({ status: 400, description: '无效的库存ID' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async findConsumeHistory(
+    @Param('id') id: string,
+    @Query('page') page: number = 1,
+    @Query('pageSize') pageSize: number = 20,
+  ) {
+    const data = await this.inventoryService.findConsumeHistory(id, page, pageSize);
+    return {
+      code: 0,
+      message: '查询成功',
+      data,
+    };
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -119,22 +156,6 @@ export class InventoryController {
     return {
       code: 0,
       message: '删除成功',
-    };
-  }
-
-  @Get('history/list')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '查询库存变更历史' })
-  @ApiResponse({ status: 200, description: '查询成功' })
-  @ApiResponse({ status: 401, description: '未授权' })
-  async findHistory(@Query() query: QueryInventoryHistoryDto) {
-    const data = await this.inventoryService.findHistory(query);
-    return {
-      code: 0,
-      message: '查询成功',
-      data,
     };
   }
 }

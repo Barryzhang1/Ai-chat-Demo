@@ -81,6 +81,17 @@ const inventoryApi = {
     });
     return await response.json();
   },
+
+  // 获取食材消耗记录（订单消耗）
+  getConsumeHistory: async (inventoryId, page = 1, pageSize = 20) => {
+    const queryString = buildQueryString({ page, pageSize });
+    const response = await fetch(`${API_BASE_URL}/inventory/${inventoryId}/consume-history${queryString}`, {
+      headers: {
+        Authorization: `Bearer ${authUtils.getToken()}`,
+      },
+    });
+    return await response.json();
+  },
 };
 
 export default inventoryApi;

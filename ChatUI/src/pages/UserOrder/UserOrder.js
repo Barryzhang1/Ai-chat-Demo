@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NavBar, Input, Button, Toast, Popup, SideBar, Divider, Stepper, Empty, Badge, DotLoading, List, Tag, InfiniteScroll, PullToRefresh } from 'antd-mobile';
+import { NavBar, Input, Button, Toast, Popup, SideBar, Divider, Stepper, Empty, Badge, DotLoading, List, Tag, InfiniteScroll, PullToRefresh, SearchBar, Dialog } from 'antd-mobile';
 import { RedoOutline, UnorderedListOutline } from 'antd-mobile-icons';
 import { ShopOutlined } from '@ant-design/icons';
 import { io } from 'socket.io-client';
@@ -36,6 +36,7 @@ function UserOrder() {
   const [inventoryList, setInventoryList] = useState([]);
   const [activeCategory, setActiveCategory] = useState('');
   const [dishQuantities, setDishQuantities] = useState({});
+  const [menuSearchKeyword, setMenuSearchKeyword] = useState('');
   const [showOrderHistoryPopup, setShowOrderHistoryPopup] = useState(false);
   const [orderHistory, setOrderHistory] = useState([]);
   const [orderHistoryPage, setOrderHistoryPage] = useState(1);
@@ -48,6 +49,7 @@ function UserOrder() {
   const audioRef = useRef(null);
   const menuContentRef = useRef(null);
   const categoryRefs = useRef({});
+  const updateCartTimerRef = useRef(null);
   const navigate = useNavigate();
 
   const [isGenerating, setIsGenerating] = useState(false);  
@@ -88,27 +90,52 @@ function UserOrder() {
       await fetchMenuData();
     }
     
-    // 如果有推荐菜单，先初始化菜品数量，再打开popup
-    if (recommendedMenu && recommendedMenu.length > 0) {
-      const quantities = {};
-      recommendedMenu.forEach(dish => {
-        // 后端返回的菜单中，菜品ID字段是id（从dishId映射而来）
-        const dishId = dish.id;
-        if (dishId) {
-          quantities[dishId] = dish.quantity || 1;
-        }
-      });
+    // 先获取购物车数据
+    try {
+      const cartRes = await orderApi.getCart();
+      const cartDishes = cartRes.data?.dishes || [];
       
-      // 先设置数量，然后延迟打开popup确保状态更新
-      setDishQuantities(quantities);
+      // 如果有推荐菜单，优先使用推荐菜单
+      if (recommendedMenu && recommendedMenu.length > 0) {
+        const quantities = {};
+        recommendedMenu.forEach(dish => {
+          const dishId = dish.id;
+          if (dishId) {
+            quantities[dishId] = dish.quantity || 1;
+          }
+        });
+        setDishQuantities(quantities);
+      } else if (cartDishes.length > 0) {
+        // 否则使用购物车数据初始化
+        const quantities = {};
+        cartDishes.forEach(dish => {
+          quantities[dish.dishId] = dish.quantity;
+        });
+        setDishQuantities(quantities);
+      } else {
+        // 清空之前的选择
+        setDishQuantities({});
+      }
       
       // 使用 requestAnimationFrame 确保状态已更新
       requestAnimationFrame(() => {
         setShowMenuPopup(true);
       });
-    } else {
-      // 清空之前的选择
-      setDishQuantities({});
+    } catch (error) {
+      console.error('Failed to load cart:', error);
+      // 如果获取购物车失败，仍然可以打开菜单
+      if (recommendedMenu && recommendedMenu.length > 0) {
+        const quantities = {};
+        recommendedMenu.forEach(dish => {
+          const dishId = dish.id;
+          if (dishId) {
+            quantities[dishId] = dish.quantity || 1;
+          }
+        });
+        setDishQuantities(quantities);
+      } else {
+        setDishQuantities({});
+      }
       setShowMenuPopup(true);
     }
   };
@@ -166,16 +193,30 @@ function UserOrder() {
     });
   };
 
-  // 按分类分组菜品
+  // 按分类分组菜品（支持搜索）
   const groupDishesByCategory = () => {
     const grouped = {};
     categories.forEach(category => {
+      const categoryDishes = allDishes.filter(dish => {
+        // 基本过滤：分类匹配且库存充足
+        if (dish.categoryId !== category._id || !hasEnoughIngredients(dish)) {
+          return false;
+        }
+        
+        // 搜索过滤：如果有搜索关键词，检查菜品名称或描述是否匹配
+        if (menuSearchKeyword) {
+          const keyword = menuSearchKeyword.toLowerCase();
+          const nameMatch = dish.name?.toLowerCase().includes(keyword);
+          const descMatch = dish.description?.toLowerCase().includes(keyword);
+          return nameMatch || descMatch;
+        }
+        
+        return true;
+      });
+      
       grouped[category._id] = {
         category,
-        dishes: allDishes.filter(dish => 
-          dish.categoryId === category._id && 
-          hasEnoughIngredients(dish)
-        )
+        dishes: categoryDishes
       };
     });
     return grouped;
@@ -196,10 +237,40 @@ function UserOrder() {
 
   // 更新菜品数量
   const handleDishQuantityChange = (dishId, value) => {
-    setDishQuantities(prev => ({
-      ...prev,
-      [dishId]: value
-    }));
+    // 更新前端状态
+    setDishQuantities(prev => {
+      const newQuantities = {
+        ...prev,
+        [dishId]: value
+      };
+      
+      // 防抖更新购物车
+      if (updateCartTimerRef.current) {
+        clearTimeout(updateCartTimerRef.current);
+      }
+      
+      updateCartTimerRef.current = setTimeout(async () => {
+        try {
+          // 构建购物车数据
+          const cartData = Object.entries(newQuantities)
+            .filter(([_, quantity]) => quantity > 0)
+            .map(([id, quantity]) => ({
+              dishId: id,
+              quantity
+            }));
+          
+          // 调用API更新购物车
+          await orderApi.updateCart(cartData);
+          
+          console.log('购物车已实时更新');
+        } catch (error) {
+          console.error('Failed to update cart:', error);
+          // 不显示Toast，避免频繁打扰用户
+        }
+      }, 800); // 800ms防抖延迟
+      
+      return newQuantities;
+    });
   };
 
   // 计算选中菜品的总价
@@ -217,7 +288,7 @@ function UserOrder() {
   };
 
   // 确认选择的菜品
-  const handleConfirmSelection = () => {
+  const handleConfirmSelection = async () => {
     const selectedDishes = [];
     Object.entries(dishQuantities).forEach(([dishId, quantity]) => {
       if (quantity > 0) {
@@ -236,123 +307,72 @@ function UserOrder() {
     // 计算总价
     const totalPrice = calculateTotalPrice();
 
-    // 生成订单消息
-    const orderMessage = {
-      role: 'user',
-      content: '我已选好菜品',
-      menu: selectedDishes.map(dish => ({
-        id: dish._id,
-        name: dish.name,
-        price: dish.price,
-        description: dish.description,
-        image: dish.imageUrl || `https://picsum.photos/200/200?random=${dish._id}`,
-        spicy: dish.isSpicy,
-        quantity: dish.quantity
-      })),
-      totalPrice: totalPrice,
-      timestamp: new Date(),
-      isUserOrder: true,
-    };
+    try {
+      // 更新购物车到后端
+      const cartData = Object.entries(dishQuantities)
+        .filter(([_, quantity]) => quantity > 0)
+        .map(([dishId, quantity]) => ({
+          dishId,
+          quantity
+        }));
+      
+      await orderApi.updateCart(cartData);
 
-    // 添加到消息列表
-    setMessages(prev => [...prev, orderMessage]);
-    
-    Toast.show({ icon: 'success', content: `已选择 ${selectedDishes.length} 道菜` });
-    setShowMenuPopup(false);
-    
-    // 清空选择
-    setDishQuantities({});
+      // 生成订单消息
+      const orderMessage = {
+        role: 'user',
+        content: '我已选好菜品',
+        menu: selectedDishes.map(dish => ({
+          id: dish._id,
+          name: dish.name,
+          price: dish.price,
+          description: dish.description,
+          image: dish.imageUrl || `https://picsum.photos/200/200?random=${dish._id}`,
+          spicy: dish.isSpicy,
+          quantity: dish.quantity
+        })),
+        totalPrice: totalPrice,
+        timestamp: new Date(),
+        isUserOrder: true,
+      };
+
+      // 添加到消息列表
+      setMessages(prev => [...prev, orderMessage]);
+      
+      Toast.show({ icon: 'success', content: `已选择 ${selectedDishes.length} 道菜，购物车已更新` });
+      setShowMenuPopup(false);
+      
+      // 清空选择
+      setDishQuantities({});
+    } catch (error) {
+      console.error('Failed to update cart:', error);
+      Toast.show({ icon: 'fail', content: '更新购物车失败，请重试' });
+    }
   };
 
   useEffect(() => {
-    // 初始欢迎消息
-    const fetchHistory = async () => {
-       try {
-         const res = await orderApi.getChatHistory();
-         // 后端返回格式: { data: { messages: [...], total: number }, message: string }
-         if (res.data && res.data.messages && res.data.messages.length > 0) {
-            // Transform history to match UI
-            const history = res.data.messages.map((msg, index) => {
-              // 用户消息直接返回
-              if (msg.role === 'user') {
-                return {
-                  role: msg.role,
-                  content: msg.content,
-                  timestamp: new Date(msg.timestamp),
-                  isHistoryMessage: true,
-                };
-              }
-              
-              // 解析 assistant 消息中的 JSON 内容
-              let parsedContent = msg.content;
-              let menu = null;
-              let totalPrice = 0;
-              
-              try {
-                // 尝试解析 JSON 格式的 content
-                const jsonMatch = msg.content.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                  const parsed = JSON.parse(jsonMatch[0]);
-                  parsedContent = parsed.message || msg.content;
-                  
-                  // 如果有菜品数据，构建菜单（新的数据结构是完整的菜品对象数组）
-                  if (parsed.dishes && parsed.dishes.length > 0) {
-                    menu = parsed.dishes.map(d => ({
-                      id: d.dishId || d.id,
-                      name: d.name,
-                      price: d.price || 0,
-                      description: d.description || '',
-                      image: d.image || d.imageUrl || `https://picsum.photos/200/200?random=${d.dishId}`,
-                      quantity: d.quantity || 1,
-                      isSpicy: d.isSpicy || false
-                    }));
-                    
-                    // 计算总价
-                    totalPrice = menu.reduce((sum, dish) => sum + (dish.price * dish.quantity), 0);
-                  }
-                }
-              } catch (e) {
-                // 解析失败，使用原始内容
-                parsedContent = msg.content;
-              }
-              
-              return {
-                role: msg.role,
-                content: parsedContent,
-                menu: menu,
-                totalPrice: totalPrice,
-                timestamp: new Date(msg.timestamp),
-                isHistoryMessage: true, // 标记为历史消息
-              };
-            });
-            
-            // 历史记录 + 欢迎词（欢迎词在最底部）
-            const welcomeMessage = {
-              role: 'assistant',
-              content: '您好！欢迎使用智能点餐系统。请告诉我您的点餐需求，比如：人数、预算、口味偏好、忌口等信息，我会为您推荐合适的菜品。',
-              timestamp: new Date(),
-              isHistoryMessage: true, // 标记为历史消息，不显示支付按钮
-            };
-            
-            setMessages([...history, welcomeMessage]);
-            return;
-         }
-       } catch (e) {
-         // Failed to load history
-       }
-       
-       // Fallback or empty history - 只显示欢迎词
-       setMessages([
+    // 初始化：先清空购物车和聊天历史，再获取欢迎消息
+    const initializeChat = async () => {
+      try {
+        // 清空购物车和聊天历史
+        await orderApi.clearCart();
+        console.log('购物车和聊天历史已清空');
+      } catch (error) {
+        console.error('清空购物车失败:', error);
+        // 即使清空失败，也继续显示欢迎消息
+      }
+      
+      // 显示欢迎词
+      setMessages([
         {
           role: 'assistant',
           content: '您好！欢迎使用智能点餐系统。请告诉我您的点餐需求，比如：人数、预算、口味偏好、忌口等信息，我会为您推荐合适的菜品。',
- 
           timestamp: new Date(),
         },
       ]);
-    }
+    };
     
-    fetchHistory();
+    initializeChat();
   }, []);
 
   // Socket.IO 连接和座位分配
@@ -483,6 +503,15 @@ function UserOrder() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      if (updateCartTimerRef.current) {
+        clearTimeout(updateCartTimerRef.current);
+      }
+    };
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -701,6 +730,24 @@ function UserOrder() {
     }
   };
 
+  // 检查麦克风权限
+  const checkMicrophonePermission = async () => {
+    try {
+      // 检查浏览器是否支持权限API
+      if (!navigator.permissions) {
+        // 不支持权限API，直接尝试获取麦克风
+        return { state: 'prompt' };
+      }
+      
+      const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+      return permissionStatus;
+    } catch (error) {
+      // 某些浏览器可能不支持查询麦克风权限
+      console.log('权限查询不支持，将直接请求麦克风访问');
+      return { state: 'prompt' };
+    }
+  };
+
   // 开始录音
   const handleTouchStart = async () => {
     setIsRecording(true);
@@ -708,6 +755,27 @@ function UserOrder() {
     audioChunksRef.current = [];
     
     try {
+      // 检查麦克风权限状态
+      const permissionStatus = await checkMicrophonePermission();
+      
+      // 如果权限被拒绝，显示友好提示
+      if (permissionStatus.state === 'denied') {
+        Dialog.alert({
+          content: '麦克风权限已被禁止，请在浏览器设置中允许使用麦克风',
+          confirmText: '我知道了',
+        });
+        setIsRecording(false);
+        return;
+      }
+      
+      // 如果是首次请求，显示引导提示
+      if (permissionStatus.state === 'prompt') {
+        Toast.show({
+          content: '请允许使用麦克风以发送语音消息',
+          duration: 2000,
+        });
+      }
+      
       // 请求麦克风权限
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
@@ -736,7 +804,22 @@ function UserOrder() {
       // 开始录音
       mediaRecorderRef.current.start();
     } catch (error) {
-      Toast.show('无法访问麦克风，请检查权限设置');
+      console.error('麦克风访问错误:', error);
+      
+      // 根据错误类型提供不同的提示
+      let errorMessage = '无法访问麦克风';
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage = '您拒绝了麦克风权限，无法使用语音功能';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = '未检测到麦克风设备';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = '麦克风被其他应用占用';
+      }
+      
+      Toast.show({
+        content: errorMessage,
+        duration: 3000,
+      });
       setIsRecording(false);
     }
   };
@@ -817,32 +900,76 @@ function UserOrder() {
     Toast.show('已取消录音');
   };
 
-  // 刷新菜单
+  // 刷新菜单 - 重新获取推荐菜单
   const handleRefreshMenu = async () => {
     if (isGenerating) return;
     setIsGenerating(true);
     
+    // 显示加载消息
+    const loadingMessage = {
+      role: 'assistant',
+      content: <>正在为您重新推荐菜品<DotLoading style={{marginLeft: 8}} /></>,
+      timestamp: new Date(),
+      isLoading: true,
+    };
+    setMessages(prev => [...prev, loadingMessage]);
+    
     try {
        const res = await orderApi.refreshMenu();
-       // 刷新后通常意味着清空上下文，或者重新请求一次 ai-order，
-       // 根据当前业务逻辑，这里假设 backend 刷新了内部状态，我们可能需要告诉用户已刷新
-       // 或者重新触发一次基于当前需求的推荐（如果需求还存在）
+       const { message, cart } = res.data || {};
+       const dishes = cart?.dishes || [];
        
-       Toast.show({icon: 'success', content: '菜单已刷新'});
+       let menu = null;
+       let totalPrice = cart?.totalPrice || 0;
        
-       // Optional: Auto-trigger a new recommendation if we have requirements
-       // For now just show system message
-       const message = {
-          role: 'assistant',
-          content: '菜单上下文已刷新，请告诉我您新的点餐需求。',
- 
-          timestamp: new Date(),
-       };
-       setMessages(prev => [...prev, message]);
-       setCurrentMenu(null); // Clear current menu
+       if (dishes && dishes.length > 0) {
+          menu = dishes.map(d => ({
+             id: d.dishId,
+             name: d.name,
+             price: d.price,
+             description: d.description,
+             image: d.image || d.imageUrl || `https://picsum.photos/200/200?random=${d.price}`,
+             isSpicy: d.isSpicy || false,
+             quantity: d.quantity || 1
+          }));
+          setCurrentMenu(menu);
+       }
+
+       // 替换loading消息为推荐结果
+       setMessages(prev => {
+         const idx = prev.findIndex(m => m.isLoading);
+         if (idx !== -1) {
+           const newMsgs = [...prev];
+           newMsgs[idx] = {
+             role: 'assistant',
+             content: message || '已为您重新推荐以下菜品：',
+             menu: menu,
+             totalPrice: totalPrice,
+             timestamp: new Date(),
+           };
+           return newMsgs;
+         } else {
+           // fallback
+           return [
+             ...prev,
+             {
+               role: 'assistant',
+               content: message || '已为您重新推荐以下菜品：',
+               menu: menu,
+               totalPrice: totalPrice,
+               timestamp: new Date(),
+             }
+           ];
+         }
+       });
        
     } catch(e) {
-       Toast.show('刷新失败');
+       // 移除loading消息
+       setMessages(prev => prev.filter(m => !m.isLoading));
+       Toast.show({
+         icon: 'fail',
+         content: e.message || '刷新失败，请稍后重试'
+       });
     } finally {
        setIsGenerating(false);
     }
@@ -1027,7 +1154,18 @@ function UserOrder() {
                   </div>
                   
                   {!orderConfirmed && !message.isHistoryMessage && (
-                    <div className="menu-actions" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div className="menu-actions" style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <Button 
+                        size="small" 
+                        color="default"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRefreshMenu();
+                        }}
+                        disabled={isGenerating}
+                      >
+                        🔄 刷新
+                      </Button>
                       <Button 
                         size="small" 
                         color="success" 
@@ -1198,6 +1336,16 @@ function UserOrder() {
         }}
       >
         <div className="menu-popup-container">
+          {/* 搜索栏 */}
+          <div className="menu-popup-search">
+            <SearchBar
+              placeholder="搜索菜品名称"
+              value={menuSearchKeyword}
+              onChange={setMenuSearchKeyword}
+              onClear={() => setMenuSearchKeyword('')}
+            />
+          </div>
+          
           <div className="menu-popup-content">
             {/* 左侧分类栏 */}
             <div className="menu-popup-sidebar">

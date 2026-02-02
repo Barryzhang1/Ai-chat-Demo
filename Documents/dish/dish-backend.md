@@ -21,11 +21,14 @@ Dish（菜品）模块是餐厅管理系统的核心模块之一，负责管理�
 
 ### 主要功能
 - ✅ 创建新菜品
-- ✅ 查询所有菜品
+- ✅ 查询所有菜品（支持搜索和筛选）
 - ✅ 更新菜品信息
 - ✅ 更新菜品上下架状态
 - ✅ 菜品分类管理
 - ✅ 菜品属性管理（辣度、配料、烹饪时间）
+- ✅ 按关键词搜索菜品
+- ✅ 按分类筛选菜品
+- ✅ 按标签筛选菜品
 
 ### 技术栈
 - **框架**: NestJS 10.x
@@ -233,17 +236,26 @@ curl -X POST http://localhost:3001/dish \
 ```
 
 ---
-
-### 2. 查询所有菜品
-
-获取所有菜品列表，按创建时间倒序排列。
+支持按关键词、分类、标签搜索和筛选。
 
 #### 请求
 
 ```http
-GET /dish
+GET /dish?keyword={keyword}&categoryId={categoryId}&tag={tag}
 ```
 
+#### 查询参数
+
+| 参数 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `keyword` | string | 否 | 搜索关键词，匹配菜品名称或描述（不区分大小写） |
+| `categoryId` | string | 否 | 分类ID，筛选指定分类下的菜品 |
+| `tag` | string | 否 | 标签，筛选包含指定标签的菜品 |
+
+**说明**：
+- 多个查询参数可以同时使用，会进行AND逻辑组合
+- `keyword` 使用正则表达式模糊匹配，不区分大小写
+- 不传任何参数时返回所有菜品
 #### 查询参数
 
 无
@@ -270,15 +282,44 @@ GET /dish
     "name": "红烧肉",
     "price": 78,
     "categoryId": "507f191e810c19729de860ea",
-    "description": "肥而不腻，入口即化",
-    "isDelisted": false,
-    "tags": ["热菜", "猪肉"],
-    "createdAt": "2026-01-28T09:15:00.000Z",
-    "updatedAt": "2026-01-28T09:15:00.000Z"
-  }
-]
+# 获取所有菜品
+curl http://localhost:3001/dish
+
+# 按关键词搜索
+curl "http://localhost:3001/dish?keyword=宫保"
+
+# 按分类筛选
+curl "http://localhost:3001/dish?categoryId=507f191e810c19729de860ea"
+
+# 按标签筛选
+curl "http://localhost:3001/dish?tag=招牌菜"
+
+# 组合搜索
+curl "http://localhost:3001/dish?keyword=鸡&categoryId=507f191e810c19729de860ea"
 ```
 
+#### JavaScript 示例
+
+```javascript
+// 获取所有菜品
+const response = await fetch('http://localhost:3001/dish');
+const dishes = await response.json();
+
+// 按关键词搜索
+const searchResponse = await fetch('http://localhost:3001/dish?keyword=宫保');
+const searchResults = await searchResponse.json();
+
+// 按分类筛选
+const categoryResponse = await fetch('http://localhost:3001/dish?categoryId=507f191e810c19729de860ea');
+const categoryDishes = await categoryResponse.json();
+
+// 组合查询
+const params = new URLSearchParams({
+  keyword: '鸡',
+  categoryId: '507f191e810c19729de860ea'
+});
+const combinedResponse = await fetch(`http://localhost:3001/dish?${params}`);
+const combinedResults = await combinedResponse.json(
 #### cURL 示例
 
 ```bash
@@ -297,7 +338,7 @@ console.log(dishes);
 
 ### 3. 更新菜品状态（上架/下架）
 
-更新菜品的上下架状态。
+更新菜品的上下架状态。**🆕 上架时会自动检查绑定食材的库存。**
 
 #### 请求
 
@@ -320,17 +361,28 @@ Content-Type: application/json
 }
 ```
 
+#### 业务规则（2026-02-02 新增）
+
+**上架检查（isDelisted: false）**：
+- ✅ 系统会自动检查菜品绑定的所有食材库存
+- ✅ 如果有任何食材库存为0，拒绝上架并返回具体食材名称
+- ✅ 未绑定食材的菜品可以直接上架
+- ✅ 只要库存大于0（包括1）就允许上架
+
+**下架操作（isDelisted: true）**：
+- ✅ 不进行库存检查，可以直接下架
+
 #### 请求示例
 
 ```json
 {
-  "isDelisted": true
+  "isDelisted": false
 }
 ```
 
 #### 响应
 
-**成功 (200 OK)**
+**成功 (200 OK)** - 上架成功
 
 ```json
 {
@@ -339,19 +391,30 @@ Content-Type: application/json
   "price": 38,
   "categoryId": "507f191e810c19729de860ea",
   "description": "麻辣鲜香的经典川菜",
-  "isDelisted": true,
+  "isDelisted": false,
+  "ingredients": ["507f1f77bcf86cd799439012", "507f1f77bcf86cd799439013"],
   "tags": ["热菜", "辣", "鸡肉"],
   "createdAt": "2026-01-28T10:30:00.000Z",
-  "updatedAt": "2026-01-28T11:45:00.000Z"
+  "updatedAt": "2026-02-02T14:30:00.000Z"
 }
 ```
 
-**失败 (404 Not Found)**
+**失败 (400 Bad Request)** - 食材库存不足 🆕
+
+```json
+{
+  "statusCode": 400,
+  "message": "鸡肉、花生食材不足，无法上架",
+  "error": "Bad Request"
+}
+```
+
+**失败 (404 Not Found)** - 菜品不存在
 
 ```json
 {
   "statusCode": 404,
-  "message": "Dish not found",
+  "message": "菜品不存在",
   "error": "Not Found"
 }
 ```
@@ -548,7 +611,7 @@ async findAll(): Promise<Dish[]> {
 - 返回所有菜品，包括已下架的
 - 前端需自行过滤已下架菜品（如果需要）
 
-#### 3. updateStatus() - 更新状态
+#### 3. updateStatus() - 更新状态 🆕 已增强
 
 ```typescript
 async updateStatus(
@@ -556,22 +619,59 @@ async updateStatus(
   updateDishStatusDto: UpdateDishStatusDto,
 ): Promise<Dish> {
   const { isDelisted } = updateDishStatusDto;
+  
+  // 查找菜品
+  const dish = await this.dishModel.findById(id);
+  if (!dish) {
+    throw new NotFoundException('菜品不存在');
+  }
+  
+  // 如果是上架操作（isDelisted: false），需要检查食材库存
+  if (!isDelisted && dish.ingredients && dish.ingredients.length > 0) {
+    const outOfStockIngredients: string[] = [];
+    
+    // 检查每个绑定的食材库存
+    for (const ingredientId of dish.ingredients) {
+      try {
+        const inventory = await this.inventoryService.findOne(ingredientId);
+        
+        // 如果库存为0，记录该食材名称
+        if (inventory.quantity === 0) {
+          outOfStockIngredients.push(inventory.productName);
+        }
+      } catch (error) {
+        // 如果食材不存在，也应该阻止上架
+        throw new BadRequestException(`食材ID ${ingredientId} 不存在`);
+      }
+    }
+    
+    // 如果有食材库存不足，拒绝上架
+    if (outOfStockIngredients.length > 0) {
+      const ingredientsText = outOfStockIngredients.join('、');
+      throw new BadRequestException(`${ingredientsText}食材不足，无法上架`);
+    }
+  }
+  
+  // 更新菜品状态
   const updatedDish = await this.dishModel.findByIdAndUpdate(
     id,
     { isDelisted },
     { new: true },
   );
-  if (!updatedDish) {
-    throw new Error('Dish not found');
-  }
-  return updatedDish;
+  
+  return updatedDish!;
 }
 ```
 
-**业务规则**:
-- 只更新 `isDelisted` 字段
+**业务规则（2026-02-02 更新）**:
+- ✅ **上架检查**：当 `isDelisted: false` 时，自动检查所有绑定食材的库存
+- ✅ **库存验证**：任何食材库存为0时，拒绝上架并提示具体食材名称
+- ✅ **多食材提示**：多个食材库存不足时，用顿号（、）连接所有食材名称
+- ✅ **下架自由**：下架操作（`isDelisted: true`）不进行库存检查
+- ✅ **边界处理**：未绑定食材的菜品可以直接上架
+- ✅ **异常处理**：食材ID不存在时抛出明确错误
 - 自动更新 `updatedAt` 时间戳
-- 如果菜品不存在，抛出错误
+- 使用 `NotFoundException` 和 `BadRequestException` 进行错误处理
 
 #### 4. update() - 更新菜品信息
 

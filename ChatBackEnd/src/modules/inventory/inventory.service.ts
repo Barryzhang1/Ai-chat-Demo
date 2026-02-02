@@ -246,4 +246,32 @@ export class InventoryService {
 
     return inventory;
   }
+
+  // 查询食材消耗记录（仅订单消耗）
+  async findConsumeHistory(inventoryId: string, page: number = 1, pageSize: number = 20) {
+    if (!Types.ObjectId.isValid(inventoryId)) {
+      throw new BadRequestException('无效的库存ID');
+    }
+
+    const filter: any = {
+      inventoryId: new Types.ObjectId(inventoryId),
+      changeType: 'order_consume',
+    };
+
+    const total = await this.historyModel.countDocuments(filter);
+
+    const list = await this.historyModel
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .exec();
+
+    return {
+      list,
+      total,
+      page,
+      pageSize,
+    };
+  }
 }

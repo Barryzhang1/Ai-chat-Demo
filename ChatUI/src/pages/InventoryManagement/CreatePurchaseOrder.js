@@ -177,7 +177,12 @@ function CreatePurchaseOrder() {
         创建进货单
       </NavBar>
 
-      <div style={{ padding: 12 }}>
+      <div style={{ 
+        padding: 12, 
+        height: 'calc(100vh - 45px)',
+        overflowY: 'auto',
+        overflowX: 'hidden'
+      }}>
         <Form
           form={form}
           layout="horizontal"

@@ -12,13 +12,62 @@
 
 ### 2. 刷新菜单
 - **功能描述**：根据用户保存的查询条件，使用随机采样重新查询菜品，更新推荐列表
-- **详细需求**：[刷新菜单需求](./ordering/refresh-menu.md)
+- **详细需求**：[刷新菜单需求](./refresh-menu.md)
+- **前端实现**：✅ 已集成到用户点餐界面
+  - 文件位置：`ChatUI/src/pages/UserOrder/UserOrder.js`
+  - UI位置：菜单推荐卡片底部的操作区域
+  - 按钮样式：🔄 刷新（默认颜色） + 支付（成功色）
+  - 交互流程：
+    1. 点击刷新按钮
+    2. 显示加载动画："正在为您重新推荐菜品..."
+    3. 调用 `POST /ordering/refresh-menu` 接口
+    4. 展示新的推荐菜单
+  - 用户体验：
+    - 加载中禁用按钮防止重复点击
+    - 友好的错误提示
+    - 只在未确认订单且非历史消息时显示
+- **实现日期**：2026-02-02
 
-### 3. 创建订单
+### 3. 编辑购物车
+- **功能描述**：允许用户编辑购物车中的菜品数量，支持从AI推荐或菜单列表中修改
+- **API接口**：`PUT /ordering/cart`
+- **测试用例**：[编辑购物车测试用例](./ordering/cart-edit.testcase.md)
+- **实现文档**：[购物车编辑实现](./ordering/cart-edit-implementation.md)
+- **实现要点**：
+  - 打开菜单时自动获取并显示购物车内容
+  - 修改菜品数量后实时更新总价
+  - 确认选择后同步更新到后端购物车
+
+#### 3.1 购物车实时更新（2026-02-02 新增）
+- **功能描述**：用户在菜单 popup 中修改菜品数量时，自动实时调用购物车编辑 API
+- **实现文档**：[购物车实时更新实现](./ordering/cart-realtime-update.md)
+- **测试用例**：[购物车实时更新测试用例](./ordering/cart-realtime-update.testcase.md)
+- **核心特性**：
+  - 使用 800ms 防抖机制避免频繁请求
+  - 静默后台更新，不打扰用户操作
+  - 组件卸载时清理定时器，防止内存泄漏
+  - 完全兼容现有"确认选择"功能
+
+### 4. 创建订单
 - **功能描述**：基于购物车内容生成正式订单，保存到数据库
 - **详细需求**：[创建订单需求](./ordering/create-order.md)
 
-### 4. 修改订单状态
+### 5. 清空购物车和聊天历史（2026-02-02 新增）
+- **功能描述**：每次重新进入聊天界面时清空购物车和聊天历史，开启新的点餐会话
+- **API接口**：`POST /ordering/clear-cart`
+- **测试用例**：[清空购物车测试用例](./ordering/clear-cart.testcase.md)
+- **实现要点**：
+  - 清空购物车中的所有菜品
+  - 清空购物车中的查询条件
+  - 重置购物车总价为 0
+  - 清空聊天历史记录
+  - 如果购物车或聊天历史不存在，不抛出异常
+- **使用场景**：
+  - 前端在进入聊天界面时调用此接口
+  - 确保每次进入都是全新的点餐体验
+  - 避免历史数据干扰新的点餐流程
+
+### 6. 修改订单状态
 - **功能描述**：允许用户修改自己订单的状态，用于订单状态流转管理
 - **详细需求**：支持将订单状态在 pending, confirmed, preparing, completed, cancelled 之间切换
 - **测试用例**：[修改订单状态测试用例](./ordering/update-order-status.testcase.md)
@@ -121,14 +170,19 @@
 ### API 端点
 
 | 方法 | 路径 | 描述 | 需要认证 |
-|------|------|------|orders | 获取订单列表 | ✅ |
-| GET | /api/ordering/chat-history | 获取聊天历史记录 | ✅ |
-| PATCH | /api/ordering/orders/:orderId/status | 修改订单状态
+|------|------|------|----------|
 | POST | /api/ordering/ai-order | AI智能点餐对话 | ✅ |
 | POST | /api/ordering/refresh-menu | 刷新菜单（随机采样） | ✅ |
 | POST | /api/ordering/create-order | 创建订单 | ✅ |
+| POST | /api/ordering/clear-cart | 清空购物车和聊天历史 | ✅ |
 | GET | /api/ordering/cart | 获取购物车 | ✅ |
+| PUT | /api/ordering/cart | 编辑购物车 | ✅ |
+| GET | /api/ordering/my-orders | 获取当前用户的订单列表 | ✅ |
+| GET | /api/ordering/orders | 获取订单列表 | ✅ |
 | GET | /api/ordering/chat-history | 获取聊天历史记录 | ✅ |
+| PATCH | /api/ordering/orders/:orderId/status | 修改订单状态 | ✅ |
+| GET | /api/ordering/reports/today-revenue | 查询今日总收入 | ❌ |
+| GET | /api/ordering/reports/dish-ranking | 查询菜品排行榜 | ❌ |
 
 ## AI 交互流程
 

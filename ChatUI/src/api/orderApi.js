@@ -95,6 +95,39 @@ export const orderApi = {
     }
   },
 
+  // 编辑购物车
+  updateCart: async (dishes) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ordering/cart`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ dishes }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || '更新购物车失败');
+      return data;
+    } catch (error) {
+      console.error('Update cart error:', error);
+      throw error;
+    }
+  },
+
+  // 清空购物车和聊天历史
+  clearCart: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ordering/clear-cart`, {
+        method: 'POST',
+        headers: getHeaders(),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || '清空购物车失败');
+      return data;
+    } catch (error) {
+      console.error('Clear cart error:', error);
+      throw error;
+    }
+  },
+
   // 创建订单 (原有接口，保留但可能需要鉴权)
   createOrder: async (orderData) => {
     try {

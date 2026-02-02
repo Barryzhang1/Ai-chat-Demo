@@ -706,11 +706,17 @@
   position: relative;
 }
 
+/* 搜索栏 */
+.menu-popup-search {
+  padding: 8px 12px;
+  background-color: #ffffff;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
+}
+
 .menu-popup-content {
   flex: 1;
   display: flex;
   overflow: hidden;
-  padding-top: 20px;
 }
 
 .menu-popup-sidebar {

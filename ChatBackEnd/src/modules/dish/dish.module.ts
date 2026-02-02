@@ -3,10 +3,12 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Dish, DishSchema } from './entities/dish.entity';
 import { DishService } from './dish.service';
 import { DishController } from './dish.controller';
+import { InventoryModule } from '../inventory/inventory.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Dish.name, schema: DishSchema }]),
+    InventoryModule,
   ],
   controllers: [DishController],
   providers: [DishService],

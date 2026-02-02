@@ -15,6 +15,7 @@ import {
   Input,
   Button,
   Popup,
+  ActionSheet,
 } from 'antd-mobile';
 import { LeftOutline, ExclamationCircleOutline } from 'antd-mobile-icons';
 import { inventoryApi } from '../../api/inventory';
@@ -29,6 +30,8 @@ function InventoryList() {
   const [searchText, setSearchText] = useState('');
   const [editingItem, setEditingItem] = useState(null);
   const [showEditPopup, setShowEditPopup] = useState(false);
+  const [showActionSheet, setShowActionSheet] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -134,10 +137,52 @@ function InventoryList() {
     navigate(`/merchant/inventory/history?inventoryId=${item._id}&productName=${encodeURIComponent(item.productName)}`);
   };
 
+  const handleViewConsumeHistory = (item) => {
+    console.log('查看消耗记录，商品:', item.productName, 'ID:', item._id);
+    if (!item._id) {
+      Toast.show({ content: '库存ID无效', icon: 'fail' });
+      return;
+    }
+    navigate(`/merchant/inventory/${item._id}/consume-history`);
+  };
+
+  const handleItemClick = (item) => {
+    setSelectedItem(item);
+    setShowActionSheet(true);
+  };
+
+  const actionSheetActions = [
+    { text: '查看变更历史', key: 'history' },
+    { text: '查看消耗记录', key: 'consume' },
+    { text: '编辑库存信息', key: 'edit' },
+    { text: '取消', key: 'cancel' },
+  ];
+
+  const handleActionSheetAction = (action) => {
+    if (!selectedItem) return;
+    
+    switch (action.key) {
+      case 'history':
+        handleViewHistory(selectedItem);
+        break;
+      case 'consume':
+        handleViewConsumeHistory(selectedItem);
+        break;
+      case 'edit':
+        handleEdit(selectedItem);
+        break;
+      default:
+        break;
+    }
+    
+    setShowActionSheet(false);
+    setSelectedItem(null);
+  };
+
   const renderInventoryItem = (item) => (
     <List.Item
       key={item._id}
-      onClick={() => handleViewHistory(item)}
+      onClick={() => handleItemClick(item)}
       description={
         <Space direction="vertical" style={{ width: '100%' }}>
           <div>当前库存: {item.quantity}</div>
@@ -159,15 +204,6 @@ function InventoryList() {
       extra={
         <Space direction="vertical" align="end">
           {getStatusTag(item)}
-          <Button
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEdit(item);
-            }}
-          >
-            编辑
-          </Button>
         </Space>
       }
     >
@@ -273,6 +309,18 @@ function InventoryList() {
           </Space>
         </div>
       </Popup>
+
+      {/* 操作菜单 */}
+      <ActionSheet
+        visible={showActionSheet}
+        actions={actionSheetActions}
+        onAction={handleActionSheetAction}
+        onClose={() => {
+          setShowActionSheet(false);
+          setSelectedItem(null);
+        }}
+        cancelText="取消"
+      />
     </div>
   );
 }

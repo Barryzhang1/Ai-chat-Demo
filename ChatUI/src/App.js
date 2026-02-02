@@ -10,6 +10,7 @@ import MenuBrowse from './pages/MenuBrowse/MenuBrowse';
 import MerchantDashboard from './pages/MerchantDashboard/MerchantDashboard';
 import OrderList from './pages/MerchantDashboard/OrderList';
 import Inventory from './pages/MerchantDashboard/Inventory';
+import IngredientConsumeHistory from './pages/MerchantDashboard/IngredientConsumeHistory';
 import SeatManagement from './pages/MerchantDashboard/SeatManagement';
 import GameRankings from './pages/MerchantDashboard/GameRankings';
 import DataReports from './pages/MerchantDashboard/DataReports';
@@ -109,6 +110,14 @@ function AppRoutes() {
               element={
                 <MerchantRoute>
                   <Inventory />
+                </MerchantRoute>
+              } 
+            />
+            <Route 
+              path="/merchant/inventory/:id/consume-history" 
+              element={
+                <MerchantRoute>
+                  <IngredientConsumeHistory />
                 </MerchantRoute>
               } 
             />

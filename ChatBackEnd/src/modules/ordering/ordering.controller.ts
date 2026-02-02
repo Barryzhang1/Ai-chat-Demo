@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Patch,
+  Put,
   Body,
   Request,
   Param,
@@ -26,6 +27,7 @@ import { OrderingService } from './ordering.service';
 import { AiOrderDto } from './dto/ai-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { UpdateCartDto } from './dto/update-cart.dto';
 import { ReportQueryDto } from './dto/report-query.dto';
 
 @ApiTags('ordering')
@@ -127,6 +129,55 @@ export class OrderingController {
       code: 0,
       message: '获取成功',
       data: result,
+    };
+  }
+
+  @Put('cart')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '编辑购物车' })
+  @ApiResponse({
+    status: 200,
+    description: '购物车更新成功',
+  })
+  @ApiResponse({ status: 400, description: '请求参数错误' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async updateCart(
+    @Request() req: ExpressRequest & { user: { id: string } },
+    @Body() updateCartDto: UpdateCartDto,
+  ) {
+    const userId = req.user.id;
+    const result = await this.orderingService.updateCartDishes(
+      userId,
+      updateCartDto.dishes,
+    );
+
+    return {
+      code: 0,
+      message: '购物车更新成功',
+      data: result,
+    };
+  }
+
+  @Post('clear-cart')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '清空购物车和聊天历史' })
+  @ApiResponse({
+    status: 200,
+    description: '购物车和聊天历史已清空',
+  })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async clearCart(@Request() req: ExpressRequest & { user: { id: string } }) {
+    const userId = req.user.id;
+    await this.orderingService.clearCartAndChatHistory(userId);
+
+    return {
+      code: 0,
+      message: '购物车和聊天历史已清空',
+      data: null,
     };
   }
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NavBar, SideBar, Toast, Divider, Empty, Tag, Space } from 'antd-mobile';
+import { NavBar, SideBar, Toast, Divider, Empty, Tag, Space, SearchBar } from 'antd-mobile';
 import { dishApi } from '../../api/dishApi';
 import { categoryApi } from '../../api/categoryApi';
 import './MenuBrowse.css';
@@ -11,6 +11,7 @@ function MenuBrowse() {
   const [dishes, setDishes] = useState([]);
   const [activeKey, setActiveKey] = useState('');
   const [loading, setLoading] = useState(true);
+  const [searchKeyword, setSearchKeyword] = useState('');
   const contentRef = useRef(null);
   const categoryRefs = useRef({});
 
@@ -19,14 +20,27 @@ function MenuBrowse() {
     fetchData();
   }, []);
 
+  // 搜索关键词变化时重新获取菜品
+  useEffect(() => {
+    if (searchKeyword !== undefined) {
+      fetchData();
+    }
+  }, [searchKeyword]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
       
+      // 准备查询参数
+      const dishParams = {};
+      if (searchKeyword) {
+        dishParams.keyword = searchKeyword;
+      }
+      
       // 并行获取分类和菜品
       const [categoriesData, dishesData] = await Promise.all([
         categoryApi.getCategories(),
-        dishApi.getDishes()
+        dishApi.getDishes(dishParams)
       ]);
 
       // 按权重排序分类（sortOrder越大越靠前）
@@ -113,6 +127,16 @@ function MenuBrowse() {
       <NavBar onBack={() => navigate(-1)}>
         菜品浏览
       </NavBar>
+
+      {/* 搜索栏 */}
+      <div className="menu-search">
+        <SearchBar
+          placeholder="搜索菜品名称"
+          value={searchKeyword}
+          onChange={setSearchKeyword}
+          onClear={() => setSearchKeyword('')}
+        />
+      </div>
 
       {loading ? (
         <div className="loading-container">加载中...</div>

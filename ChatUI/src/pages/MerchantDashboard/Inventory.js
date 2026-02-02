@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NavBar, List, Button, Toast, Popup, Form, SideBar, Divider, Empty, Tag, Space } from 'antd-mobile';
+import { NavBar, List, Button, Toast, Popup, Form, SideBar, Divider, Empty, Tag, Space, SearchBar } from 'antd-mobile';
 import { AddOutline } from 'antd-mobile-icons';
 import { dishApi } from '../../api/dishApi';
 import { categoryApi } from '../../api/categoryApi';
@@ -15,6 +15,7 @@ function Inventory() {
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [activeKey, setActiveKey] = useState('');
   const [inventoryList, setInventoryList] = useState([]);
+  const [searchKeyword, setSearchKeyword] = useState('');
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const contentRef = useRef(null);
@@ -34,21 +35,27 @@ function Inventory() {
         setActiveKey(sortedCategories[0]._id);
       }
     } catch (error) {
-      console.error('Failed to fetch categories:', error);
+      // Failed to fetch categories
     }
   };
 
   const fetchDishes = async () => {
     try {
-      const dishes = await dishApi.getDishes();
+      const params = {};
+      if (searchKeyword) {
+        params.keyword = searchKeyword;
+      }
+      if (activeKey && searchKeyword) {
+        params.categoryId = activeKey;
+      }
+      
+      const dishes = await dishApi.getDishes(params);
       if (Array.isArray(dishes)) {
         setInventory(dishes);
       } else {
-        console.warn('API did not return an array for dishes, setting to empty array.');
         setInventory([]);
       }
     } catch (error) {
-      console.error('Failed to fetch dishes:', error);
       setInventory([]); // 在API调用失败时也确保是数组
     }
   };
@@ -56,21 +63,22 @@ function Inventory() {
   const fetchInventoryList = async () => {
     try {
       const response = await inventoryApi.getInventoryList();
-      console.log('库存API返回数据:', response);
       
       // 后端返回格式: { code: 0, message: '查询成功', data: { list: [...], total, page, pageSize } }
       if (response && response.code === 0 && response.data && Array.isArray(response.data.list)) {
-        console.log('设置库存列表，数量:', response.data.list.length);
         setInventoryList(response.data.list);
       } else {
-        console.warn('库存API返回格式不正确:', response);
         setInventoryList([]);
       }
     } catch (error) {
-      console.error('Failed to fetch inventory list:', error);
       setInventoryList([]);
     }
   };
+
+  // 搜索关键词变化时重新获取菜品
+  useEffect(() => {
+    fetchDishes();
+  }, [searchKeyword]);
 
   useEffect(() => {
     fetchDishes();
@@ -87,10 +95,12 @@ function Inventory() {
         position: 'top',
       })
     } catch (error) {
-      console.error('Failed to update dish status:', error);
+      // 显示后端返回的具体错误信息
+      const errorMessage = error.response?.data?.message || error.message || '操作失败';
       Toast.show({
-        content: '操作失败',
+        content: errorMessage,
         position: 'top',
+        duration: 3000,
       })
     }
   };
@@ -123,7 +133,6 @@ function Inventory() {
       setShowEditPopup(false);
       setEditingDish(null);
     } catch (error) {
-      console.error('Operation failed:', error);
       Toast.show({ icon: 'fail', content: '操作失败，请重试' });
     }
   };
@@ -136,11 +145,9 @@ function Inventory() {
     
     const result = dish.ingredients.some(ingredientId => {
       const ingredient = inventoryList.find(item => item._id === ingredientId);
-      console.log(`检查食材 ${ingredientId}:`, ingredient, '数量:', ingredient?.quantity);
       return ingredient && ingredient.quantity === 0;
     });
     
-    console.log(`菜品 ${dish.name} 是否缺料:`, result, '库存列表长度:', inventoryList.length);
     return result;
   };
 
@@ -205,6 +212,16 @@ function Inventory() {
       >
         菜品库存
       </NavBar>
+
+      {/* 搜索栏 */}
+      <div className="inventory-search">
+        <SearchBar
+          placeholder="搜索菜品名称"
+          value={searchKeyword}
+          onChange={setSearchKeyword}
+          onClear={() => setSearchKeyword('')}
+        />
+      </div>
 
       <div className="inventory-content">
         {/* 左侧分类栏 */}
@@ -297,9 +314,29 @@ function Inventory() {
                               </div>
                             }
                             extra={
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '12px' }}>
-                                <div className="item-price" style={{ fontSize: '18px', fontWeight: 'bold', color: '#ff4d4f' }}>¥{item.price}</div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '8px' }}>
+                                {/* 出售价格 */}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                  <div style={{ fontSize: '12px', color: '#999' }}>售价</div>
+                                  <div className="item-price" style={{ fontSize: '18px', fontWeight: 'bold', color: '#ff4d4f' }}>¥{item.price.toFixed(2)}</div>
+                                </div>
+                                {/* 成本价 */}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                  <div style={{ fontSize: '12px', color: '#999' }}>成本</div>
+                                  <div style={{ fontSize: '16px', fontWeight: '500', color: '#52c41a' }}>
+                                    ¥{(item.costPrice !== undefined ? item.costPrice : 0).toFixed(2)}
+                                  </div>
+                                </div>
+                                {/* 利润 */}
+                                {item.costPrice !== undefined && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                    <div style={{ fontSize: '12px', color: '#999' }}>利润</div>
+                                    <div style={{ fontSize: '14px', fontWeight: '500', color: item.price - item.costPrice > 0 ? '#1890ff' : '#ff4d4f' }}>
+                                      ¥{(item.price - item.costPrice).toFixed(2)}
+                                    </div>
+                                  </div>
+                                )}
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                                   <Button
                                     size="small"
                                     onClick={(e) => {

@@ -27,7 +27,16 @@
   - 采用iOS简洁风格卡片设计
 - **自动过滤**：不显示已下架的菜品（`isDelisted: true`）
 
-### 3. 交互功能
+### 3. 搜索功能 🆕 (2026-02-02)
+
+- **搜索框位置**：位于导航栏下方
+- **搜索范围**：搜索菜品名称和描述
+- **实时过滤**：输入关键词即时更新列表
+- **清空功能**：支持一键清空搜索关键词
+- **自动过滤下架菜品**：搜索结果中不包含已下架菜品
+- **空结果提示**：搜索无结果时显示"暂无菜品"
+
+### 4. 交互功能
 
 - **滚动联动**：
   - 滚动右侧菜品列表时，左侧分类自动高亮当前可见的分类
@@ -57,17 +66,17 @@ ChatUI/src/pages/MenuBrowse/
 **响应格式**：
 ```json
 [
-  {
-    "_id": "分类ID",
-    "name": "分类名称",
-    "sortOrder": 10,
-    "isActive": true
-  }
-]
-```
+  {params)
+获取所有菜品列表（支持搜索）
 
-### dishApi.getDishes()
-获取所有菜品列表
+**请求参数**：
+```javascript
+{
+  keyword: string,      // 可选，搜索关键词
+  categoryId: string,   // 可选，分类ID
+  tag: string          // 可选，标签
+}
+```
 
 **响应格式**：
 ```json
@@ -76,6 +85,27 @@ ChatUI/src/pages/MenuBrowse/
     "_id": "菜品ID",
     "name": "菜品名称",
     "price": 38,
+    "categoryId": "分类ID",
+    "description": "菜品描述",
+    "isDelisted": false,
+    "isSpicy": true,
+    "hasScallions": true,
+    "hasCilantro": false,
+    "hasGarlic": true
+  }
+]
+```
+
+**使用示例**：
+```javascript
+// 获取所有菜品
+const dishes = await dishApi.getDishes();
+
+// 搜索菜品
+const searchResults = await dishApi.getDishes({ keyword: '鸡' });
+
+// 按分类筛选
+const categoryDishes = await dishApi.getDishes({ categoryId: '分类ID' });   "price": 38,
     "categoryId": "分类ID",
     "description": "菜品描述",
     "isDelisted": false,

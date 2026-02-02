@@ -3,10 +3,18 @@ import { config } from '../config';
 const API_BASE_URL = config.apiUrl;
 
 export const dishApi = {
-  // 获取菜品列表
-  getDishes: async () => {
+  // 获取菜品列表（支持搜索）
+  getDishes: async (params = {}) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/dish`);
+      const queryParams = new URLSearchParams();
+      if (params.keyword) queryParams.append('keyword', params.keyword);
+      if (params.categoryId) queryParams.append('categoryId', params.categoryId);
+      if (params.tag) queryParams.append('tag', params.tag);
+      
+      const queryString = queryParams.toString();
+      const url = `${API_BASE_URL}/dish${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await fetch(url);
       return await response.json();
     } catch (error) {
       console.error('Get dishes error:', error);
@@ -42,7 +50,11 @@ export const dishApi = {
         body: JSON.stringify(statusUpdate),
       });
       if (!response.ok) {
-        throw new Error('Failed to update dish status');
+        // 解析后端返回的错误信息
+        const errorData = await response.json();
+        const error = new Error(errorData.message || 'Failed to update dish status');
+        error.response = { data: errorData };
+        throw error;
       }
       return await response.json();
     } catch (error) {
