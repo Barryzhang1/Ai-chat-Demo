@@ -13,7 +13,7 @@
   max-height: calc(100vh - 44px - 80px); /* 44px为nav-bar高度，80px为bottom-container高度，按实际调整 */
   overflow-y: auto;
   padding: 16px;
-  padding-bottom: 110px; /* 保证内容不会被底部遮挡，可根据.bottom-container实际高度调整 */
+  padding-bottom: 180px; /* 增加底部padding以适应快捷按钮和输入框 */
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -97,6 +97,122 @@
 
 .voice-message:active {
   background: rgba(149, 236, 105, 0.5);
+}
+
+/* 快捷按钮样式 */
+.quick-buttons-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+/* 固定在输入框上方的快捷按钮 */
+.quick-buttons-fixed-container {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  background: white;
+  border-top: 1px solid #e5e5e5;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  white-space: nowrap;
+}
+
+.quick-buttons-fixed-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+.quick-button-fixed {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border: 1px solid #e5e5e5;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.quick-button-fixed:hover {
+  background: linear-gradient(135deg, #a4e9c6 0%, #b3a0ff 100%);
+  color: white;
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 6px rgba(164, 233, 198, 0.3);
+}
+
+.quick-button-fixed:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(164, 233, 198, 0.2);
+}
+
+.quick-button-fixed .quick-button-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.quick-button-fixed .quick-button-text {
+  text-align: left;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.quick-button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 12px 14px;
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.quick-button:hover {
+  background: linear-gradient(135deg, #a4e9c6 0%, #b3a0ff 100%);
+  color: white;
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(164, 233, 198, 0.3);
+}
+
+.quick-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(164, 233, 198, 0.2);
+}
+
+.quick-button-icon {
+  font-size: 18px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.quick-button-text {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .voice-duration {

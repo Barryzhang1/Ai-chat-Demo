@@ -53,6 +53,20 @@ function UserOrder() {
   const navigate = useNavigate();
 
   const [isGenerating, setIsGenerating] = useState(false);  
+  const [showQuickButtons, setShowQuickButtons] = useState(true); // 控制快捷按钮显示
+
+  // 快捷按钮配置 - 混合场景
+  const quickButtons = [
+    { text: '推荐几道前菜开开胃', icon: '🥗' },
+    { text: '来几道招牌主菜', icon: '🍖' },
+    { text: '3人套餐：三荤三素', icon: '👨‍👩‍👦' },
+    { text: '加个小朋友爱吃的菜', icon: '👶' },
+    { text: '想吃辣的，再加两个辣菜', icon: '🌶️' },
+    { text: '来碗热汤暖暖胃', icon: '🍲' },
+    { text: '来两个甜品，预算100以下', icon: '🍰' },
+    { text: '三个主食，两个饮料', icon: '🍚' },
+    { text: '推荐性价比高的菜品', icon: '💰' },
+  ];
 
   // 获取菜品和分类数据
   const fetchMenuData = async () => {
@@ -368,8 +382,10 @@ function UserOrder() {
           role: 'assistant',
           content: '您好！欢迎使用智能点餐系统。请告诉我您的点餐需求，比如：人数、预算、口味偏好、忌口等信息，我会为您推荐合适的菜品。',
           timestamp: new Date(),
+          showQuickButtons: true, // 标记此消息显示快捷按钮
         },
       ]);
+      setShowQuickButtons(true); // 重置快捷按钮显示状态
     };
     
     initializeChat();
@@ -523,11 +539,20 @@ function UserOrder() {
     return keywords.some(keyword => text.includes(keyword));
   };
 
-  // 处理发送消息
-  const handleSend = async () => {
-    if (!inputValue.trim() || isGenerating) return;
+  // 处理快捷按钮点击
+  const handleQuickButtonClick = (text) => {
+    setInputValue(text);
+    // 自动发送
+    setTimeout(() => {
+      handleSendWithText(text);
+    }, 100);
+  };
 
-    const content = inputValue.trim();
+  // 处理发送消息（支持传入文本）
+  const handleSendWithText = async (messageText) => {
+    const content = (messageText || inputValue).trim();
+    if (!content || isGenerating) return;
+
     const userMessage = {
       role: 'user',
       content: content,
@@ -625,6 +650,11 @@ function UserOrder() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // 处理发送消息（旧函数，保持向后兼容）
+  const handleSend = async () => {
+    await handleSendWithText(inputValue);
   };
 
   // 确认订单
@@ -1185,6 +1215,20 @@ function UserOrder() {
       </div>
 
       <div className="bottom-container">
+        {/* 快捷按钮区域 - 固定在输入框上方 */}
+        <div className="quick-buttons-fixed-container">
+          {quickButtons.map((button, btnIndex) => (
+            <button
+              key={btnIndex}
+              className="quick-button-fixed"
+              onClick={() => handleQuickButtonClick(button.text)}
+            >
+              <span className="quick-button-icon">{button.icon}</span>
+              <span className="quick-button-text">{button.text}</span>
+            </button>
+          ))}
+        </div>
+        
         <div className="input-container">
           <div className="game-tag-container">
             <Tag 

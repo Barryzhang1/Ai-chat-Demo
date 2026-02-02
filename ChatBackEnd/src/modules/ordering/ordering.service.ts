@@ -17,8 +17,15 @@ import {
 } from './schemas/chat-history.schema';
 import { Dish, DishDocument } from '../dish/entities/dish.entity';
 import { User, UserDocument } from '../auth/schemas/user.schema';
-import { Inventory, InventoryDocument } from '../inventory/entities/inventory.entity';
-import { InventoryHistory, InventoryHistoryDocument, InventoryChangeType } from '../inventory/entities/inventory-history.entity';
+import {
+  Inventory,
+  InventoryDocument,
+} from '../inventory/entities/inventory.entity';
+import {
+  InventoryHistory,
+  InventoryHistoryDocument,
+  InventoryChangeType,
+} from '../inventory/entities/inventory-history.entity';
 import { AiOrderDto } from './dto/ai-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { MongoLogger } from '../../common/utils/mongo-logger.util';
@@ -62,8 +69,7 @@ export class OrderingService {
   private readonly deepseekApiKey: string;
   private readonly deepseekApiLog: boolean;
   private readonly deepseekCacheTTL: number;
-  private readonly deepseekApiUrl =
-    'https://api.deepseek.com/chat/completions';
+  private readonly deepseekApiUrl = 'https://api.deepseek.com/chat/completions';
   private readonly cache = new Map<string, CacheEntry>();
   private readonly cacheFilePath = path.join(
     process.cwd(),
@@ -78,8 +84,10 @@ export class OrderingService {
     private chatHistoryModel: Model<ChatHistoryDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Dish.name) private dishModel: Model<DishDocument>,
-    @InjectModel(Inventory.name) private inventoryModel: Model<InventoryDocument>,
-    @InjectModel(InventoryHistory.name) private inventoryHistoryModel: Model<InventoryHistoryDocument>,
+    @InjectModel(Inventory.name)
+    private inventoryModel: Model<InventoryDocument>,
+    @InjectModel(InventoryHistory.name)
+    private inventoryHistoryModel: Model<InventoryHistoryDocument>,
     private readonly dishService: DishService,
     private readonly inventoryService: InventoryService,
   ) {
@@ -172,7 +180,8 @@ export class OrderingService {
       // 使用多查询条件（例如：8个荤菜 + 8个素菜 + 3个主食 + 2个饮料）
       const recommendedDishes = await this.queryDishesBatch(queries);
 
-      // 将查询到的菜品直接添加到购物车
+      // AI会根据对话历史生成完整的queries，这里清空购物车后重新添加
+      // 这样可以确保购物车内容与AI的综合判断一致
       await this.clearCartDishes(userId);
 
       // 将推荐的菜品添加到购物车，每个菜品数量为1
@@ -418,9 +427,7 @@ export class OrderingService {
 
     // 更新购物车中的菜品
     for (const dishUpdate of dishes) {
-      const dishDoc = await this.dishModel
-        .findById(dishUpdate.dishId)
-        .exec();
+      const dishDoc = await this.dishModel.findById(dishUpdate.dishId).exec();
 
       if (!dishDoc) {
         this.logger.warn('Dish not found: ' + dishUpdate.dishId);
@@ -688,7 +695,9 @@ export class OrderingService {
     createdAt: Date;
     updatedAt: Date;
   }> {
-    this.logger.log(`🔵 Updating order status: ${orderId}, new status: "${status}" (type: ${typeof status})`);
+    this.logger.log(
+      `🔵 Updating order status: ${orderId}, new status: "${status}" (type: ${typeof status})`,
+    );
 
     // 查找订单 (使用MongoDB的_id)
     const order = await this.orderModel.findById(orderId).exec();
@@ -696,7 +705,9 @@ export class OrderingService {
       throw new NotFoundException('订单不存在');
     }
 
-    this.logger.log(`🔵 Order found: ${order.orderId}, current status: "${order.status}"`);
+    this.logger.log(
+      `🔵 Order found: ${order.orderId}, current status: "${order.status}"`,
+    );
 
     // 记录旧状态，用于判断是否首次接单
     const oldStatus = order.status;
@@ -705,18 +716,24 @@ export class OrderingService {
     order.status = status;
     await order.save();
 
-    this.logger.log(`🔵 Order status updated from "${oldStatus}" to "${status}"`);
+    this.logger.log(
+      `🔵 Order status updated from "${oldStatus}" to "${status}"`,
+    );
 
     // 如果订单状态从pending变为confirmed或preparing，说明是首次接单，需要扣减库存
-    const shouldDeductInventory = 
-      oldStatus === 'pending' && 
+    const shouldDeductInventory =
+      oldStatus === 'pending' &&
       (status === 'confirmed' || status === 'preparing');
 
     if (shouldDeductInventory) {
-      this.logger.log(`✅ Order accepted (${oldStatus} → ${status}), deducting inventory for order: ${orderId}`);
+      this.logger.log(
+        `✅ Order accepted (${oldStatus} → ${status}), deducting inventory for order: ${orderId}`,
+      );
       await this.deductInventoryForOrder(order);
     } else {
-      this.logger.log(`⚠️  Not deducting inventory. Old status: "${oldStatus}", New status: "${status}"`);
+      this.logger.log(
+        `⚠️  Not deducting inventory. Old status: "${oldStatus}", New status: "${status}"`,
+      );
     }
 
     return {
@@ -741,8 +758,10 @@ export class OrderingService {
    */
   private async deductInventoryForOrder(order: OrderDocument): Promise<void> {
     this.logger.log(`Starting inventory deduction for order: ${order.orderId}`);
-    this.logger.log(`Order status: ${order.status}, Order dishes count: ${order.dishes.length}`);
-    
+    this.logger.log(
+      `Order status: ${order.status}, Order dishes count: ${order.dishes.length}`,
+    );
+
     // 用于跟踪所有涉及的菜品ID（用于后续检查是否需要下架）
     const affectedDishIds = new Set<string>();
 
@@ -750,50 +769,62 @@ export class OrderingService {
     for (const orderDish of order.dishes) {
       const dishId = orderDish.dishId.toString();
       const quantity = orderDish.quantity;
-      
-      this.logger.log(`Processing dish: ${orderDish.name} (ID: ${dishId}), quantity: ${quantity}`);
-      
+
+      this.logger.log(
+        `Processing dish: ${orderDish.name} (ID: ${dishId}), quantity: ${quantity}`,
+      );
+
       try {
         // 获取菜品信息（包括绑定的食材）
         const dish = await this.dishModel.findById(dishId).exec();
-        
+
         if (!dish) {
-          this.logger.warn(`Dish not found: ${dishId}, skipping inventory deduction`);
+          this.logger.warn(
+            `Dish not found: ${dishId}, skipping inventory deduction`,
+          );
           continue;
         }
 
         // 如果菜品没有绑定食材，跳过
         if (!dish.ingredients || dish.ingredients.length === 0) {
-          this.logger.log(`Dish ${dish.name} has no ingredients bound, skipping`);
+          this.logger.log(
+            `Dish ${dish.name} has no ingredients bound, skipping`,
+          );
           continue;
         }
 
-        this.logger.log(`Dish ${dish.name} has ${dish.ingredients.length} ingredients bound: ${JSON.stringify(dish.ingredients)}`);
-        
+        this.logger.log(
+          `Dish ${dish.name} has ${dish.ingredients.length} ingredients bound: ${JSON.stringify(dish.ingredients)}`,
+        );
+
         // 扣减该菜品绑定的每个食材库存
         for (const ingredientId of dish.ingredients) {
           try {
             this.logger.log(`Looking for ingredient: ${ingredientId}`);
-            const inventory = await this.inventoryModel.findById(ingredientId).exec();
-            
+            const inventory = await this.inventoryModel
+              .findById(ingredientId)
+              .exec();
+
             if (!inventory) {
-              this.logger.warn(`Ingredient not found: ${ingredientId}, skipping`);
+              this.logger.warn(
+                `Ingredient not found: ${ingredientId}, skipping`,
+              );
               continue;
             }
 
             const quantityBefore = inventory.quantity;
-            
+
             // 计算扣减后的数量（扣减数量 = 菜品数量 × 每份需要的食材数量，这里默认每份用1个）
             const deductAmount = quantity * 1; // 每份菜品消耗1个食材
             const quantityAfter = Math.max(0, quantityBefore - deductAmount);
-            
+
             // 更新库存
             inventory.quantity = quantityAfter;
             await inventory.save();
-            
+
             this.logger.log(
               `✅ Deducted ingredient: ${inventory.productName}, ` +
-              `before: ${quantityBefore}, deducted: ${deductAmount}, after: ${quantityAfter}`
+                `before: ${quantityBefore}, deducted: ${deductAmount}, after: ${quantityAfter}`,
             );
 
             // 记录库存消耗历史
@@ -811,30 +842,30 @@ export class OrderingService {
                 reason: `订单消耗 - 菜品: ${dish.name}`,
                 operator: order.userId,
               });
-              this.logger.log(`✅ Created inventory history record for ${inventory.productName}`);
+              this.logger.log(
+                `✅ Created inventory history record for ${inventory.productName}`,
+              );
             } catch (historyError) {
               this.logger.error(
                 `Failed to create inventory history for ${inventory.productName}: ${historyError.message}`,
-                historyError.stack
+                historyError.stack,
               );
             }
 
             // 记录该菜品受影响（需要检查是否下架）
             affectedDishIds.add(dishId);
-            
           } catch (error) {
             this.logger.error(
               `Failed to deduct ingredient ${ingredientId}: ${error.message}`,
-              error.stack
+              error.stack,
             );
             // 继续处理下一个食材，不中断流程
           }
         }
-        
       } catch (error) {
         this.logger.error(
           `Failed to process dish ${dishId}: ${error.message}`,
-          error.stack
+          error.stack,
         );
         // 继续处理下一个菜品
       }
@@ -842,11 +873,15 @@ export class OrderingService {
 
     // 检查所有受影响的菜品，如果有食材库存为0，则自动下架
     if (affectedDishIds.size > 0) {
-      this.logger.log(`Checking ${affectedDishIds.size} affected dishes for auto-delisting`);
+      this.logger.log(
+        `Checking ${affectedDishIds.size} affected dishes for auto-delisting`,
+      );
       await this.checkAndDelistDishes(Array.from(affectedDishIds));
     }
-    
-    this.logger.log(`Inventory deduction completed for order: ${order.orderId}`);
+
+    this.logger.log(
+      `Inventory deduction completed for order: ${order.orderId}`,
+    );
   }
 
   /**
@@ -856,7 +891,7 @@ export class OrderingService {
     for (const dishId of dishIds) {
       try {
         const dish = await this.dishModel.findById(dishId).exec();
-        
+
         if (!dish) {
           this.logger.warn(`Dish not found when checking: ${dishId}`);
           continue;
@@ -879,10 +914,14 @@ export class OrderingService {
 
         for (const ingredientId of dish.ingredients) {
           try {
-            const inventory = await this.inventoryModel.findById(ingredientId).exec();
-            
+            const inventory = await this.inventoryModel
+              .findById(ingredientId)
+              .exec();
+
             if (!inventory) {
-              this.logger.warn(`Ingredient ${ingredientId} not found when checking dish ${dish.name}`);
+              this.logger.warn(
+                `Ingredient ${ingredientId} not found when checking dish ${dish.name}`,
+              );
               continue;
             }
 
@@ -893,7 +932,7 @@ export class OrderingService {
             }
           } catch (error) {
             this.logger.error(
-              `Failed to check ingredient ${ingredientId} for dish ${dish.name}: ${error.message}`
+              `Failed to check ingredient ${ingredientId} for dish ${dish.name}: ${error.message}`,
             );
           }
         }
@@ -902,19 +941,20 @@ export class OrderingService {
         if (shouldDelist) {
           dish.isDelisted = true;
           await dish.save();
-          
+
           this.logger.log(
             `Auto-delisted dish: ${dish.name} (ID: ${dishId}), ` +
-            `reason: ingredients out of stock [${outOfStockIngredients.join(', ')}]`
+              `reason: ingredients out of stock [${outOfStockIngredients.join(', ')}]`,
           );
         } else {
-          this.logger.log(`Dish ${dish.name} still has sufficient ingredients, keeping available`);
+          this.logger.log(
+            `Dish ${dish.name} still has sufficient ingredients, keeping available`,
+          );
         }
-        
       } catch (error) {
         this.logger.error(
           `Failed to check and delist dish ${dishId}: ${error.message}`,
-          error.stack
+          error.stack,
         );
       }
     }
@@ -953,6 +993,8 @@ export class OrderingService {
 - 只用上述可用标签，无此标签需告诉用户暂时没有此菜品
 - 所有查询用queries数组，明确菜品用dishes
 - totalBudget只在第一个query设置，后续不设置
+- **每次必须根据完整对话历史生成完整的queries，不是增量**
+- 例如：先要"三荤三素"再要"加两个辣菜"，应返回5个query(3荤+3素+2辣)而非2个
 
 【响应格式】纯JSON：
 {
@@ -1088,11 +1130,16 @@ export class OrderingService {
     const totalDishCount = queries.reduce((sum, q) => sum + (q.limit || 0), 0);
 
     const allDishes: DishDocument[] = [];
-    const dishIds = new Set<string>(); // 用于去重
+    const usedDishIds = new Set<string>(); // 跨查询去重
 
     // 依次执行每个查询条件
     for (const queryCondition of queries) {
       const query: Record<string, unknown> = { isDelisted: false };
+
+      // 排除已选择的菜品
+      if (usedDishIds.size > 0) {
+        query._id = { $nin: Array.from(usedDishIds) };
+      }
 
       // 处理标签（同时处理包含和排除）
       if (queryCondition.tags && queryCondition.tags.length > 0) {
@@ -1175,13 +1222,10 @@ export class OrderingService {
         dishes.map((d) => d.name),
       );
 
-      // 去重并添加到结果集
+      // 记录已选择的菜品ID并添加到结果集
       for (const dish of dishes) {
-        const dishId = dish._id.toString();
-        if (!dishIds.has(dishId)) {
-          dishIds.add(dishId);
-          allDishes.push(dish);
-        }
+        usedDishIds.add(dish._id.toString());
+        allDishes.push(dish);
       }
     }
 
@@ -1199,10 +1243,15 @@ export class OrderingService {
     const totalDishCount = queries.reduce((sum, q) => sum + (q.limit || 0), 0);
 
     const allDishes: DishDocument[] = [];
-    const dishIds = new Set<string>();
+    const usedDishIds = new Set<string>(); // 跨查询去重
 
     for (const queryCondition of queries) {
       const query: Record<string, unknown> = { isDelisted: false };
+
+      // 排除已选择的菜品
+      if (usedDishIds.size > 0) {
+        query._id = { $nin: Array.from(usedDishIds) };
+      }
 
       if (queryCondition.tags && queryCondition.tags.length > 0) {
         if (
@@ -1259,10 +1308,7 @@ export class OrderingService {
       // $match 先过滤符合条件的菜品（包括价格预算），$sample 再随机抽取
       const startTime = Date.now();
       const dishes = await this.dishModel
-        .aggregate([
-          { $match: query },
-          { $sample: { size: limit } }
-        ])
+        .aggregate([{ $match: query }, { $sample: { size: limit } }])
         .exec();
       const queryTime = Date.now() - startTime;
 
@@ -1272,12 +1318,10 @@ export class OrderingService {
         dishes.map((d) => d.name),
       );
 
+      // 记录已选择的菜品ID并添加到结果集
       for (const dish of dishes) {
-        const dishId = dish._id.toString();
-        if (!dishIds.has(dishId)) {
-          dishIds.add(dishId);
-          allDishes.push(dish);
-        }
+        usedDishIds.add(dish._id.toString());
+        allDishes.push(dish);
       }
     }
 
@@ -1305,7 +1349,7 @@ export class OrderingService {
         totalPrice: 0,
       });
     } else {
-      // 更新查询条件
+      // 覆盖查询条件（AI会根据对话历史综合生成完整的queries）
       if (queries) {
         cart.queries = queries;
       }
@@ -1313,14 +1357,21 @@ export class OrderingService {
 
     // 只在有菜品变更时才处理
     if (dishes && dishes.length > 0) {
-      // 处理菜品变更
+      // 先合并相同菜品的数量
+      const dishMap = new Map<string, number>();
       for (const dishChange of dishes) {
+        const currentQuantity = dishMap.get(dishChange.name) || 0;
+        dishMap.set(dishChange.name, currentQuantity + dishChange.quantity);
+      }
+
+      // 处理合并后的菜品变更
+      for (const [dishName, totalQuantity] of dishMap.entries()) {
         const dishDoc = await this.dishModel
-          .findOne({ name: dishChange.name, isDelisted: false })
+          .findOne({ name: dishName, isDelisted: false })
           .exec();
 
         if (!dishDoc) {
-          this.logger.warn('Dish not found: ' + dishChange.name);
+          this.logger.warn('Dish not found: ' + dishName);
           continue;
         }
 
@@ -1328,23 +1379,23 @@ export class OrderingService {
           (item) => item.dishId.toString() === dishDoc._id.toString(),
         );
 
-        if (dishChange.quantity > 0) {
+        if (totalQuantity > 0) {
           // 添加或增加数量
           if (existingItemIndex >= 0) {
-            cart.dishes[existingItemIndex].quantity += dishChange.quantity;
+            cart.dishes[existingItemIndex].quantity += totalQuantity;
           } else {
             cart.dishes.push({
               dishId: dishDoc._id,
               name: dishDoc.name,
               price: dishDoc.price,
-              quantity: dishChange.quantity,
+              quantity: totalQuantity,
             });
           }
-        } else if (dishChange.quantity < 0) {
+        } else if (totalQuantity < 0) {
           // 减少或移除
           if (existingItemIndex >= 0) {
             const newQuantity =
-              cart.dishes[existingItemIndex].quantity + dishChange.quantity;
+              cart.dishes[existingItemIndex].quantity + totalQuantity;
             if (newQuantity <= 0) {
               cart.dishes.splice(existingItemIndex, 1);
             } else {
