@@ -1255,16 +1255,14 @@ export class OrderingService {
 
       const limit = queryCondition.limit || 5;
 
-      // 有预算时按价格降序（接近预算），无预算时按创建时间降序（最新菜品）
-      const sortOrder: { price: -1 } | { createdAt: -1 } = totalBudget
-        ? { price: -1 }
-        : { createdAt: -1 };
-
+      // 使用 MongoDB 的 $sample 聚合操作实现真正的随机查询
+      // $match 先过滤符合条件的菜品（包括价格预算），$sample 再随机抽取
       const startTime = Date.now();
       const dishes = await this.dishModel
-        .find(query)
-        .limit(limit)
-        .sort(sortOrder as any)
+        .aggregate([
+          { $match: query },
+          { $sample: { size: limit } }
+        ])
         .exec();
       const queryTime = Date.now() - startTime;
 
