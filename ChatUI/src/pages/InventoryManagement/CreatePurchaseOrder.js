@@ -468,7 +468,7 @@ function CreatePurchaseOrder() {
           {/* 搜索框 */}
           <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
             <SearchBar
-              placeholder="搜索商品名称"
+              placeholder="搜索食材名称"
               value={searchText}
               onChange={handleSearchProduct}
               onClear={() => handleSearchProduct('')}

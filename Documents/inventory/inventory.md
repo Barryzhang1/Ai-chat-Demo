@@ -1897,7 +1897,7 @@ const handleSearchProduct = (value) => {
   <div>选择商品 + 取消按钮</div>
   
   {/* 搜索框 */}
-  <SearchBar placeholder="搜索商品名称" />
+  <SearchBar placeholder="搜索食材名称" />
   
   {/* 商品列表 */}
   <List>

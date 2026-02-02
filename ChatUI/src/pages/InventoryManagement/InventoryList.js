@@ -112,6 +112,12 @@ function InventoryList() {
   const handleSaveEdit = async () => {
     try {
       const values = await form.validateFields();
+      
+      // 将 lowStockThreshold 转换为数字类型
+      if (values.lowStockThreshold !== undefined && values.lowStockThreshold !== null && values.lowStockThreshold !== '') {
+        values.lowStockThreshold = Number(values.lowStockThreshold);
+      }
+      
       const response = await inventoryApi.updateInventory(editingItem._id, values);
 
       if (response.code === 0) {
@@ -250,7 +256,7 @@ function InventoryList() {
       </div>
 
       <SearchBar
-        placeholder="搜索商品名称"
+        placeholder="搜索食材名称"
         onSearch={handleSearch}
         onClear={() => setSearchText('')}
       />
@@ -293,7 +299,21 @@ function InventoryList() {
               name="lowStockThreshold"
               label="预警阈值"
               rules={[
-                { type: 'number', min: 0, message: '预警阈值必须大于等于0' },
+                {
+                  validator: (_, value) => {
+                    if (value === undefined || value === null || value === '') {
+                      return Promise.resolve();
+                    }
+                    const numValue = Number(value);
+                    if (isNaN(numValue)) {
+                      return Promise.reject(new Error('请输入有效的数字'));
+                    }
+                    if (numValue < 0) {
+                      return Promise.reject(new Error('预警阈值必须大于等于0'));
+                    }
+                    return Promise.resolve();
+                  },
+                },
               ]}
             >
               <Input type="number" placeholder="请输入预警阈值" />
