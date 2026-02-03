@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Button, Toast, Dialog, Input, Tag, Space, Grid, NavBar } from 'antd-mobile';
+import { Card, Button, Toast, Dialog, Input, Tag, Space, Grid, NavBar, Tabs } from 'antd-mobile';
 import { AddOutline, DeleteOutline, CloseOutline, CheckOutline } from 'antd-mobile-icons';
 import { io } from 'socket.io-client';
 import { config } from '../../config';
@@ -24,6 +24,7 @@ const SeatManagement = () => {
   const [queueList, setQueueList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hallLoading, setHallLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('seats');
 
   useEffect(() => {
     // 初始化 Socket.IO 连接
@@ -495,105 +496,125 @@ const SeatManagement = () => {
         </Space>
       </div>
 
-      {/* 排队用户列表 */}
-      {queueList.length > 0 && (
-        <Card title={`排队列表 (${queueList.length}人)`} className="queue-list-card">
-          <div className="queue-list">
-            {queueList.map((user, index) => (
-              <div key={user.socketId} className="queue-item">
-                <div className="queue-position">
-                  <Tag color="primary" style={{ fontSize: '14px', padding: '4px 12px' }}>
-                    第{index + 1}位
-                  </Tag>
+      {/* Tab标签页 */}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        style={{
+          '--title-font-size': '15px',
+          '--content-padding': '12px',
+        }}
+      >
+        <Tabs.Tab title="座位列表" key="seats">
+          {/* 座位列表 */}
+          <div className="seats-list">
+            {seats.length === 0 ? (
+              <Card>
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
+                  暂无座位，点击上方按钮添加座位
                 </div>
-                <div className="queue-info">
-                  <div className="queue-nickname">
-                    {user.nickname || '游客'}
+              </Card>
+            ) : (
+              seats.map((seat) => (
+                <Card key={seat._id} className="seat-card">
+                  <div className="seat-header">
+                    <div className="seat-number">座位 {seat.seatNumber}</div>
+                    <div className="seat-status">{getSeatStatusTag(seat.status)}</div>
                   </div>
-                  <div className="queue-time">
-                    {new Date(user.queuedAt).toLocaleString('zh-CN', {
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </div>
-                </div>
-                {user.partySize > 1 && (
-                  <Tag color="default">{user.partySize}人</Tag>
-                )}
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* 座位列表 */}
-      <div className="seats-list">
-        {seats.length === 0 ? (
-          <Card>
-            <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
-              暂无座位，点击上方按钮添加座位
-            </div>
-          </Card>
-        ) : (
-          seats.map((seat) => (
-            <Card key={seat._id} className="seat-card">
-              <div className="seat-header">
-                <div className="seat-number">座位 {seat.seatNumber}</div>
-                <div className="seat-status">{getSeatStatusTag(seat.status)}</div>
-              </div>
-              
-              {seat.status === 'occupied' && seat.occupiedByName && seat.occupiedByName !== '游客' && (
-                <div className="seat-info">
-                  <span className="info-label">用户:</span>
-                  <span className="info-value">{seat.occupiedByName}</span>
-                </div>
-              )}
-              
-              {seat.status === 'occupied' && seat.occupiedAt && (
-                <div className="seat-info">
-                  <span className="info-label">用餐时间:</span>
-                  <span className="info-value">
-                    {new Date(seat.occupiedAt).toLocaleTimeString('zh-CN')}
-                  </span>
-                </div>
-              )}
-
-              <div className="seat-actions">
-                <Space>
-                  {seat.status !== 'occupied' && (
-                    <Button
-                      size="small"
-                      color={seat.status === 'closed' ? 'success' : 'default'}
-                      onClick={() => handleToggleSeatStatus(seat)}
-                      disabled={loading}
-                    >
-                      {seat.status === 'closed' ? (
-                        <>
-                          <CheckOutline /> 开启
-                        </>
-                      ) : (
-                        <>
-                          <CloseOutline /> 关闭
-                        </>
-                      )}
-                    </Button>
+                  
+                  {seat.status === 'occupied' && seat.occupiedByName && seat.occupiedByName !== '游客' && (
+                    <div className="seat-info">
+                      <span className="info-label">用户:</span>
+                      <span className="info-value">{seat.occupiedByName}</span>
+                    </div>
                   )}
-                  <Button
-                    size="small"
-                    color="danger"
-                    onClick={() => handleDeleteSeat(seat)}
-                    disabled={loading || seat.status === 'occupied'}
-                  >
-                    <DeleteOutline /> 删除
-                  </Button>
-                </Space>
+                  
+                  {seat.status === 'occupied' && seat.occupiedAt && (
+                    <div className="seat-info">
+                      <span className="info-label">用餐时间:</span>
+                      <span className="info-value">
+                        {new Date(seat.occupiedAt).toLocaleTimeString('zh-CN')}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="seat-actions">
+                    <Space>
+                      {seat.status !== 'occupied' && (
+                        <Button
+                          size="small"
+                          color={seat.status === 'closed' ? 'success' : 'default'}
+                          onClick={() => handleToggleSeatStatus(seat)}
+                          disabled={loading}
+                        >
+                          {seat.status === 'closed' ? (
+                            <>
+                              <CheckOutline /> 开启
+                            </>
+                          ) : (
+                            <>
+                              <CloseOutline /> 关闭
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      <Button
+                        size="small"
+                        color="danger"
+                        onClick={() => handleDeleteSeat(seat)}
+                        disabled={loading || seat.status === 'occupied'}
+                      >
+                        <DeleteOutline /> 删除
+                      </Button>
+                    </Space>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </Tabs.Tab>
+
+        <Tabs.Tab title={`排队列表 (${queueLength})`} key="queue">
+          {/* 排队用户列表 */}
+          {queueList.length === 0 ? (
+            <Card>
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
+                暂无排队用户
               </div>
             </Card>
-          ))
-        )}
-      </div>
+          ) : (
+            <div className="queue-list">
+              {queueList.map((user, index) => (
+                <Card key={user.socketId} className="queue-card">
+                  <div className="queue-item">
+                    <div className="queue-position">
+                      <Tag color="primary" style={{ fontSize: '14px', padding: '4px 12px' }}>
+                        第{index + 1}位
+                      </Tag>
+                    </div>
+                    <div className="queue-info">
+                      <div className="queue-nickname">
+                        {user.nickname || '游客'}
+                      </div>
+                      <div className="queue-time">
+                        {new Date(user.queuedAt).toLocaleString('zh-CN', {
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                    </div>
+                    {user.partySize > 1 && (
+                      <Tag color="default">{user.partySize}人</Tag>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </Tabs.Tab>
+      </Tabs>
     </div>
   );
 };

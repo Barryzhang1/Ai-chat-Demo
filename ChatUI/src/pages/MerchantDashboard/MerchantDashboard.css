@@ -521,6 +521,17 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.queue-card {
+  margin-bottom: 12px;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.queue-card:active {
+  transform: scale(0.98);
+}
+
 .queue-list {
   display: flex;
   flex-direction: column;

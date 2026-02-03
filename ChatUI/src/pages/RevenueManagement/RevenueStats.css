@@ -61,8 +61,8 @@
 
 .stat-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: center;
+  align-items: baseline;
   padding: 10px 0;
 }
 
