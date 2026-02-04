@@ -59,29 +59,39 @@
   color: #999;
 }
 
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px 12px;
+  margin: 12px 0;
+}
+
 .stat-item {
   display: flex;
-  justify-content: center;
-  align-items: baseline;
-  padding: 10px 0;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
 }
 
 .stat-item.highlighted {
-  background: linear-gradient(90deg, #fff3e0 0%, #ffffff 100%);
-  padding: 12px;
-  border-radius: 8px;
-  margin: 0 -12px;
+  background: linear-gradient(135deg, #fff3e0 0%, #fffaf0 100%);
+  border-color: #ffd591;
+  grid-column: 1 / -1;
 }
 
 .stat-label {
-  font-size: 14px;
+  font-size: 13px;
   color: #666;
 }
 
 .stat-value {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: #333;
+  margin-top: 2px;
 }
 
 .stat-value.revenue {

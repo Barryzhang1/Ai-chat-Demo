@@ -132,13 +132,39 @@ export class DishService {
   }
 
   async update(id: string, updateDishDto: UpdateDishDto): Promise<Dish> {
+    // 如果更新了 ingredients 字段，需要检查库存
+    if (updateDishDto.ingredients !== undefined && updateDishDto.ingredients.length > 0) {
+      const outOfStockIngredients: string[] = [];
+      
+      // 检查每个绑定的食材库存
+      for (const ingredientId of updateDishDto.ingredients) {
+        try {
+          const inventory = await this.inventoryService.findOne(ingredientId);
+          
+          // 如果库存为0，记录该食材名称
+          if (inventory.quantity === 0) {
+            outOfStockIngredients.push(inventory.productName);
+          }
+        } catch (error) {
+          // 如果食材不存在，抛出异常
+          throw new BadRequestException(`食材ID ${ingredientId} 不存在`);
+        }
+      }
+      
+      // 如果有食材库存为0，自动下架菜品
+      if (outOfStockIngredients.length > 0) {
+        updateDishDto.isDelisted = true;
+        console.log(`检测到食材 ${outOfStockIngredients.join('、')} 库存为0，菜品已自动下架`);
+      }
+    }
+    
     const updatedDish = await this.dishModel.findByIdAndUpdate(
       id,
       updateDishDto,
       { new: true },
     );
     if (!updatedDish) {
-      throw new Error('Dish not found');
+      throw new NotFoundException('菜品不存在');
     }
     return updatedDish;
   }

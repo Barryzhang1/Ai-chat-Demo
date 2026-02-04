@@ -102,24 +102,26 @@ const RevenueStats = () => {
         
         <Divider style={{ margin: '12px 0' }} />
         
-        <div className="stat-item">
-          <span className="stat-label">营业收入</span>
-          <span className="stat-value revenue">¥{stats.revenue.toFixed(2)}</span>
-        </div>
-        
-        <div className="stat-item">
-          <span className="stat-label">总成本</span>
-          <span className="stat-value cost">¥{stats.cost.toFixed(2)}</span>
-        </div>
-        
-        <div className="stat-item">
-          <span className="stat-label">毛利润</span>
-          <span className="stat-value profit">¥{stats.grossProfit.toFixed(2)}</span>
-        </div>
-        
-        <div className="stat-item">
-          <span className="stat-label">毛利率</span>
-          <span className="stat-value rate">{stats.grossMarginRate.toFixed(2)}%</span>
+        <div className="stats-grid">
+          <div className="stat-item">
+            <span className="stat-label">营业收入</span>
+            <span className="stat-value revenue">¥{stats.revenue.toFixed(2)}</span>
+          </div>
+          
+          <div className="stat-item">
+            <span className="stat-label">总成本</span>
+            <span className="stat-value cost">¥{stats.cost.toFixed(2)}</span>
+          </div>
+          
+          <div className="stat-item">
+            <span className="stat-label">毛利润</span>
+            <span className="stat-value profit">¥{stats.grossProfit.toFixed(2)}</span>
+          </div>
+          
+          <div className="stat-item">
+            <span className="stat-label">毛利率</span>
+            <span className="stat-value rate">{stats.grossMarginRate.toFixed(2)}%</span>
+          </div>
         </div>
         
         <Divider style={{ margin: '12px 0' }} />
