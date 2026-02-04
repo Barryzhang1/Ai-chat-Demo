@@ -1198,8 +1198,18 @@ function UserOrder() {
                       </Button>
                       <Button 
                         size="small" 
-                        color="success" 
-                        onClick={handleConfirmOrder}
+                        color={queueInfo && !seatInfo ? 'default' : 'success'}
+                        onClick={() => {
+                          if (queueInfo && !seatInfo) {
+                            Toast.show({
+                              icon: 'fail',
+                              content: '您还在排队中，请等待座位分配后再支付',
+                            });
+                          } else {
+                            handleConfirmOrder();
+                          }
+                        }}
+                        disabled={queueInfo && !seatInfo}
                       >
                         支付
                       </Button>
@@ -1486,11 +1496,21 @@ function UserOrder() {
               <span className="total-price">¥{calculateTotalPrice()}</span>
             </div>
             <Button
-              color="primary"
-              onClick={handleConfirmOrder}
+              color={queueInfo && !seatInfo ? 'default' : 'primary'}
+              onClick={() => {
+                if (queueInfo && !seatInfo) {
+                  Toast.show({
+                    icon: 'fail',
+                    content: '您还在排队中，请等待座位分配后再支付',
+                  });
+                } else {
+                  handleConfirmOrder();
+                }
+              }}
+              disabled={queueInfo && !seatInfo}
               className="confirm-btn"
             >
-              支付
+              支付{queueInfo && !seatInfo ? '（排队中）' : ''}
             </Button>
           </div>
         </div>

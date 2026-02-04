@@ -31,6 +31,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { MongoLogger } from '../../common/utils/mongo-logger.util';
 import { DishService } from '../dish/dish.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { RedisService } from '../../redis/redis.service';
 
 interface CacheEntry {
   response: string;
@@ -90,6 +91,7 @@ export class OrderingService {
     private inventoryHistoryModel: Model<InventoryHistoryDocument>,
     private readonly dishService: DishService,
     private readonly inventoryService: InventoryService,
+    private readonly redisService: RedisService,
   ) {
     this.deepseekApiKey = process.env.DEEPSEEK_API_KEY || '';
     this.deepseekApiLog = process.env.DEEPSEEK_API_LOG === 'true';
@@ -330,6 +332,10 @@ export class OrderingService {
     if (!cart || cart.dishes.length === 0) {
       throw new BadRequestException('购物车为空，无法创建订单');
     }
+
+    // 注意：座位验证主要在前端控制
+    // 因为座位系统使用socketId而不是userId，后端难以直接验证
+    // 前端在排队状态时会禁用支付按钮
 
     // 创建订单
     const orderId = uuidv4();

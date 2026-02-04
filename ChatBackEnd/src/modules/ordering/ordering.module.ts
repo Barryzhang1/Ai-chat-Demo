@@ -12,6 +12,7 @@ import { AuthModule } from '../auth/auth.module';
 import { DishService } from '../dish/dish.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { InventoryHistory, InventoryHistorySchema } from '../inventory/entities/inventory-history.entity';
+import { SeatModule } from '../seat/seat.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { InventoryHistory, InventoryHistorySchema } from '../inventory/entities/
       { name: InventoryHistory.name, schema: InventoryHistorySchema },
     ]),
     AuthModule,
+    SeatModule,
   ],
   controllers: [OrderingController],
   providers: [OrderingService, DishService, InventoryService],
