@@ -16,83 +16,74 @@ import {
 import { dishApi } from '../../api/dishApi';
 import DishFormPopup from '../../components/DishFormPopup';
 import { canAccessMerchant, isBoss } from '../../utils/permission';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import './MerchantDashboard.css';
 
 function MerchantDashboard() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
+  const { language } = useLanguage();
 
   // 权限检查：进入商家后台时验证权限
   useEffect(() => {
     if (!canAccessMerchant()) {
       Toast.show({
-        content: '权限不足，只有老板和员工可以访问商家后台',
+        content: t('accessDenied', language),
         icon: 'fail',
         duration: 2000
       });
       navigate('/role-select');
     }
-  }, [navigate]);
-
-  // 权限检查：进入商家后台时验证权限
-  useEffect(() => {
-    if (!canAccessMerchant()) {
-      Toast.show({
-        content: '权限不足，只有老板和员工可以访问商家后台',
-        icon: 'fail',
-        duration: 2000
-      });
-      navigate('/role-select');
-    }
-  }, [navigate]);
+  }, [navigate, language]);
 
   // 基础菜单项（BOSS 和 STAFF 都可以访问）
   const baseMenuItems = [
     {
       key: 'orders',
-      title: '订单列表',
+      title: t('orderList', language),
       icon: <UnorderedListOutline fontSize={32} />,
       path: '/merchant/orders',
       color: '#1677ff'
     },
     {
       key: 'inventory',
-      title: '菜品列表',
+      title: t('dishList', language),
       icon: <AppstoreOutline fontSize={32} />,
       path: '/merchant/inventory',
       color: '#52c41a'
     },
     {
       key: 'inventory-management',
-      title: '库存管理',
+      title: t('inventoryManagement', language),
       icon: <FileOutline fontSize={32} />,
       path: '/merchant/inventory/list',
       color: '#13c2c2'
     },
     {
       key: 'purchase-order',
-      title: '进货管理',
+      title: t('purchaseManagement', language),
       icon: <FileOutline fontSize={32} />,
       path: '/merchant/inventory/purchase-order',
       color: '#fa8c16'
     },
     {
       key: 'seats',
-      title: '座位管理',
+      title: t('seatManagement', language),
       icon: <TeamOutline fontSize={32} />,
       path: '/merchant/seats',
       color: '#722ed1'
     },
     {
       key: 'rankings',
-      title: '游戏排行',
+      title: t('gameRankings', language),
       icon: <HistogramOutline fontSize={32} />,
       path: '/merchant/rankings',
       color: '#faad14'
     },
     {
       key: 'play-game',
-      title: '玩游戏',
+      title: t('playGame', language),
       icon: <PlayOutline fontSize={32} />,
       action: () => {
         // 获取当前登录用户名
@@ -111,7 +102,7 @@ function MerchantDashboard() {
     },
     {
       key: 'categories', 
-      title: '类别管理',
+      title: t('categoryManagement', language),
       icon: <TagOutline fontSize={32} />, 
       path: '/merchant/categories',
       color: '#ff8c00' 
@@ -122,21 +113,21 @@ function MerchantDashboard() {
   const bossOnlyMenuItems = [
     {
       key: 'reports',
-      title: '数据报表',
+      title: t('dataReports', language),
       icon: <PieOutline fontSize={32} />,
       path: '/merchant/reports',
       color: '#eb2f96'
     },
     {
       key: 'revenue',
-      title: '收入管理',
+      title: t('revenueManagement', language),
       icon: <PayCircleOutline fontSize={32} />,
       path: '/revenue',
       color: '#52c41a'
     },
     {
       key: 'permissions',
-      title: '权限管理',
+      title: t('permissionManagement', language),
       icon: <UserOutline fontSize={32} />,
       path: '/merchant/permissions',
       color: '#1890ff'
@@ -151,7 +142,7 @@ function MerchantDashboard() {
   return (
     <div className="merchant-dashboard">
       <NavBar onBack={() => navigate('/role-select')}>
-        商家后台
+        {t('merchantBackend', language)}
       </NavBar>
       
       <div className="dashboard-grid-container">

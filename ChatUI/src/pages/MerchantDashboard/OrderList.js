@@ -2,23 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavBar, List, Tabs, Tag, Toast, Empty, InfiniteScroll, PullToRefresh, Button, Dialog } from 'antd-mobile';
 import { orderApi } from '../../api/orderApi';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import './MerchantDashboard.css';
 
 function OrderList() {
+  const navigate = useNavigate();
+  const { language } = useLanguage();
   const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const navigate = useNavigate();
 
   // 订单状态配置
   const statusConfig = {
-    pending: { text: '待制作', color: 'warning' },
-    paid: { text: '已支付', color: 'success' },
-    preparing: { text: '制作中', color: 'primary' },
-    completed: { text: '已完成', color: 'default' },
-    cancelled: { text: '已取消', color: 'danger' },
+    pending: { text: t('statusPending', language), color: 'warning' },
+    paid: { text: t('statusPaid', language), color: 'success' },
+    preparing: { text: t('statusPreparing', language), color: 'primary' },
+    completed: { text: t('statusCompleted', language), color: 'default' },
+    cancelled: { text: t('statusCancelled', language), color: 'danger' },
   };
 
   // 加载订单列表
@@ -53,7 +56,7 @@ function OrderList() {
       }
     } catch (error) {
       console.error('加载订单失败:', error);
-      Toast.show({ icon: 'fail', content: '加载失败，请重试' });
+      Toast.show({ icon: 'fail', content: t('loadFailed', language) });
     } finally {
       setLoading(false);
     }
@@ -81,35 +84,35 @@ function OrderList() {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
     
-    if (minutes < 1) return '刚刚';
-    if (minutes < 60) return `${minutes}分钟前`;
-    if (hours < 24) return `${hours}小时前`;
-    if (days < 7) return `${days}天前`;
+    if (minutes < 1) return t('justNow', language);
+    if (minutes < 60) return t('minutesAgo', language, { n: minutes });
+    if (hours < 24) return t('hoursAgo', language, { n: hours });
+    if (days < 7) return t('daysAgo', language, { n: days });
     return date.toLocaleDateString();
   };
 
   // 修改订单状态
   const handleUpdateStatus = async (orderId, currentStatus, newStatus, statusText) => {
     const result = await Dialog.confirm({
-      content: `确认将订单状态改为"${statusText}"吗？`,
+      content: t('confirmStatusChange', language, { status: statusText }),
     });
 
     if (result) {
       try {
         await orderApi.updateOrderStatus(orderId, newStatus);
-        Toast.show({ icon: 'success', content: '订单状态已更新' });
+        Toast.show({ icon: 'success', content: t('orderStatusUpdated', language) });
         // 刷新订单列表
         await loadOrders(true);
       } catch (error) {
         console.error('更新订单状态失败:', error);
-        Toast.show({ icon: 'fail', content: error.message || '更新失败，请重试' });
+        Toast.show({ icon: 'fail', content: error.message || t('updateFailed', language) });
       }
     }
   };
 
   return (
     <div className="merchant-dashboard">
-      <NavBar onBack={() => navigate('/merchant')}>订单列表</NavBar>
+      <NavBar onBack={() => navigate('/merchant')}>{t('orderList', language)}</NavBar>
       
       <Tabs
         activeKey={activeTab}
@@ -119,16 +122,16 @@ function OrderList() {
           '--content-padding': '0',
         }}
       >
-        <Tabs.Tab title="全部订单" key="all" />
-        <Tabs.Tab title="待接单" key="pending" />
-        <Tabs.Tab title="制作中" key="preparing" />
-        <Tabs.Tab title="已完成" key="completed" />
+        <Tabs.Tab title={t('allOrders', language)} key="all" />
+        <Tabs.Tab title={t('pendingOrders', language)} key="pending" />
+        <Tabs.Tab title={t('preparing', language)} key="preparing" />
+        <Tabs.Tab title={t('completedOrders', language)} key="completed" />
       </Tabs>
 
       <div className="tab-content" style={{ paddingTop: '0' }}>
         <PullToRefresh onRefresh={onRefresh}>
           {orders.length === 0 && !loading ? (
-            <Empty description="暂无订单" />
+            <Empty description={t('noOrders', language)} />
           ) : (
             <>
               <List>
@@ -140,13 +143,13 @@ function OrderList() {
                       description={
                         <div>
                           <div style={{ marginBottom: '8px', fontSize: '15px', fontWeight: '500', color: '#333' }}>
-                            用户：{order.userName || '未知用户'}
+                            {t('user', language)}：{order.userName || t('unknownUser', language)}
                           </div>
                           <div style={{ marginBottom: '8px' }}>
-                            订单号：{order._id}
+                            {t('orderNumber', language)}：{order._id}
                           </div>
                           <div style={{ marginBottom: '8px' }}>
-                            <div style={{ fontWeight: '500', marginBottom: '4px' }}>订单详情：</div>
+                            <div style={{ fontWeight: '500', marginBottom: '4px' }}>{t('orderDetails', language)}：</div>
                             {order.dishes.map((dish, index) => (
                               <div key={index} style={{ marginLeft: '8px', color: '#666', fontSize: '13px' }}>
                                 · {dish.name} × {dish.quantity} <span style={{ color: '#ff6430' }}>¥{dish.price.toFixed(2)}</span>
@@ -171,25 +174,25 @@ function OrderList() {
                             <Button
                               color="primary"
                               size="small"
-                              onClick={() => handleUpdateStatus(order._id, 'pending', 'preparing', '制作中')}
+                              onClick={() => handleUpdateStatus(order._id, 'pending', 'preparing', t('statusPreparing', language))}
                             >
-                              接单
+                              {t('acceptOrder', language)}
                             </Button>
                           )}
                           {order.status === 'preparing' && (
                             <Button
                               color="warning"
                               size="small"
-                              onClick={() => handleUpdateStatus(order._id, 'preparing', 'completed', '已完成')}
+                              onClick={() => handleUpdateStatus(order._id, 'preparing', 'completed', t('statusCompleted', language))}
                             >
-                              上菜
+                              {t('completeOrder', language)}
                             </Button>
                           )}
                         </div>
                       }
                     >
                       <div style={{ fontWeight: 500 }}>
-                        共 {order.dishes.reduce((sum, d) => sum + d.quantity, 0)} 件商品
+                        {t('totalQuantity', language, { total: order.dishes.reduce((sum, d) => sum + d.quantity, 0) })}
                       </div>
                     </List.Item>
                   );

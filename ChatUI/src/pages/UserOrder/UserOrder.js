@@ -9,12 +9,16 @@ import { dishApi } from '../../api/dishApi';
 import { orderApi } from '../../api/orderApi';
 import inventoryApi from '../../api/inventory/inventoryApi';
 import { config } from '../../config';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import speakIcon from '../../assets/speak.svg';
 import './UserOrder.css';
 
 let socket = null;
 
 function UserOrder() {
+  const navigate = useNavigate();
+  const { language } = useLanguage();
   const [messages, setMessages] = useState([]);
   // 用于流式展示assistant消息的字数
   const [streamCharCounts, setStreamCharCounts] = useState({});
@@ -49,23 +53,22 @@ function UserOrder() {
   const audioRef = useRef(null);
   const menuContentRef = useRef(null);
   const categoryRefs = useRef({});
-  const updateCartTimerRef = useRef(null);
-  const navigate = useNavigate();
+  const updateCartTimerRef = useRef({});
 
   const [isGenerating, setIsGenerating] = useState(false);  
   const [showQuickButtons, setShowQuickButtons] = useState(true); // 控制快捷按钮显示
 
   // 快捷按钮配置 - 混合场景
   const quickButtons = [
-    { text: '推荐几道前菜开开胃', icon: '🥗' },
-    { text: '来几道招牌主菜', icon: '🍖' },
-    { text: '3人套餐：三荤三素', icon: '👨‍👩‍👦' },
-    { text: '加个小朋友爱吃的菜', icon: '👶' },
-    { text: '想吃辣的，再加两个辣菜', icon: '🌶️' },
-    { text: '来碗热汤暖暖胃', icon: '🍲' },
-    { text: '来两个甜品，预算100以下', icon: '🍰' },
-    { text: '三个主食，两个饮料', icon: '🍚' },
-    { text: '推荐性价比高的菜品', icon: '💰' },
+    { text: t('quickBtn1', language), icon: '🥗' },
+    { text: t('quickBtn2', language), icon: '🍖' },
+    { text: t('quickBtn3', language), icon: '👨‍👩‍👦' },
+    { text: t('quickBtn4', language), icon: '👶' },
+    { text: t('quickBtn5', language), icon: '🌶️' },
+    { text: t('quickBtn6', language), icon: '🍲' },
+    { text: t('quickBtn7', language), icon: '🍰' },
+    { text: t('quickBtn8', language), icon: '🍚' },
+    { text: t('quickBtn9', language), icon: '💰' },
   ];
 
   // 获取菜品和分类数据
@@ -314,7 +317,7 @@ function UserOrder() {
     });
 
     if (selectedDishes.length === 0) {
-      Toast.show({ content: '请选择菜品' });
+      Toast.show({ content: t('selectDishes', language) });
       return;
     }
 
@@ -335,7 +338,7 @@ function UserOrder() {
       // 生成订单消息
       const orderMessage = {
         role: 'user',
-        content: '我已选好菜品',
+        content: t('selectedDishesMsg', language),
         menu: selectedDishes.map(dish => ({
           id: dish._id,
           name: dish.name,
@@ -353,14 +356,14 @@ function UserOrder() {
       // 添加到消息列表
       setMessages(prev => [...prev, orderMessage]);
       
-      Toast.show({ icon: 'success', content: `已选择 ${selectedDishes.length} 道菜，购物车已更新` });
+      Toast.show({ icon: 'success', content: t('dishSelected', language, { count: selectedDishes.length }) });
       setShowMenuPopup(false);
       
       // 清空选择
       setDishQuantities({});
     } catch (error) {
       console.error('Failed to update cart:', error);
-      Toast.show({ icon: 'fail', content: '更新购物车失败，请重试' });
+      Toast.show({ icon: 'fail', content: t('cartUpdateFailed', language) });
     }
   };
 
@@ -380,7 +383,7 @@ function UserOrder() {
       setMessages([
         {
           role: 'assistant',
-          content: '您好！欢迎使用智能点餐系统。请告诉我您的点餐需求，比如：人数、预算、口味偏好、忌口等信息，我会为您推荐合适的菜品。',
+          content: t('orderWelcome', language),
           timestamp: new Date(),
           showQuickButtons: true, // 标记此消息显示快捷按钮
         },
@@ -412,7 +415,7 @@ function UserOrder() {
       setQueueInfo(null);
       Toast.show({
         icon: 'success',
-        content: `已分配座位：${data.seatNumber}号`,
+        content: t('seatAssigned', language, { seatNumber: data.seatNumber }),
         duration: 3000,
       });
     });
@@ -422,7 +425,7 @@ function UserOrder() {
       setSeatInfo(null);
       Toast.show({
         icon: 'fail',
-        content: `当前座位已满，您在队列中的位置：${data.position}`,
+        content: t('needQueue', language, { position: data.position }),
         duration: 3000,
       });
     });
@@ -431,7 +434,7 @@ function UserOrder() {
       setQueueInfo(data);
       if (data.position <= 3) {
         Toast.show({
-          content: `您的排队位置已更新：第${data.position}位`,
+          content: t('queueUpdated', language, { position: data.position }),
           duration: 2000,
         });
       }
@@ -440,7 +443,7 @@ function UserOrder() {
     socket.on('error', (data) => {
       Toast.show({
         icon: 'fail',
-        content: data.message || '连接错误',
+        content: data.message || t('connectionError', language),
       });
     });
 
@@ -450,7 +453,7 @@ function UserOrder() {
         // 大厅关闭，退出聊天界面
         Toast.show({
           icon: 'fail',
-          content: '大厅已打烊，感谢您的光临！',
+          content: t('hallClosed', language),
           duration: 3000,
         });
         
@@ -466,7 +469,7 @@ function UserOrder() {
       } else if (data.status === 'open') {
         Toast.show({
           icon: 'success',
-          content: '大厅已开放，欢迎光临！',
+          content: t('hallOpened', language),
           duration: 2000,
         });
       }
@@ -478,7 +481,7 @@ function UserOrder() {
       setSeatInfo(null);
       Toast.show({
         icon: 'fail',
-        content: `${data.message}，您的排队位置：第${data.position}位`,
+        content: t('hallClosedQueue', language, { message: data.message, position: data.position }),
         duration: 3000,
       });
     });
@@ -566,7 +569,7 @@ function UserOrder() {
     // 1. 先插入loading消息
     const loadingMessage = {
       role: 'assistant',
-      content: <>正在火速翻阅菜单中，请稍后<DotLoading style={{marginLeft: 8}} /></>,
+      content: <>{t('checkingMenu', language)}<DotLoading style={{marginLeft: 8}} /></>,
       timestamp: new Date(),
       isLoading: true,
     };
@@ -601,7 +604,7 @@ function UserOrder() {
            const newMsgs = [...prev];
            newMsgs[idx] = {
              role: 'assistant',
-             content: message || '收到您的需求，正在为您处理...',
+             content: message || t('processingRequest', language),
              menu: menu,
              totalPrice: totalPrice,
              timestamp: new Date(),
@@ -613,7 +616,7 @@ function UserOrder() {
              ...prev,
              {
                role: 'assistant',
-               content: message || '收到您的需求，正在为您处理...',
+               content: message || t('processingRequest', language),
                menu: menu,
                totalPrice: totalPrice,
                timestamp: new Date(),
@@ -630,7 +633,7 @@ function UserOrder() {
            const newMsgs = [...prev];
            newMsgs[idx] = {
              role: 'assistant',
-             content: '抱歉，服务出了点问题，请稍后再试。',
+             content: t('serviceError', language),
  
              timestamp: new Date(),
            };
@@ -640,7 +643,7 @@ function UserOrder() {
              ...prev,
              {
                role: 'assistant',
-               content: '抱歉，服务出了点问题，请稍后再试。',
+               content: t('serviceError', language),
  
                timestamp: new Date(),
              }
@@ -688,7 +691,7 @@ function UserOrder() {
     }
 
     if (orderItems.length === 0) {
-      Toast.show({ icon: 'fail', content: '请先选择菜品' });
+      Toast.show({ icon: 'fail', content: t('selectDishFirst', language) });
       return;
     }
 
@@ -708,7 +711,7 @@ function UserOrder() {
       // 显示订单确认消息
       const confirmMessage = {
         role: 'assistant',
-        content: `订单创建成功！\n订单号：${orderId}\n总金额：¥${totalPrice.toFixed(2)}\n感谢您的订购！`,
+        content: t('orderCreateSuccess', language, { orderId, total: totalPrice.toFixed(2) }),
         timestamp: new Date(),
         isOrderConfirm: true,
       };
@@ -718,7 +721,7 @@ function UserOrder() {
       setTimeout(() => {
         const gameMessage = {
           role: 'assistant',
-          content: '等待上菜期间，来玩个小游戏解解闷吧？',
+          content: t('playGameWhileWaiting', language),
           timestamp: new Date(),
           isGameRecommend: true,
         };
@@ -726,7 +729,7 @@ function UserOrder() {
       }, 1000);
 
     } catch (e) {
-      const errorMsg = e.response?.data?.message || '订单创建失败，请重试';
+      const errorMsg = e.response?.data?.message || t('orderCreateFailed', language);
       Toast.show({ icon: 'fail', content: errorMsg });
     }
   };
@@ -791,8 +794,8 @@ function UserOrder() {
       // 如果权限被拒绝，显示友好提示
       if (permissionStatus.state === 'denied') {
         Dialog.alert({
-          content: '麦克风权限已被禁止，请在浏览器设置中允许使用麦克风',
-          confirmText: '我知道了',
+          content: t('micPermissionDenied', language),
+          confirmText: t('iKnow', language),
         });
         setIsRecording(false);
         return;
@@ -801,7 +804,7 @@ function UserOrder() {
       // 如果是首次请求，显示引导提示
       if (permissionStatus.state === 'prompt') {
         Toast.show({
-          content: '请允许使用麦克风以发送语音消息',
+          content: t('allowMicAccess', language),
           duration: 2000,
         });
       }
@@ -837,13 +840,13 @@ function UserOrder() {
       console.error('麦克风访问错误:', error);
       
       // 根据错误类型提供不同的提示
-      let errorMessage = '无法访问麦克风';
+      let errorMessage = t('cannotAccessMic', language);
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        errorMessage = '您拒绝了麦克风权限，无法使用语音功能';
+        errorMessage = t('micPermissionRejected', language);
       } else if (error.name === 'NotFoundError') {
-        errorMessage = '未检测到麦克风设备';
+        errorMessage = t('micNotFound', language);
       } else if (error.name === 'NotReadableError') {
-        errorMessage = '麦克风被其他应用占用';
+        errorMessage = t('micOccupied', language);
       }
       
       Toast.show({
@@ -880,7 +883,7 @@ function UserOrder() {
       
       if (isOverCancel) {
         // 取消录音
-        Toast.show('已取消录音');
+        Toast.show(t('recordingCancelled', language));
         audioChunksRef.current = [];
       } else {
         // 处理录音数据
@@ -897,7 +900,7 @@ function UserOrder() {
             // 添加语音消息到聊天
             const voiceMessage = {
               role: 'user',
-              content: '[语音消息]',
+              content: t('voiceMessage', language),
               audioUrl: audioUrl,
               audioType: mimeType,
               audioDuration: duration,
@@ -905,7 +908,7 @@ function UserOrder() {
             };
             
             setMessages(prev => [...prev, voiceMessage]);
-            Toast.show(`语音发送成功`);
+            Toast.show(t('voiceSent', language));
             
             // 清空音频块
             audioChunksRef.current = [];
@@ -927,7 +930,7 @@ function UserOrder() {
     audioChunksRef.current = [];
     setIsRecording(false);
     setIsOverCancel(false);
-    Toast.show('已取消录音');
+    Toast.show(t('recordingCancelled', language));
   };
 
   // 刷新菜单 - 重新获取推荐菜单
@@ -938,7 +941,7 @@ function UserOrder() {
     // 显示加载消息
     const loadingMessage = {
       role: 'assistant',
-      content: <>正在为您重新推荐菜品<DotLoading style={{marginLeft: 8}} /></>,
+      content: <>{t('refreshingMenu', language)}<DotLoading style={{marginLeft: 8}} /></>,
       timestamp: new Date(),
       isLoading: true,
     };
@@ -972,7 +975,7 @@ function UserOrder() {
            const newMsgs = [...prev];
            newMsgs[idx] = {
              role: 'assistant',
-             content: message || '已为您重新推荐以下菜品：',
+             content: message || t('refreshedMenu', language),
              menu: menu,
              totalPrice: totalPrice,
              timestamp: new Date(),
@@ -998,7 +1001,7 @@ function UserOrder() {
        setMessages(prev => prev.filter(m => !m.isLoading));
        Toast.show({
          icon: 'fail',
-         content: e.message || '刷新失败，请稍后重试'
+         content: e.message || t('refreshFailed', language)
        });
     } finally {
        setIsGenerating(false);
@@ -1030,7 +1033,7 @@ function UserOrder() {
         setOrderHistoryHasMore(currentPage < totalPages);
       }
     } catch (error) {
-      Toast.show({ icon: 'fail', content: '加载失败，请重试' });
+      Toast.show({ icon: 'fail', content: t('loadFailed', language) });
     } finally {
       setLoadingOrderHistory(false);
     }
@@ -1058,10 +1061,10 @@ function UserOrder() {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
     
-    if (minutes < 1) return '刚刚';
-    if (minutes < 60) return `${minutes}分钟前`;
-    if (hours < 24) return `${hours}小时前`;
-    if (days < 7) return `${days}天前`;
+    if (minutes < 1) return t('justNow', language);
+    if (minutes < 60) return t('minutesAgo', language, { n: minutes });
+    if (hours < 24) return t('hoursAgo', language, { n: hours });
+    if (days < 7) return t('daysAgo', language, { n: days });
     return date.toLocaleDateString();
   };
 
@@ -1077,15 +1080,15 @@ function UserOrder() {
           />
         }
       >
-        智能点餐
+        {t('ordering', language)}
         {seatInfo && (
           <span style={{ fontSize: '14px', marginLeft: '10px', color: '#00b578' }}>
-            座位：{seatInfo.seatNumber}号
+            {t('seatInfo', language, { seatNumber: seatInfo.seatNumber })}
           </span>
         )}
         {queueInfo && (
           <span style={{ fontSize: '14px', marginLeft: '10px', color: '#ff8f1f' }}>
-            排队中：第{queueInfo.position}位
+            {t('queueInfo', language, { position: queueInfo.position })}
           </span>
         )}
       </NavBar>
@@ -1122,7 +1125,7 @@ function UserOrder() {
                         onClick={() => setShowGamePopup(true)}
                         style={{ flex: '1' }}
                       >
-                        开始游戏
+                        {t('startGame', language)}
                       </Button>
                     </div>
                   </div>
@@ -1139,7 +1142,7 @@ function UserOrder() {
                         onClick={() => handleOpenMenuPopup(null)}
                         style={{ flex: '1' }}
                       >
-                        继续点单
+                        {t('continueOrder', language)}
                       </Button>
                     </div>
                   </div>
@@ -1178,7 +1181,7 @@ function UserOrder() {
                   
                   <div className="menu-footer">
                     <div className="total-info">
-                      <span className="label">总计</span>
+                      <span className="label">{t('total', language)}</span>
                       <span className="total-amount">¥{message.totalPrice}</span>
                     </div>
                   </div>
@@ -1194,7 +1197,7 @@ function UserOrder() {
                         }}
                         disabled={isGenerating}
                       >
-                        🔄 刷新
+                        🔄 {t('refresh', language)}
                       </Button>
                       <Button 
                         size="small" 
@@ -1203,7 +1206,7 @@ function UserOrder() {
                           if (queueInfo && !seatInfo) {
                             Toast.show({
                               icon: 'fail',
-                              content: '您还在排队中，请等待座位分配后再支付',
+                              content: t('waitForSeat', language),
                             });
                           } else {
                             handleConfirmOrder();
@@ -1211,7 +1214,7 @@ function UserOrder() {
                         }}
                         disabled={queueInfo && !seatInfo}
                       >
-                        支付
+                        {t('pay', language)}
                       </Button>
                     </div>
                   )}
@@ -1269,11 +1272,11 @@ function UserOrder() {
                   onMouseUp={handleTouchEnd}
                   onContextMenu={(e) => e.preventDefault()}
                 >
-                  <span className="voice-input-text">按住 说话</span>
+                  <span className="voice-input-text">{t('holdToSpeak', language)}</span>
                 </div>
               ) : (
                 <Input
-                  placeholder="发消息或按住说话..."
+                  placeholder={t('msgPlaceholder', language)}
                   value={inputValue}
                   onChange={setInputValue}
                   onEnterPress={handleSend}
@@ -1319,13 +1322,13 @@ function UserOrder() {
                 ref={cancelBtnRef}
                 className={`action-btn cancel-btn ${isOverCancel ? 'active' : ''}`}
               >
-                取消
+                {t('cancel', language)}
               </div>
               <div className="action-btn convert-btn">
-                滑到这里 转文字
+                {t('slideToConvert', language)}
               </div>
               <div className={`action-btn send-btn ${!isOverCancel ? 'active' : ''}`}>
-                松开 发送
+                {t('releaseToSend', language)}
               </div>
             </div>
           </div>
@@ -1393,7 +1396,7 @@ function UserOrder() {
           {/* 搜索栏 */}
           <div className="menu-popup-search">
             <SearchBar
-              placeholder="搜索菜品名称"
+              placeholder={t('searchDishes', language)}
               value={menuSearchKeyword}
               onChange={setMenuSearchKeyword}
               onClear={() => setMenuSearchKeyword('')}
@@ -1430,7 +1433,7 @@ function UserOrder() {
               onScroll={handleMenuScroll}
             >
               {categories.length === 0 ? (
-                <Empty description="暂无分类" />
+                <Empty description={t('noCategories', language)} />
               ) : (
                 categories.map(category => {
                   const categoryDishes = groupDishesByCategory()[category._id]?.dishes || [];
@@ -1444,7 +1447,7 @@ function UserOrder() {
                       <Divider contentPosition="left">{category.name}</Divider>
 
                       {categoryDishes.length === 0 ? (
-                        <div className="empty-category">暂无菜品</div>
+                        <div className="empty-category">{t('noDishes', language)}</div>
                       ) : (
                         <div className="popup-dishes-list">
                           {categoryDishes.map(dish => {
@@ -1462,10 +1465,10 @@ function UserOrder() {
                                     </div>
                                   )}
                                   <div className="popup-dish-tags">
-                                    {dish.isSpicy && <span key={`${dish._id}-spicy`} className="tag spicy">🌶️ 辣</span>}
-                                    {dish.hasScallions && <span key={`${dish._id}-scallions`} className="tag">🧅 葱</span>}
-                                    {dish.hasCilantro && <span key={`${dish._id}-cilantro`} className="tag">🌿 香菜</span>}
-                                    {dish.hasGarlic && <span key={`${dish._id}-garlic`} className="tag">🧄 蒜</span>}
+                                    {dish.isSpicy && <span key={`${dish._id}-spicy`} className="tag spicy">🌶️ {t('spicy', language)}</span>}
+                                    {dish.hasScallions && <span key={`${dish._id}-scallions`} className="tag">🧅 {t('scallions', language)}</span>}
+                                    {dish.hasCilantro && <span key={`${dish._id}-cilantro`} className="tag">🌿 {t('cilantro', language)}</span>}
+                                    {dish.hasGarlic && <span key={`${dish._id}-garlic`} className="tag">🧄 {t('garlic', language)}</span>}
                                   </div>
                                   <div className="popup-dish-bottom">
                                     <span className="popup-dish-price">¥{dish.price}</span>
@@ -1492,7 +1495,7 @@ function UserOrder() {
           {/* 底部固定栏 */}
           <div className="menu-popup-footer">
             <div className="total-section">
-              <span className="total-label">合计：</span>
+              <span className="total-label">{t('total', language)}：</span>
               <span className="total-price">¥{calculateTotalPrice()}</span>
             </div>
             <Button
@@ -1501,7 +1504,7 @@ function UserOrder() {
                 if (queueInfo && !seatInfo) {
                   Toast.show({
                     icon: 'fail',
-                    content: '您还在排队中，请等待座位分配后再支付',
+                    content: t('waitForSeat', language),
                   });
                 } else {
                   handleConfirmOrder();
@@ -1510,7 +1513,7 @@ function UserOrder() {
               disabled={queueInfo && !seatInfo}
               className="confirm-btn"
             >
-              支付{queueInfo && !seatInfo ? '（排队中）' : ''}
+              {t('pay', language)}{queueInfo && !seatInfo ? t('queuing', language) : ''}
             </Button>
           </div>
         </div>
@@ -1530,13 +1533,13 @@ function UserOrder() {
       >
         <div className="order-history-popup-container">
           <div className="order-history-header">
-            <h3>我的订单</h3>
+            <h3>{t('myOrders', language)}</h3>
           </div>
           
           <div className="order-history-content">
             <PullToRefresh onRefresh={onRefreshOrderHistory}>
               {orderHistory.length === 0 && !loadingOrderHistory ? (
-                <Empty description="暂无订单" />
+                <Empty description={t('noOrders', language)} />
               ) : (
                 <>
                   <List>
@@ -1556,10 +1559,10 @@ function UserOrder() {
                           description={
                             <div>
                               <div style={{ marginBottom: '8px' }}>
-                                订单号：{order._id}
+                                {t('orderNumber', language)}：{order._id}
                               </div>
                               <div style={{ marginBottom: '8px' }}>
-                                <div style={{ fontWeight: '500', marginBottom: '4px' }}>订单详情：</div>
+                                <div style={{ fontWeight: '500', marginBottom: '4px' }}>{t('orderDetails', language)}：</div>
                                 {order.dishes.map((dish, index) => (
                                   <div key={index} style={{ marginLeft: '8px', color: '#666', fontSize: '13px' }}>
                                     · {dish.name} × {dish.quantity} <span style={{ color: '#ff6430' }}>¥{dish.price.toFixed(2)}</span>
@@ -1583,7 +1586,7 @@ function UserOrder() {
                           }
                         >
                           <div style={{ fontWeight: 500 }}>
-                            共 {order.dishes.reduce((sum, d) => sum + d.quantity, 0)} 件商品
+                            {t('totalItems', language, { count: order.dishes.reduce((sum, d) => sum + d.quantity, 0) })}
                           </div>
                         </List.Item>
                       );
@@ -1618,7 +1621,7 @@ function UserOrder() {
               color="default"
               onClick={() => setShowGameIframe(false)}
             >
-              关闭
+              {t('close', language)}
             </Button>
           </div>
           <iframe
