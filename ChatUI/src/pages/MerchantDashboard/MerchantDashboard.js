@@ -112,13 +112,6 @@ function MerchantDashboard() {
   // BOSS 专属菜单项
   const bossOnlyMenuItems = [
     {
-      key: 'reports',
-      title: t('dataReports', language),
-      icon: <PieOutline fontSize={32} />,
-      path: '/merchant/reports',
-      color: '#eb2f96'
-    },
-    {
       key: 'revenue',
       title: t('revenueManagement', language),
       icon: <PayCircleOutline fontSize={32} />,

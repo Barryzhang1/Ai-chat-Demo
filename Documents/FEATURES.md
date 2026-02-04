@@ -66,16 +66,7 @@ Ai Chat 是一个基于AI的智能餐厅点餐系统，包含用户点餐、商�
 
 ---
 
-### 6. 数据报表模块 (Reports)
-- ✅ 今日收入统计
-- ✅ 菜品销售排行
-- ✅ 数据可视化展示
-
-**文档**: [Documents/ordering/reports.md](Documents/ordering/reports.md)
-
----
-
-### 7. 权限管理模块 (Permission)
+### 6. 权限管理模块 (Permission)
 - ✅ 用户列表查询
 - ✅ 用户角色修改
 - ✅ 角色权限控制
@@ -88,7 +79,7 @@ Ai Chat 是一个基于AI的智能餐厅点餐系统，包含用户点餐、商�
 
 ---
 
-### 8. 收入管理模块 (Revenue) ⭐ **NEW**
+### 7. 收入管理模块 (Revenue) ⭐ **NEW**
 - ✅ 收入统计
   - 当日收入统计
   - 月度收入统计
@@ -110,7 +101,7 @@ Ai Chat 是一个基于AI的智能餐厅点餐系统，包含用户点餐、商�
 
 ---
 
-### 9. 游戏模块 (FlappyBird)
+### 8. 游戏模块 (FlappyBird)
 - ✅ FlappyBird 游戏
 - ✅ 游戏排行榜
 - ✅ 分数记录
@@ -119,7 +110,7 @@ Ai Chat 是一个基于AI的智能餐厅点餐系统，包含用户点餐、商�
 
 ---
 
-### 10. AI 对话模块 (DeepSeek)
+### 9. AI 对话模块 (DeepSeek)
 - ✅ AI 对话接口
 - ✅ 上下文管理
 - ✅ 缓存机制
@@ -142,7 +133,6 @@ Ai Chat 是一个基于AI的智能餐厅点餐系统，包含用户点餐、商�
 | 进货管理 | ❌ | ✅ | ✅ |
 | 座位管理 | ❌ | ✅ | ✅ |
 | 类别管理 | ❌ | ✅ | ✅ |
-| 数据报表 | ❌ | ❌ | ✅ |
 | **收入管理** | ❌ | ❌ | ✅ |
 | 权限管理 | ❌ | ❌ | ✅ |
 
@@ -258,10 +248,6 @@ Ai-chat-Demo/
 - `GET /api/inventory-loss` - 获取损耗列表
 - `POST /api/inventory-loss` - 创建损耗记录
 - `DELETE /api/inventory-loss/:id` - 删除损耗记录
-
-### 报表接口
-- `GET /api/ordering/reports/today-revenue` - 今日收入
-- `GET /api/ordering/reports/dish-ranking` - 菜品排行
 
 ### 用户管理接口
 - `GET /api/users/list` - 获取用户列表 (BOSS)

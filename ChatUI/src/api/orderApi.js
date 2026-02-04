@@ -226,43 +226,4 @@ export const orderApi = {
       throw error;
     }
   },
-
-  // 查询今日总收入
-  getTodayRevenue: async (date) => {
-    try {
-      const url = date 
-        ? `${API_BASE_URL}/ordering/reports/today-revenue?date=${date}`
-        : `${API_BASE_URL}/ordering/reports/today-revenue`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: getHeaders(),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || '获取今日收入失败');
-      return data;
-    } catch (error) {
-      console.error('Get today revenue error:', error);
-      throw error;
-    }
-  },
-
-  // 查询菜品排行榜
-  getDishRanking: async (limit = 10) => {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/ordering/reports/dish-ranking?limit=${limit}`,
-        {
-          method: 'GET',
-          headers: getHeaders(),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || '获取菜品排行失败');
-      return data;
-    } catch (error) {
-      console.error('Get dish ranking error:', error);
-      throw error;
-    }
-  },
 };

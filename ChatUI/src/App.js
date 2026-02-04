@@ -13,7 +13,6 @@ import Inventory from './pages/MerchantDashboard/Inventory';
 import IngredientConsumeHistory from './pages/MerchantDashboard/IngredientConsumeHistory';
 import SeatManagement from './pages/MerchantDashboard/SeatManagement';
 import GameRankings from './pages/MerchantDashboard/GameRankings';
-import DataReports from './pages/MerchantDashboard/DataReports';
 import AddDish from './pages/MerchantDashboard/AddDish';
 import CategoryManagement from './pages/MerchantDashboard/CategoryManagement';
 import PermissionManagement from './pages/PermissionManagement/PermissionManagement';
@@ -143,14 +142,6 @@ function AppRoutes() {
                 <MerchantRoute>
                   <CategoryManagement />
                 </MerchantRoute>
-              } 
-            />
-            <Route 
-              path="/merchant/reports" 
-              element={
-                <BossOnlyRoute>
-                  <DataReports />
-                </BossOnlyRoute>
               } 
             />
             <Route 

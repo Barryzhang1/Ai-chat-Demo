@@ -114,7 +114,6 @@ export const translations = {
     gameRankings: '游戏排行',
     playGame: '玩游戏',
     categoryManagement: '类别管理',
-    dataReports: '数据报表',
     revenueManagement: '收入管理',
     permissionManagement: '权限管理',
     
@@ -228,18 +227,6 @@ export const translations = {
     seatClosed: '已关闭',
     occupiedAt: '占用时间',
     queuedAt: '排队时间',
-    
-    // DataReports page
-    dataReports: '数据报表',
-    loadDataFailed: '加载数据失败',
-    loading: '加载中...',
-    noData: '暂无数据',
-    todayRevenue: '今日营收',
-    totalOrders: '订单总数',
-    avgOrderValue: '客单价',
-    topDishes: '销售前十菜品',
-    quantity: '数量',
-    revenue: '营收',
     
     // AddDish page
     addDish: '上新菜',
@@ -380,7 +367,6 @@ export const translations = {
     gameRankings: 'Game Rankings',
     playGame: 'Play Game',
     categoryManagement: 'Category Management',
-    dataReports: 'Data Reports',
     revenueManagement: 'Revenue Management',
     permissionManagement: 'Permission Management',
     
@@ -494,18 +480,6 @@ export const translations = {
     seatClosed: 'Closed',
     occupiedAt: 'Occupied at',
     queuedAt: 'Queued at',
-    
-    // DataReports page
-    dataReports: 'Data Reports',
-    loadDataFailed: 'Failed to load data',
-    loading: 'Loading...',
-    noData: 'No data',
-    todayRevenue: 'Today\'s Revenue',
-    totalOrders: 'Total Orders',
-    avgOrderValue: 'Avg Order Value',
-    topDishes: 'Top 10 Dishes',
-    quantity: 'Quantity',
-    revenue: 'Revenue',
     
     // AddDish page
     addDish: 'Add Dish',

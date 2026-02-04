@@ -199,6 +199,89 @@ graph LR
     style BOSS fill:#ffe1e1
 ```
 
+### 核心模块关系图
+
+展示菜品、订单、库存、收入四个核心模块之间的业务关系和数据流转。
+
+```mermaid
+graph TB
+    subgraph 菜品管理模块
+        Dish[菜品信息<br/>名称/价格/分类]
+        DishIngredient[菜品配料关系<br/>配料数量]
+    end
+    
+    subgraph 库存管理模块
+        Inventory[食材库存<br/>名称/单位/数量/成本]
+        PurchaseOrder[进货单<br/>进货记录/成本]
+        LossRecord[损耗记录<br/>损耗数量]
+    end
+    
+    subgraph 订单管理模块
+        Order[订单<br/>用户/菜品/数量]
+        OrderItem[订单项<br/>单价/数量]
+    end
+    
+    subgraph 收入管理模块
+        Revenue[收入统计<br/>营业收入/成本/利润]
+        Transaction[额外收支<br/>水电费/租金等]
+    end
+    
+    Dish -->|包含| DishIngredient
+    DishIngredient -->|关联| Inventory
+    
+    Dish -->|被点餐| OrderItem
+    OrderItem -->|组成| Order
+    
+    Order -->|消耗| Inventory
+    Order -->|记录成本| Revenue
+    
+    PurchaseOrder -->|增加| Inventory
+    PurchaseOrder -->|产生成本| Revenue
+    
+    LossRecord -->|减少| Inventory
+    
+    Transaction -->|影响| Revenue
+    
+    Order -.->|计算营业收入| Revenue
+    Inventory -.->|提供成本数据| Revenue
+    
+    style Dish fill:#e1f5e1
+    style Inventory fill:#fff4e1
+    style Order fill:#e1e5f5
+    style Revenue fill:#ffe1e1
+    
+    style DishIngredient fill:#e8f5e1
+    style PurchaseOrder fill:#fff9e1
+    style OrderItem fill:#e1e9f5
+    style Transaction fill:#ffe8e1
+```
+
+**模块关系说明**:
+
+| 关系类型 | 说明 | 示例 |
+|---------|------|------|
+| **菜品 → 库存** | 菜品通过配料关系关联库存食材 | 宫保鸡丁需要鸡肉、花生、辣椒等食材 |
+| **订单 → 菜品** | 用户下单选择菜品，创建订单项 | 订单包含 2份宫保鸡丁、1份米饭 |
+| **订单 → 库存** | 订单创建时扣减对应食材库存 | 2份宫保鸡丁消耗 400g 鸡肉、100g 花生 |
+| **订单 → 收入** | 订单金额计入营业收入 | 订单总价 ¥68 计入当日收入 |
+| **进货 → 库存** | 进货单增加食材库存 | 采购 10kg 鸡肉，库存增加 |
+| **进货 → 收入** | 进货成本计入原材料成本 | 采购成本 ¥200 计入支出 |
+| **损耗 → 库存** | 食材损耗减少库存 | 过期蔬菜 2kg 损耗 |
+| **额外收支 → 收入** | 水电费、租金等影响净利润 | 水电费 ¥500 计入额外支出 |
+
+**数据流转示例**:
+
+```
+1. 用户点餐流程
+   用户选择菜品 → 创建订单 → 扣减库存 → 计入收入
+
+2. 进货补货流程
+   创建进货单 → 审批通过 → 确认入库 → 增加库存 → 记录成本
+
+3. 财务统计流程
+   统计订单收入 + 计算原材料成本 + 额外收支 → 生成财务报表
+```
+
 ### 座位管理流程
 
 ```mermaid
