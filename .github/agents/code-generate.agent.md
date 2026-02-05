@@ -70,6 +70,12 @@ tools: ['execute', 'read', 'edit', 'search', 'agent', 'todo']
    {module}/                      # 模块名称
     {module}.md                   # 模块需求
 ```
+3. 修改补充instructions文档
+- ChatBackEnd 项目参考文档
+    - #file:backend-instructions.md
+- ChatUI 项目参考文档
+    - #file:fontend-instructions.md
+    - #file:web-ui-specification-instruction.md
 </workflow>
 
 <execution_rules>

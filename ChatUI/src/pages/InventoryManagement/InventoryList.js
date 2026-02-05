@@ -159,9 +159,7 @@ function InventoryList() {
 
   const actionSheetActions = [
     { text: '查看变更历史', key: 'history' },
-    { text: '查看消耗记录', key: 'consume' },
     { text: '编辑库存信息', key: 'edit' },
-    { text: '取消', key: 'cancel' },
   ];
 
   const handleActionSheetAction = (action) => {
