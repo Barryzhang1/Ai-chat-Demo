@@ -13,10 +13,13 @@ import {
 } from 'antd-mobile';
 import { AddOutline, ClockCircleOutline } from 'antd-mobile-icons';
 import { revenueApi } from '../../api/revenueApi';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import './RevenueStats.css';
 
 const RevenueStats = () => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [todayStats, setTodayStats] = useState(null);
   const [monthStats, setMonthStats] = useState(null);
@@ -38,23 +41,23 @@ const RevenueStats = () => {
       if (todayRes.code === 0) {
         setTodayStats(todayRes.data);
       } else {
-        Toast.show({ content: todayRes.message || '查询当日数据失败', icon: 'fail' });
+        Toast.show({ content: todayRes.message || t('loadDailyDataFailed', language), icon: 'fail' });
       }
 
       if (monthRes.code === 0) {
         setMonthStats(monthRes.data);
       } else {
-        Toast.show({ content: monthRes.message || '查询月度数据失败', icon: 'fail' });
+        Toast.show({ content: monthRes.message || t('loadMonthlyDataFailed', language), icon: 'fail' });
       }
 
       if (totalRes.code === 0) {
         setTotalStats(totalRes.data);
       } else {
-        Toast.show({ content: totalRes.message || '查询总体数据失败', icon: 'fail' });
+        Toast.show({ content: totalRes.message || t('loadTotalDataFailed', language), icon: 'fail' });
       }
     } catch (error) {
       console.error('加载统计数据失败:', error);
-      Toast.show({ content: '加载数据失败', icon: 'fail' });
+      Toast.show({ content: t('loadTotalDataFailed', language), icon: 'fail' });
     } finally {
       setLoading(false);
     }
@@ -104,22 +107,22 @@ const RevenueStats = () => {
         
         <div className="stats-grid">
           <div className="stat-item">
-            <span className="stat-label">营业收入</span>
+            <span className="stat-label">{t('operatingIncome', language)}</span>
             <span className="stat-value revenue">¥{stats.revenue.toFixed(2)}</span>
           </div>
           
           <div className="stat-item">
-            <span className="stat-label">总成本</span>
+            <span className="stat-label">{t('totalCost', language)}</span>
             <span className="stat-value cost">¥{stats.cost.toFixed(2)}</span>
           </div>
           
           <div className="stat-item">
-            <span className="stat-label">毛利润</span>
+            <span className="stat-label">{t('grossProfit', language)}</span>
             <span className="stat-value profit">¥{stats.grossProfit.toFixed(2)}</span>
           </div>
           
           <div className="stat-item">
-            <span className="stat-label">毛利率</span>
+            <span className="stat-label">{t('grossMargin', language)}</span>
             <span className="stat-value rate">{stats.grossMarginRate.toFixed(2)}%</span>
           </div>
         </div>
@@ -127,7 +130,7 @@ const RevenueStats = () => {
         <Divider style={{ margin: '12px 0' }} />
         
         <div className="stat-item highlighted">
-          <span className="stat-label">净利润</span>
+          <span className="stat-label">{t('netProfit', language)}</span>
           <span className="stat-value net-profit">¥{stats.netProfit.toFixed(2)}</span>
         </div>
         
@@ -135,15 +138,15 @@ const RevenueStats = () => {
         
         <div className="extra-info">
           <div className="stat-item-small">
-            <span>额外收入</span>
+            <span>{t('extraIncome', language)}</span>
             <span className="income">+¥{stats.extraIncome.toFixed(2)}</span>
           </div>
           <div className="stat-item-small">
-            <span>额外支出</span>
+            <span>{t('extraExpense', language)}</span>
             <span className="expense">-¥{stats.extraExpense.toFixed(2)}</span>
           </div>
           <div className="stat-item-small">
-            <span>订单数量</span>
+            <span>{t('orderCount', language)}</span>
             <span>{stats.orderCount}</span>
           </div>
         </div>
@@ -153,7 +156,7 @@ const RevenueStats = () => {
 
   return (
     <div className="revenue-stats-container">
-      <NavBar onBack={() => navigate('/merchant')}>收入统计</NavBar>
+      <NavBar onBack={() => navigate('/merchant')}>{t('revenueStats', language)}</NavBar>
 
       <div className="content">
         {/* 操作按钮 */}
@@ -163,20 +166,20 @@ const RevenueStats = () => {
             size="small"
             onClick={() => navigate('/revenue/transactions')}
           >
-            <AddOutline /> 管理额外收支
+            <AddOutline /> {t('manageExtraRevenue', language)}
           </Button>
           <Button
             size="small"
             onClick={loadStats}
           >
-            刷新数据
+            {t('refreshData', language)}
           </Button>
         </div>
 
         {/* 当日统计 */}
         <div className="section">
           <div className="section-header">
-            <h2>当日数据</h2>
+            <h2>{t('dailyData', language)}</h2>
             <DatePicker
               value={selectedDate}
               max={new Date()}
@@ -191,18 +194,18 @@ const RevenueStats = () => {
             >
               {(value, { open }) => (
                 <Button size="mini" fill="none" onClick={open}>
-                  <ClockCircleOutline /> 选择日期
+                  <ClockCircleOutline /> {t('selectDate', language)}
                 </Button>
               )}
             </DatePicker>
           </div>
-          {renderStatCard('当日收入统计', todayStats, todayStats?.date)}
+          {renderStatCard(t('dailyIncomeStats', language), todayStats, todayStats?.date)}
         </div>
 
         {/* 月度统计 */}
         <div className="section">
           <div className="section-header">
-            <h2>月度数据</h2>
+            <h2>{t('monthlyData', language)}</h2>
             <DatePicker
               value={selectedMonth}
               max={new Date()}
@@ -218,20 +221,20 @@ const RevenueStats = () => {
             >
               {(value, { open }) => (
                 <Button size="mini" fill="none" onClick={open}>
-                  <ClockCircleOutline /> 选择月份
+                  <ClockCircleOutline /> {t('selectMonth', language)}
                 </Button>
               )}
             </DatePicker>
           </div>
-          {renderStatCard('月度收入统计', monthStats, monthStats?.month)}
+          {renderStatCard(t('monthlyIncomeStats', language), monthStats, monthStats?.month)}
         </div>
 
         {/* 总体统计 */}
         <div className="section">
           <div className="section-header">
-            <h2>总体数据</h2>
+            <h2>{t('overallData', language)}</h2>
           </div>
-          {renderStatCard('总体收入统计', totalStats, '系统运行至今')}
+          {renderStatCard(t('overallIncomeStats', language), totalStats, t('systemRuntime', language))}
         </div>
       </div>
     </div>

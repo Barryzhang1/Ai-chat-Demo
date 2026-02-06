@@ -5,6 +5,8 @@ import { AddOutline } from 'antd-mobile-icons';
 import { dishApi } from '../../api/dishApi';
 import { categoryApi } from '../../api/categoryApi';
 import inventoryApi from '../../api/inventory/inventoryApi';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import DishFormPopup from '../../components/DishFormPopup';
 import './MerchantDashboard.css';
 
@@ -20,6 +22,7 @@ function Inventory() {
   const [form] = Form.useForm();
   const contentRef = useRef(null);
   const categoryRefs = useRef({});
+  const { language } = useLanguage();
 
   const fetchCategories = async () => {
     try {
@@ -91,7 +94,9 @@ function Inventory() {
       const updatedDish = await dishApi.updateDishStatus(dish._id, { isDelisted: !dish.isDelisted });
       setInventory(inventory.map(item => item._id === dish._id ? updatedDish : item));
       Toast.show({
-        content: `已${!dish.isDelisted ? '下架' : '上架'}`,
+        content: !dish.isDelisted
+          ? t('dishOffShelfSuccess', language)
+          : t('dishOnShelfSuccess', language),
         position: 'top',
       })
     } catch (error) {
@@ -210,13 +215,13 @@ function Inventory() {
         onBack={() => navigate('/merchant')}
         right={<AddOutline fontSize={24} onClick={handleAdd} />}
       >
-        菜品库存
+        {t('dishInventoryTitle', language)}
       </NavBar>
 
       {/* 搜索栏 */}
       <div className="inventory-search">
         <SearchBar
-          placeholder="搜索菜品名称"
+          placeholder={t('searchDishes', language)}
           value={searchKeyword}
           onChange={setSearchKeyword}
           onClear={() => setSearchKeyword('')}
@@ -246,7 +251,7 @@ function Inventory() {
           onScroll={handleScroll}
         >
           {categories.length === 0 ? (
-            <Empty description="暂无分类，请先添加分类" />
+            <Empty description={t('noCategoriesForInventory', language)} />
           ) : (
             categories.map(category => {
               const categoryDishes = groupedDishes[category._id]?.dishes || [];
@@ -268,7 +273,7 @@ function Inventory() {
                   {/* 该分类下的菜品 */}
                   {categoryDishes.length === 0 ? (
                     <div className="inventory-empty-category">
-                      暂无菜品
+                      {t('noDishes', language)}
                     </div>
                   ) : (
                     <List className="inventory-dishes-list">
@@ -293,7 +298,7 @@ function Inventory() {
                                 {/* 食材不足警告 */}
                                 {isOutOfStock && (
                                   <Tag color="danger" style={{ marginBottom: '8px', fontWeight: 'bold' }}>
-                                    ⚠️ 食材不足
+                                    {t('ingredientInsufficient', language)}
                                   </Tag>
                                 )}
                                 {/* 显示标签 */}
@@ -317,12 +322,12 @@ function Inventory() {
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '8px' }}>
                                 {/* 出售价格 */}
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                                  <div style={{ fontSize: '12px', color: '#999' }}>售价</div>
+                                  <div style={{ fontSize: '12px', color: '#999' }}>{t('salePriceLabel', language)}</div>
                                   <div className="item-price" style={{ fontSize: '18px', fontWeight: 'bold', color: '#ff4d4f' }}>¥{item.price.toFixed(2)}</div>
                                 </div>
                                 {/* 成本价 */}
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                                  <div style={{ fontSize: '12px', color: '#999' }}>成本</div>
+                                  <div style={{ fontSize: '12px', color: '#999' }}>{t('costLabel', language)}</div>
                                   <div style={{ fontSize: '16px', fontWeight: '500', color: '#52c41a' }}>
                                     ¥{(item.costPrice !== undefined ? item.costPrice : 0).toFixed(2)}
                                   </div>
@@ -330,7 +335,7 @@ function Inventory() {
                                 {/* 利润 */}
                                 {item.costPrice !== undefined && (
                                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                                    <div style={{ fontSize: '12px', color: '#999' }}>利润</div>
+                                    <div style={{ fontSize: '12px', color: '#999' }}>{t('profitLabel', language)}</div>
                                     <div style={{ fontSize: '14px', fontWeight: '500', color: item.price - item.costPrice > 0 ? '#1890ff' : '#ff4d4f' }}>
                                       ¥{(item.price - item.costPrice).toFixed(2)}
                                     </div>
@@ -344,7 +349,7 @@ function Inventory() {
                                       handleEdit(item);
                                     }}
                                   >
-                                    编辑
+                                    {t('edit', language)}
                                   </Button>
                                   <Button
                                     size="small"
@@ -354,7 +359,7 @@ function Inventory() {
                                       handleStatusChange(item);
                                     }}
                                   >
-                                    {item.isDelisted ? '上架' : '下架'}
+                                    {item.isDelisted ? t('onShelfStatus', language) : t('offShelf', language)}
                                   </Button>
                                 </div>
                               </div>

@@ -4,6 +4,8 @@ import { Card, Button, Toast, Dialog, Input, Tag, Space, Grid, NavBar, Tabs } fr
 import { AddOutline, DeleteOutline, CloseOutline, CheckOutline } from 'antd-mobile-icons';
 import { io } from 'socket.io-client';
 import { config } from '../../config';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import './MerchantDashboard.css';
 
 const { Item } = Grid;
@@ -25,6 +27,7 @@ const SeatManagement = () => {
   const [loading, setLoading] = useState(false);
   const [hallLoading, setHallLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('seats');
+  const { language } = useLanguage();
 
   useEffect(() => {
     // 初始化 Socket.IO 连接
@@ -131,9 +134,9 @@ const SeatManagement = () => {
   // 关门操作
   const handleCloseHall = async () => {
     const result = await Dialog.confirm({
-      content: '确定要关门吗？所有用户将被移出座位，新用户只能排队。',
-      confirmText: '确定关门',
-      cancelText: '取消',
+      content: t('confirmCloseHall', language),
+      confirmText: t('confirmCloseBtn', language),
+      cancelText: t('cancel', language),
     });
 
     if (result) {
@@ -147,7 +150,7 @@ const SeatManagement = () => {
           const data = await response.json();
           Toast.show({
             icon: 'success',
-            content: data.message || '大厅已关闭',
+            content: data.message || t('hallClosedMsg', language),
           });
           await fetchSeats();
           await fetchStatistics();
@@ -159,13 +162,13 @@ const SeatManagement = () => {
           const error = await response.json();
           Toast.show({
             icon: 'fail',
-            content: error.message || '关门失败',
+            content: error.message || t('closeFailed', language),
           });
         }
       } catch (error) {
         Toast.show({
           icon: 'fail',
-          content: '网络错误',
+          content: t('networkError', language),
         });
       } finally {
         setHallLoading(false);
@@ -176,9 +179,9 @@ const SeatManagement = () => {
   // 开门操作
   const handleOpenHall = async () => {
     const result = await Dialog.confirm({
-      content: '确定要开门吗？将按排队顺序为用户分配座位。',
-      confirmText: '确定开门',
-      cancelText: '取消',
+      content: t('confirmOpenHall', language),
+      confirmText: t('confirmOpenBtn', language),
+      cancelText: t('cancel', language),
     });
 
     if (result) {
@@ -192,7 +195,7 @@ const SeatManagement = () => {
           const data = await response.json();
           Toast.show({
             icon: 'success',
-            content: data.message || '大厅已开放',
+            content: data.message || t('hallOpenedMsg', language),
           });
           await fetchSeats();
           await fetchStatistics();
@@ -204,13 +207,13 @@ const SeatManagement = () => {
           const error = await response.json();
           Toast.show({
             icon: 'fail',
-            content: error.message || '开门失败',
+            content: error.message || t('openFailed', language),
           });
         }
       } catch (error) {
         Toast.show({
           icon: 'fail',
-          content: '网络错误',
+          content: t('networkError', language),
         });
       } finally {
         setHallLoading(false);
@@ -225,7 +228,7 @@ const SeatManagement = () => {
       content: (
         <div style={{ padding: '12px 0' }}>
           <Input
-            placeholder="请输入座位号"
+            placeholder={t('enterSeatNumber', language)}
             type="number"
             onChange={(val) => {
               inputValue = val;
@@ -241,18 +244,18 @@ const SeatManagement = () => {
       actions: [
         {
           key: 'cancel',
-          text: '取消',
+          text: t('cancel', language),
         },
         {
           key: 'confirm',
-          text: '创建',
+          text: t('create', language),
           primary: true,
           onClick: async () => {
             const seatNumber = parseInt(inputValue);
             if (isNaN(seatNumber) || seatNumber <= 0) {
               Toast.show({
                 icon: 'fail',
-                content: '请输入有效的座位号',
+                content: t('enterValidSeatNumber', language),
               });
               return;
             }
@@ -273,7 +276,7 @@ const SeatManagement = () => {
               if (response.ok) {
                 Toast.show({
                   icon: 'success',
-                  content: '座位创建成功',
+                  content: t('seatCreated', language),
                 });
                 await fetchSeats();
                 await fetchStatistics();
@@ -284,13 +287,13 @@ const SeatManagement = () => {
                 const error = await response.json();
                 Toast.show({
                   icon: 'fail',
-                  content: error.message || '创建失败',
+                  content: error.message || t('createFailed', language),
                 });
               }
             } catch (error) {
               Toast.show({
                 icon: 'fail',
-                content: '网络错误',
+                content: t('networkError', language),
               });
             } finally {
               setLoading(false);
@@ -303,12 +306,12 @@ const SeatManagement = () => {
 
   const handleToggleSeatStatus = async (seat) => {
     const newStatus = seat.status === 'closed' ? 'available' : 'closed';
-    const actionText = newStatus === 'closed' ? '关闭' : '开启';
+    const actionText = newStatus === 'closed' ? t('closeSeat', language) : t('openSeat', language);
 
     const result = await Dialog.confirm({
-      content: `确定要${actionText}座位 ${seat.seatNumber} 吗？`,
-      confirmText: '确定',
-      cancelText: '取消',
+      content: t('confirmAction', language, { action: actionText, seatNumber: seat.seatNumber }),
+      confirmText: t('confirm', language),
+      cancelText: t('cancel', language),
     });
 
     if (result) {
@@ -327,7 +330,7 @@ const SeatManagement = () => {
         if (response.ok) {
           Toast.show({
             icon: 'success',
-            content: `座位已${actionText}`,
+            content: t('seatOpSuccess', language),
           });
           await fetchSeats();
           await fetchStatistics();
@@ -337,13 +340,13 @@ const SeatManagement = () => {
         } else {
           Toast.show({
             icon: 'fail',
-            content: '操作失败',
+            content: t('seatOpFailed', language),
           });
         }
       } catch (error) {
         Toast.show({
           icon: 'fail',
-          content: '网络错误',
+          content: t('networkError', language),
         });
       } finally {
         setLoading(false);
@@ -353,9 +356,9 @@ const SeatManagement = () => {
 
   const handleDeleteSeat = async (seat) => {
     const result = await Dialog.confirm({
-      content: `确定要删除座位 ${seat.seatNumber} 吗？此操作不可恢复。`,
-      confirmText: '删除',
-      cancelText: '取消',
+      content: t('confirmDeleteSeat', language, { seatNumber: seat.seatNumber }),
+      confirmText: t('delete', language),
+      cancelText: t('cancel', language),
     });
 
     if (result) {
@@ -368,7 +371,7 @@ const SeatManagement = () => {
         if (response.ok) {
           Toast.show({
             icon: 'success',
-            content: '座位已删除',
+            content: t('seatDeleted', language),
           });
           await fetchSeats();
           await fetchStatistics();
@@ -378,13 +381,13 @@ const SeatManagement = () => {
         } else {
           Toast.show({
             icon: 'fail',
-            content: '删除失败',
+            content: t('deleteFailed', language),
           });
         }
       } catch (error) {
         Toast.show({
           icon: 'fail',
-          content: '网络错误',
+          content: t('networkError', language),
         });
       } finally {
         setLoading(false);
@@ -395,11 +398,11 @@ const SeatManagement = () => {
   const getSeatStatusTag = (status) => {
     switch (status) {
       case 'available':
-        return <Tag color="success">空闲</Tag>;
+        return <Tag color="success">{t('seatAvailable', language)}</Tag>;
       case 'occupied':
-        return <Tag color="primary">用餐中</Tag>;
+        return <Tag color="primary">{t('seatOccupied', language)}</Tag>;
       case 'closed':
-        return <Tag color="default">已关闭</Tag>;
+        return <Tag color="default">{t('seatClosed', language)}</Tag>;
       default:
         return <Tag>{status}</Tag>;
     }
@@ -408,34 +411,34 @@ const SeatManagement = () => {
   return (
     <div className="seat-management">
       <NavBar onBack={() => navigate('/merchant')}>
-        座位管理
+        {t('seatManagement', language)}
       </NavBar>
 
       {/* 统计信息卡片 */}
-      <Card title="座位统计" className="statistics-card">
+      <Card title={t('seatStats', language)} className="statistics-card">
         <Grid columns={4} gap={8}>
           <Item>
             <div className="stat-item">
               <div className="stat-value">{statistics.total}</div>
-              <div className="stat-label">总座位</div>
+              <div className="stat-label">{t('totalSeats', language) || t('seatList', language)}</div>
             </div>
           </Item>
           <Item>
             <div className="stat-item stat-available">
               <div className="stat-value">{statistics.available}</div>
-              <div className="stat-label">空闲</div>
+              <div className="stat-label">{t('seatAvailable', language)}</div>
             </div>
           </Item>
           <Item>
             <div className="stat-item stat-occupied">
               <div className="stat-value">{statistics.occupied}</div>
-              <div className="stat-label">用餐中</div>
+              <div className="stat-label">{t('seatOccupied', language)}</div>
             </div>
           </Item>
           <Item>
             <div className="stat-item stat-queue">
               <div className="stat-value">{queueLength}</div>
-              <div className="stat-label">排队中</div>
+              <div className="stat-label">{t('queuing', language)}</div>
             </div>
           </Item>
         </Grid>
@@ -455,7 +458,7 @@ const SeatManagement = () => {
                 block
                 style={{ flex: 1 }}
               >
-                <CloseOutline /> 关门
+                <CloseOutline /> {t('closeHall', language)}
               </Button>
             ) : (
               <Button
@@ -466,7 +469,7 @@ const SeatManagement = () => {
                 block
                 style={{ flex: 1 }}
               >
-                <CheckOutline /> 开门
+                <CheckOutline /> {t('openHall', language)}
               </Button>
             )}
             <Button
@@ -477,7 +480,7 @@ const SeatManagement = () => {
               block
               style={{ flex: 1 }}
             >
-              <AddOutline /> 添加座位
+              <AddOutline /> {t('addSeat', language) || t('create', language)}
             </Button>
           </div>
           
@@ -491,7 +494,8 @@ const SeatManagement = () => {
             color: statistics.hallStatus === 'open' ? '#52c41a' : '#fa8c16',
             textAlign: 'center'
           }}>
-            当前状态：{statistics.hallStatus === 'open' ? '🟢 营业中' : '🔴 已打烊'}
+            {t('currentStatus', language)}
+            {statistics.hallStatus === 'open' ? '🟢 ' + t('hallOpen', language) : '🔴 ' + t('hallClosedStatus', language)}
           </div>
         </Space>
       </div>
@@ -505,35 +509,35 @@ const SeatManagement = () => {
           '--content-padding': '12px',
         }}
       >
-        <Tabs.Tab title="座位列表" key="seats">
+        <Tabs.Tab title={t('seatList', language)} key="seats">
           {/* 座位列表 */}
           <div className="seats-list">
             {seats.length === 0 ? (
               <Card>
                 <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
-                  暂无座位，点击上方按钮添加座位
+                  {t('noSeats', language)}
                 </div>
               </Card>
             ) : (
               seats.map((seat) => (
                 <Card key={seat._id} className="seat-card">
                   <div className="seat-header">
-                    <div className="seat-number">座位 {seat.seatNumber}</div>
+                    <div className="seat-number">{t('seatNumber', language)} {seat.seatNumber}</div>
                     <div className="seat-status">{getSeatStatusTag(seat.status)}</div>
                   </div>
                   
                   {seat.status === 'occupied' && seat.occupiedByName && seat.occupiedByName !== '游客' && (
                     <div className="seat-info">
-                      <span className="info-label">用户:</span>
+                      <span className="info-label">{t('user', language)}:</span>
                       <span className="info-value">{seat.occupiedByName}</span>
                     </div>
                   )}
                   
                   {seat.status === 'occupied' && seat.occupiedAt && (
                     <div className="seat-info">
-                      <span className="info-label">用餐时间:</span>
+                      <span className="info-label">{t('occupiedAt', language)}:</span>
                       <span className="info-value">
-                        {new Date(seat.occupiedAt).toLocaleTimeString('zh-CN')}
+                        {new Date(seat.occupiedAt).toLocaleTimeString(language === 'en' ? 'en-US' : 'zh-CN')}
                       </span>
                     </div>
                   )}
@@ -549,11 +553,11 @@ const SeatManagement = () => {
                         >
                           {seat.status === 'closed' ? (
                             <>
-                              <CheckOutline /> 开启
+                              <CheckOutline /> {t('openSeat', language)}
                             </>
                           ) : (
                             <>
-                              <CloseOutline /> 关闭
+                              <CloseOutline /> {t('closeSeat', language)}
                             </>
                           )}
                         </Button>
@@ -564,7 +568,7 @@ const SeatManagement = () => {
                         onClick={() => handleDeleteSeat(seat)}
                         disabled={loading || seat.status === 'occupied'}
                       >
-                        <DeleteOutline /> 删除
+                        <DeleteOutline /> {t('delete', language)}
                       </Button>
                     </Space>
                   </div>
@@ -574,12 +578,12 @@ const SeatManagement = () => {
           </div>
         </Tabs.Tab>
 
-        <Tabs.Tab title={`排队列表 (${queueLength})`} key="queue">
+        <Tabs.Tab title={`${t('queueList', language)} (${queueLength})`} key="queue">
           {/* 排队用户列表 */}
           {queueList.length === 0 ? (
             <Card>
               <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
-                暂无排队用户
+                {t('noQueue', language)}
               </div>
             </Card>
           ) : (
@@ -589,15 +593,15 @@ const SeatManagement = () => {
                   <div className="queue-item">
                     <div className="queue-position">
                       <Tag color="primary" style={{ fontSize: '14px', padding: '4px 12px' }}>
-                        第{index + 1}位
+                        {t('queuePosition', language, { n: index + 1 })}
                       </Tag>
                     </div>
                     <div className="queue-info">
                       <div className="queue-nickname">
-                        {user.nickname || '游客'}
+                        {user.nickname || t('unknownUser', language)}
                       </div>
                       <div className="queue-time">
-                        {new Date(user.queuedAt).toLocaleString('zh-CN', {
+                        {new Date(user.queuedAt).toLocaleString(language === 'en' ? 'en-US' : 'zh-CN', {
                           month: '2-digit',
                           day: '2-digit',
                           hour: '2-digit',
@@ -606,7 +610,7 @@ const SeatManagement = () => {
                       </div>
                     </div>
                     {user.partySize > 1 && (
-                      <Tag color="default">{user.partySize}人</Tag>
+                      <Tag color="default">{t('partySizeLabel', language, { n: user.partySize })}</Tag>
                     )}
                   </div>
                 </Card>

@@ -15,10 +15,13 @@ import {
 } from 'antd-mobile';
 import { AddOutline, DeleteOutline, CloseOutline } from 'antd-mobile-icons';
 import { revenueApi } from '../../api/revenueApi';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import './BatchCreateTransaction.css';
 
 const BatchCreateTransaction = () => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [submitting, setSubmitting] = useState(false);
   const [transactions, setTransactions] = useState([
     {
@@ -32,26 +35,26 @@ const BatchCreateTransaction = () => {
 
   const typeOptions = [
     [
-      { label: '收入', value: 'income' },
-      { label: '支出', value: 'expense' },
+      { label: t('income', language), value: 'income' },
+      { label: t('expense', language), value: 'expense' },
     ],
   ];
 
   const categoryOptions = {
     expense: [
-      '房租',
-      '水电费',
-      '人工工资',
-      '设备维修',
-      '营销费用',
-      '原材料采购',
-      '其他支出',
+      t('rent', language),
+      t('utilities', language),
+      t('laborCost', language),
+      t('equipmentMaintenance', language),
+      t('marketingCost', language),
+      t('materialPurchase', language),
+      t('otherExpense', language),
     ],
     income: [
-      '政府补贴',
-      '设备租赁收入',
-      '赔偿收入',
-      '其他收入',
+      t('governmentSubsidy', language),
+      t('equipmentRental', language),
+      t('compensationIncome', language),
+      t('otherIncome', language),
     ],
   };
 
@@ -72,7 +75,7 @@ const BatchCreateTransaction = () => {
   // 删除一行
   const handleRemoveRow = (index) => {
     if (transactions.length === 1) {
-      Toast.show({ content: '至少保留一条记录', icon: 'fail' });
+      Toast.show({ content: t('keepOneRecord', language), icon: 'fail' });
       return;
     }
     const newTransactions = transactions.filter((_, i) => i !== index);
@@ -92,17 +95,17 @@ const BatchCreateTransaction = () => {
       const item = transactions[i];
       
       if (!item.amount || parseFloat(item.amount) <= 0) {
-        Toast.show({ content: `第${i + 1}条: 金额必须大于0`, icon: 'fail' });
+        Toast.show({ content: t('amountMustBePositive', language, {index: i + 1}), icon: 'fail' });
         return false;
       }
       
       if (!item.category || item.category.trim() === '') {
-        Toast.show({ content: `第${i + 1}条: 请填写分类`, icon: 'fail' });
+        Toast.show({ content: t('categoryRequired', language, {index: i + 1}), icon: 'fail' });
         return false;
       }
       
       if (!item.transactionDate) {
-        Toast.show({ content: `第${i + 1}条: 请选择日期`, icon: 'fail' });
+        Toast.show({ content: t('dateRequired', language, {index: i + 1}), icon: 'fail' });
         return false;
       }
       
@@ -112,7 +115,7 @@ const BatchCreateTransaction = () => {
       now.setHours(23, 59, 59, 999);
       
       if (selectedDate > now) {
-        Toast.show({ content: `第${i + 1}条: 日期不能为未来日期`, icon: 'fail' });
+        Toast.show({ content: t('dateCannotBeFuture', language, {index: i + 1}), icon: 'fail' });
         return false;
       }
     }
@@ -127,9 +130,9 @@ const BatchCreateTransaction = () => {
     }
 
     const result = await Dialog.confirm({
-      content: `确定要提交 ${transactions.length} 条记录吗？`,
-      confirmText: '提交',
-      cancelText: '取消',
+      content: t('confirmSubmitTransactions', language, { count: transactions.length }),
+      confirmText: t('submit', language),
+      cancelText: t('cancel', language),
     });
 
     if (!result) {
@@ -151,16 +154,16 @@ const BatchCreateTransaction = () => {
       
       if (res.code === 0) {
         Toast.show({
-          content: `成功创建 ${res.data.successCount} 条记录`,
+          content: t('createSuccess', language, { count: res.data.successCount }),
           icon: 'success',
         });
         navigate('/revenue/transactions');
       } else {
-        Toast.show({ content: res.message || '提交失败', icon: 'fail' });
+        Toast.show({ content: res.message || t('createFailed', language), icon: 'fail' });
       }
     } catch (error) {
       console.error('批量创建失败:', error);
-      Toast.show({ content: '提交失败', icon: 'fail' });
+      Toast.show({ content: t('createFailed', language), icon: 'fail' });
     } finally {
       setSubmitting(false);
     }
@@ -178,7 +181,7 @@ const BatchCreateTransaction = () => {
   return (
     <div className="batch-create-container">
       <NavBar onBack={() => navigate('/revenue/transactions')}>
-        批量录入收支
+        {t('batchCreateTransaction', language)}
       </NavBar>
 
       <div className="content">
@@ -188,7 +191,7 @@ const BatchCreateTransaction = () => {
             size="small"
             onClick={handleAddRow}
           >
-            <AddOutline /> 添加一行
+            <AddOutline /> {t('addRow', language)}
           </Button>
           <span className="count-info">共 {transactions.length} 条</span>
         </div>
@@ -197,7 +200,7 @@ const BatchCreateTransaction = () => {
           <Card
             key={index}
             className="transaction-form-card"
-            title={`记录 ${index + 1}`}
+            title={`${t('record', language)} ${index + 1}`}
             extra={
               transactions.length > 1 && (
                 <Button
@@ -212,7 +215,7 @@ const BatchCreateTransaction = () => {
             }
           >
             <Form layout="vertical">
-              <Form.Item label="类型">
+              <Form.Item label={t('type', language)}>
                 <Picker
                   columns={typeOptions}
                   value={[item.type]}
@@ -236,23 +239,23 @@ const BatchCreateTransaction = () => {
                       block
                       onClick={open}
                     >
-                      {item.type === 'income' ? '收入' : '支出'}
+                      {item.type === 'income' ? t('income', language) : t('expense', language)}
                     </Button>
                   )}
                 </Picker>
               </Form.Item>
 
-              <Form.Item label="金额（元）">
+              <Form.Item label={t('amount', language)}>
                 <Input
                   type="number"
-                  placeholder="请输入金额"
+                  placeholder={t('enterAmount', language)}
                   value={item.amount}
                   onChange={(val) => handleFieldChange(index, 'amount', val)}
                   clearable
                 />
               </Form.Item>
 
-              <Form.Item label="分类">
+              <Form.Item label={t('category', language)}>
                 <Picker
                   columns={[
                     categoryOptions[item.type].map((cat) => ({
@@ -265,13 +268,13 @@ const BatchCreateTransaction = () => {
                 >
                   {(items, { open }) => (
                     <Button block fill="outline" onClick={open}>
-                      {item.category || '选择分类'}
+                      {item.category || t('selectCategory', language)}
                     </Button>
                   )}
                 </Picker>
               </Form.Item>
 
-              <Form.Item label="日期">
+              <Form.Item label={t('date', language)}>
                 <DatePicker
                   value={item.transactionDate}
                   max={new Date()}
@@ -285,9 +288,9 @@ const BatchCreateTransaction = () => {
                 </DatePicker>
               </Form.Item>
 
-              <Form.Item label="描述（可选）">
+              <Form.Item label={t('description', language)}>
                 <TextArea
-                  placeholder="详细描述这笔收支..."
+                  placeholder={t('descriptionPlaceholder', language)}
                   value={item.description}
                   onChange={(val) => handleFieldChange(index, 'description', val)}
                   maxLength={200}
@@ -308,7 +311,7 @@ const BatchCreateTransaction = () => {
             loading={submitting}
             disabled={submitting}
           >
-            批量提交 ({transactions.length} 条)
+            {t('batchSubmit', language)} ({transactions.length} 条)
           </Button>
         </div>
       </div>

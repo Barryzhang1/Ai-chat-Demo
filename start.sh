@@ -115,7 +115,9 @@ echo "  - 后端 PID: $BACKEND_PID"
 # 启动游戏服务 (后台运行)
 echo -e "${GREEN}🎮 启动游戏服务 (Port 3002)...${NC}"
 cd FlappyBird
-npm start &
+# 先构建游戏，再使用静态服务器启动
+npm run build > /dev/null 2>&1
+npx serve -s dist -l 3002 &
 GAME_PID=$!
 cd ..
 

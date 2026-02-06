@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { NavBar, List, Button, Toast, Popup, Form, Input, SwipeAction, Dialog, Switch } from 'antd-mobile';
 import { AddOutline } from 'antd-mobile-icons';
 import { categoryApi } from '../../api/categoryApi';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import './MerchantDashboard.css';
 
 function CategoryManagement() {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [categories, setCategories] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -21,7 +24,7 @@ function CategoryManagement() {
       const data = await categoryApi.getCategories();
       setCategories(data);
     } catch (error) {
-      Toast.show({ icon: 'fail', content: '获取类别失败' });
+      Toast.show({ icon: 'fail', content: t('getCategoryFailed', language) });
     }
   };
 
@@ -33,31 +36,33 @@ function CategoryManagement() {
     try {
       if (editingCategory) {
         await categoryApi.updateCategory(editingCategory._id, values);
-        Toast.show({ icon: 'success', content: '更新成功' });
+        Toast.show({ icon: 'success', content: t('updateSuccess', language) });
       } else {
         await categoryApi.createCategory(values);
-        Toast.show({ icon: 'success', content: '创建成功' });
+        Toast.show({ icon: 'success', content: t('createSuccess', language) });
       }
       setShowPopup(false);
       setEditingCategory(null);
       form.resetFields();
       fetchCategories();
     } catch (error) {
-      Toast.show({ icon: 'fail', content: '操作失败' });
+      Toast.show({ icon: 'fail', content: t('operationFailed', language) });
     }
   };
 
   const handleDelete = async (id) => {
     const result = await Dialog.confirm({
-      content: '确定要删除这个类别吗？',
+      content: t('confirmDelete', language),
+      confirmText: t('confirm', language),
+      cancelText: t('cancel', language),
     });
     if (result) {
       try {
         await categoryApi.deleteCategory(id);
-        Toast.show({ icon: 'success', content: '删除成功' });
+        Toast.show({ icon: 'success', content: t('deleteSuccess', language) });
         fetchCategories();
       } catch (error) {
-        Toast.show({ icon: 'fail', content: '删除失败' });
+        Toast.show({ icon: 'fail', content: t('deleteFailed', language) });
       }
     }
   };
@@ -86,7 +91,7 @@ function CategoryManagement() {
   return (
     <div className="category-management">
       <NavBar onBack={() => navigate('/merchant')} right={<AddOutline fontSize={24} onClick={openAddPopup} />}>
-        类别管理
+        {t('categoryManagement', language)}
       </NavBar>
 
       <List mode="card">
@@ -106,9 +111,9 @@ function CategoryManagement() {
               onClick={() => openEditPopup(category)}
               extra={
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                       <span style={{ fontSize: '12px', color: '#999' }}>排序: {category.sortOrder}</span>
+                   <span style={{ fontSize: '12px', color: '#999' }}>{t('sortLabel', language)}: {category.sortOrder}</span>
                        <span style={{ color: category.isActive ? '#52c41a' : '#ff4d4f' }}>
-                           {category.isActive ? '启用' : '禁用'}
+                     {category.isActive ? t('enabled', language) : t('disabled', language)}
                        </span>
                   </div>
               }
@@ -145,7 +150,7 @@ function CategoryManagement() {
                 top: 0,
                 zIndex: 10
             }}>
-                {editingCategory ? '编辑类别' : '新建类别'}
+                {editingCategory ? t('editCategory', language) : t('createCategoryTitle', language)}
             </div>
             
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
@@ -156,20 +161,20 @@ function CategoryManagement() {
                 >
                     <Form.Item
                         name="name"
-                        label="类别名称"
-                        rules={[{ required: true, message: '请输入类别名称' }]}
+                    label={t('categoryNameLabel', language)}
+                    rules={[{ required: true, message: t('enterCategoryName', language) }]}
                     >
-                        <Input placeholder="请输入类别名称" />
+                    <Input placeholder={t('enterCategoryName', language)} />
                     </Form.Item>
                     <Form.Item
                         name="sortOrder"
-                        label="排序权重 (越大越靠前)"
+                    label={t('sortWeightLabel', language)}
                     >
-                        <Input type="number" placeholder="0" />
+                    <Input type="number" placeholder={t('zeroPlaceholder', language)} />
                     </Form.Item>
                     <Form.Item
                          name="isActive"
-                         label="是否启用"
+                     label={t('isActiveLabel', language)}
                          valuePropName="checked"
                     >
                         <Switch />
@@ -185,10 +190,10 @@ function CategoryManagement() {
                 gap: '12px'
             }}>
                 <Button block onClick={() => setShowPopup(false)}>
-                    取消
+                  {t('cancel', language)}
                 </Button>
                 <Button block type="submit" color="primary" onClick={() => form.submit()}>
-                    确定
+                  {t('confirm', language)}
                 </Button>
             </div>
         </div>

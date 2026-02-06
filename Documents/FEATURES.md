@@ -74,6 +74,10 @@ Ai Chat 是一个基于AI的智能餐厅点餐系统，包含用户点餐、商�
   - STAFF: 基本操作权限
   - USER: 普通用户权限
 - ✅ 前端菜单动态显示
+- ✅ 国际化支持 (2026-02-06)
+  - 完整的中英文切换支持
+  - 角色名称、状态消息、界面元素全面国际化
+  - 统一的翻译管理
 
 **文档**: [Documents/permission-management/](Documents/permission-management/)
 

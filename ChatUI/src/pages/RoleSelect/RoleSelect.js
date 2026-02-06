@@ -78,7 +78,7 @@ function RoleSelect() {
           <p className="welcome-subtitle">{t('selectRole', language)}</p>
           {userRole && (
             <div style={{ marginTop: '10px', fontSize: '14px', color: '#999' }}>
-              {isEn ? `Current Role: ${userRole}` : `当前角色：${userRole === 'BOSS' ? '老板' : userRole === 'STAFF' ? '员工' : '用户'}`}
+              {t('currentRole', language)}{t(userRole === 'BOSS' ? 'roleBoss' : userRole === 'STAFF' ? 'roleStaff' : 'roleUser', language)}
             </div>
           )}
         </div>
@@ -112,7 +112,7 @@ function RoleSelect() {
                 color: '#ff4d4f',
                 textAlign: 'center'
               }}>
-                {isEn ? 'BOSS/STAFF Only' : '仅限老板/员工'}
+                {t('bossStaffOnly', language)}
               </div>
             )}
           </div>

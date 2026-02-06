@@ -72,6 +72,22 @@
 - **详细需求**：支持将订单状态在 pending, confirmed, preparing, completed, cancelled 之间切换
 - **测试用例**：[修改订单状态测试用例](./ordering/update-order-status.testcase.md)
 
+### 7. 订单 Socket 实时更新（2026-02-06 新增）
+- **功能描述**：通过 WebSocket 实时推送订单创建和状态变更通知，商家端订单列表自动刷新
+- **Socket Namespace**：`/order`（独立于座位管理 `/seat` 和聊天）
+- **测试用例**：[订单 Socket 实时更新测试用例](./ordering/order-socket.testcase.md)
+- **核心特性**：
+  - 订单创建时广播 `orderUpdated` 事件（event: 'created'）
+  - 订单状态变更时广播 `orderUpdated` 事件（event: 'statusChanged'）
+  - 前端订单列表页面实时刷新，无需手动下拉
+  - 多设备/多浏览器订单状态实时同步
+  - Toast 提示通知商家有新订单或订单更新
+- **实现要点**：
+  - 后端：`order.gateway.ts` 实现独立的 WebSocket Gateway
+  - 后端：`ordering.service.ts` 在创建订单和更新状态时触发广播
+  - 前端：`OrderList.js` 连接 Socket 并监听 `orderUpdated` 事件
+  - 组件卸载时正确清理 Socket 连接，防止内存泄漏
+
 ## 技术方案
 
 ### 技术栈

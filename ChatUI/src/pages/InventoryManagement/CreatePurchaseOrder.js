@@ -17,10 +17,13 @@ import {
 import { LeftOutline, AddCircleOutline } from 'antd-mobile-icons';
 import { purchaseOrderApi, inventoryApi } from '../../api/inventory';
 import { authUtils } from '../../utils/auth';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import './InventoryManagement.css';
 
 function CreatePurchaseOrder() {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [form] = Form.useForm();
   const [items, setItems] = useState([
     { productName: '', quantity: '', price: '' },
@@ -34,7 +37,7 @@ function CreatePurchaseOrder() {
 
   useEffect(() => {
     if (!authUtils.isAuthenticated()) {
-      Toast.show({ content: '请先登录', icon: 'fail' });
+      Toast.show({ content: t('loginFirst', language), icon: 'fail' });
       navigate('/');
       return;
     }
@@ -71,7 +74,7 @@ function CreatePurchaseOrder() {
       newItems[currentEditIndex].price = product.lastPrice || '';
       setItems(newItems);
       setShowProductSelector(false);
-      Toast.show({ content: `已选择：${product.productName}`, icon: 'success' });
+      Toast.show({ content: `${product.productName}`, icon: 'success' });
     }
   };
 
@@ -93,7 +96,7 @@ function CreatePurchaseOrder() {
 
   const handleRemoveItem = (index) => {
     if (items.length === 1) {
-      Toast.show({ content: '至少保留一个商品', icon: 'fail' });
+      Toast.show({ content: t('keepOneItemWarning', language), icon: 'fail' });
       return;
     }
     const newItems = items.filter((_, i) => i !== index);
@@ -124,7 +127,7 @@ function CreatePurchaseOrder() {
       );
 
       if (validItems.length === 0) {
-        Toast.show({ content: '请至少添加一个完整的商品', icon: 'fail' });
+        Toast.show({ content: t('addCompleteItemWarning', language), icon: 'fail' });
         return;
       }
 
@@ -142,13 +145,13 @@ function CreatePurchaseOrder() {
       });
 
       if (response.code === 0) {
-        Toast.show({ content: '创建成功', icon: 'success' });
+        Toast.show({ content: t('createSuccess', language), icon: 'success' });
         setTimeout(() => {
           navigate('/merchant/inventory/purchase-order');
         }, 1000);
       } else if (response.statusCode === 400 || response.statusCode === 401) {
         Toast.show({ 
-          content: response.message || '创建失败，请检查登录状态', 
+          content: response.message || t('createFailedCheckLogin', language), 
           icon: 'fail' 
         });
         if (response.statusCode === 401) {
@@ -156,15 +159,15 @@ function CreatePurchaseOrder() {
           setTimeout(() => navigate('/'), 1500);
         }
       } else {
-        Toast.show({ content: response.message || '创建失败', icon: 'fail' });
+        Toast.show({ content: response.message || t('createFailed', language), icon: 'fail' });
         navigate('/merchant/inventory/purchase-order');
       }
     } catch (error) {
       console.error('创建进货单失败:', error);
       if (error.errorFields) {
-        Toast.show({ content: '请填写必填项', icon: 'fail' });
+        Toast.show({ content: t('fillRequiredFields', language), icon: 'fail' });
       } else {
-        Toast.show({ content: '创建失败', icon: 'fail' });
+        Toast.show({ content: t('createFailed', language), icon: 'fail' });
       }
     } finally {
       setSubmitting(false);
@@ -174,7 +177,7 @@ function CreatePurchaseOrder() {
   return (
     <div className="page-container">
       <NavBar backArrow={<LeftOutline />} onBack={() => navigate(-1)}>
-        创建进货单
+        {t('createPurchaseOrder', language)}
       </NavBar>
 
       <div style={{ 
@@ -190,7 +193,7 @@ function CreatePurchaseOrder() {
             <Space direction="vertical" style={{ width: '100%' }}>
               <Card>
                 <div style={{ fontSize: 16, fontWeight: 'bold' }}>
-                  总金额: ¥{calculateTotal().toFixed(2)}
+                  {t('totalAmountLabel', language)}: ¥{calculateTotal().toFixed(2)}
                 </div>
               </Card>
               <Button
@@ -201,24 +204,24 @@ function CreatePurchaseOrder() {
                 loading={submitting}
                 onClick={handleSubmit}
               >
-                创建进货单
+                {t('createPurchaseOrder', language)}
               </Button>
             </Space>
           }
         >
-          <Form.Header>基本信息</Form.Header>
+          <Form.Header>{t('purchaseBasicInfo', language)}</Form.Header>
           <Form.Item
             name="supplierName"
-            label="供应商"
-            rules={[{ required: true, message: '请输入供应商名称' }]}
+            label={t('supplier', language)}
+            rules={[{ required: true, message: t('enterSupplierName', language) }]}
           >
-            <Input placeholder="请输入供应商名称" />
+            <Input placeholder={t('enterSupplierName', language)} />
           </Form.Item>
-          <Form.Item name="remark" label="备注">
-            <Input placeholder="选填" />
+          <Form.Item name="remark" label={t('remarkLabel', language)}>
+            <Input placeholder={t('optional', language)} />
           </Form.Item>
 
-          <Form.Header>采购商品</Form.Header>
+          <Form.Header>{t('purchaseGoodsHeader', language)}</Form.Header>
         </Form>
 
         <div style={{ marginBottom: 12 }}>
@@ -232,7 +235,7 @@ function CreatePurchaseOrder() {
               fontSize: 14
             }}
           >
-            <AddCircleOutline fontSize={18} /> 添加商品
+            <AddCircleOutline fontSize={18} /> {t('addItem', language)}
           </Button>
         </div>
 
@@ -268,7 +271,7 @@ function CreatePurchaseOrder() {
                     {index + 1}
                   </div>
                   <span style={{ fontSize: 16, fontWeight: '600', color: '#333' }}>
-                    商品 {index + 1}
+                    {t('productNameLabel', language)} {index + 1}
                   </span>
                 </Space>
                 {items.length > 1 ? (
@@ -279,7 +282,7 @@ function CreatePurchaseOrder() {
                     onClick={() => handleRemoveItem(index)}
                     style={{ fontSize: 12, marginLeft: 20 }}
                   >
-                    删除
+                    {t('delete', language)}
                   </Button>
                 ) : (
                   <span style={{ 
@@ -289,7 +292,7 @@ function CreatePurchaseOrder() {
                     padding: '2px 8px',
                     borderRadius: 4
                   }}>
-                    至少一项
+                    {t('atLeastOneTag', language)}
                   </span>
                 )}
               </div>
@@ -309,7 +312,7 @@ function CreatePurchaseOrder() {
                 }}>
                   <span>
                     <span style={{ color: '#ff4d4f' }}>* </span>
-                    商品名称
+                    {t('productNameLabel', language)}
                   </span>
                   <Button
                     size="mini"
@@ -318,11 +321,11 @@ function CreatePurchaseOrder() {
                     onClick={() => handleOpenProductSelector(index)}
                     style={{ fontSize: 12, padding: '0 8px' }}
                   >
-                    从库存选择
+                    {t('fromInventory', language)}
                   </Button>
                 </div>
                 <Input
-                  placeholder='输入商品名称或点击"从库存选择"'
+                  placeholder={t('productInputPlaceholder', language)}
                   value={item.productName}
                   onChange={(val) => handleItemChange(index, 'productName', val)}
                   style={{ 
@@ -342,7 +345,7 @@ function CreatePurchaseOrder() {
                     fontWeight: '500'
                   }}>
                     <span style={{ color: '#ff4d4f' }}>* </span>
-                    数量
+                    {t('quantityLabel', language)}
                   </div>
                   <Input
                     type="number"
@@ -360,7 +363,7 @@ function CreatePurchaseOrder() {
                     marginTop: 4,
                     textAlign: 'right'
                   }}>
-                    件
+                    {t('quantityUnitPieces', language)}
                   </div>
                 </Grid.Item>
                 <Grid.Item>
@@ -371,7 +374,7 @@ function CreatePurchaseOrder() {
                     fontWeight: '500'
                   }}>
                     <span style={{ color: '#ff4d4f' }}>* </span>
-                    单价
+                    {t('unitPriceLabel', language)}
                   </div>
                   <Input
                     type="number"
@@ -389,7 +392,7 @@ function CreatePurchaseOrder() {
                     marginTop: 4,
                     textAlign: 'right'
                   }}>
-                    元
+                    {t('priceUnitYuan', language)}
                   </div>
                 </Grid.Item>
               </Grid>
@@ -411,7 +414,7 @@ function CreatePurchaseOrder() {
                       color: '#666',
                       fontWeight: '500'
                     }}>
-                      小计
+                      {t('subtotal', language)}
                     </span>
                     <span style={{ 
                       fontSize: 18,
@@ -454,7 +457,7 @@ function CreatePurchaseOrder() {
             alignItems: 'center'
           }}>
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 'bold' }}>
-              选择商品
+              {t('selectProductTitle', language)}
             </h3>
             <Button
               size="small"
@@ -468,7 +471,7 @@ function CreatePurchaseOrder() {
           {/* 搜索框 */}
           <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
             <SearchBar
-              placeholder="搜索食材名称"
+              placeholder={t('searchIngredient', language)}
               value={searchText}
               onChange={handleSearchProduct}
               onClear={() => handleSearchProduct('')}
@@ -483,7 +486,7 @@ function CreatePurchaseOrder() {
                 textAlign: 'center', 
                 color: '#999' 
               }}>
-                {searchText ? '未找到匹配的商品' : '暂无库存商品'}
+                {searchText ? t('noMatchingProduct', language) : t('noInventoryProducts', language)}
               </div>
             ) : (
               <List>
@@ -495,8 +498,8 @@ function CreatePurchaseOrder() {
                     arrow={false}
                     description={
                       <Space direction="vertical" style={{ fontSize: 12, color: '#999' }}>
-                        <span>当前库存: {product.quantity}</span>
-                        <span>最新单价: ¥{product.lastPrice?.toFixed(2) || '0.00'}</span>
+                        <span>{t('currentStock', language)}: {product.quantity}</span>
+                        <span>{t('latestPrice', language)}: ¥{product.lastPrice?.toFixed(2) || '0.00'}</span>
                       </Space>
                     }
                   >
@@ -522,7 +525,7 @@ function CreatePurchaseOrder() {
             color: '#999',
             textAlign: 'center'
           }}>
-            💡 选择库存商品会自动填充最新单价
+            {t('selectorFooterTip', language)}
           </div>
         </div>
       </Popup>

@@ -6,7 +6,7 @@ class Pipe {
     this.gapHeight = gapHeight;
     this.canvasHeight = canvasHeight;
     this.groundHeight = groundHeight;
-    this.speed = 2;
+    this.speed = 2; // 降低管道速度，从2减少到1.5，让游戏更容易
     this.passed = false;
 
     // Top pipe

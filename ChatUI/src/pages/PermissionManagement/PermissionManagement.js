@@ -11,21 +11,11 @@ import {
   DotLoading
 } from 'antd-mobile';
 import { usersApi } from '../../api/usersApi';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import './PermissionManagement.css';
 
-const roleOptions = [
-  [
-    { label: '老板', value: 'BOSS' },
-    { label: '员工', value: 'STAFF' },
-    { label: '用户', value: 'USER' },
-  ],
-];
-
-const roleLabels = {
-  BOSS: '老板',
-  STAFF: '员工',
-  USER: '用户',
-};
+// 角色选项和标签将在组件内部动态生成以支持国际化
 
 const roleColors = {
   BOSS: 'danger',
@@ -35,10 +25,29 @@ const roleColors = {
 
 function PermissionManagement() {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+
+  // 动态生成角色选项和标签（支持国际化）
+  const roleOptions = [
+    [
+      { label: t('roleBoss', language), value: 'BOSS' },
+      { label: t('roleStaff', language), value: 'STAFF' },
+      { label: t('roleUser', language), value: 'USER' },
+    ],
+  ];
+
+  const getRoleLabel = (role) => {
+    const roleLabels = {
+      BOSS: t('roleBoss', language),
+      STAFF: t('roleStaff', language),
+      USER: t('roleUser', language),
+    };
+    return roleLabels[role] || role;
+  };
 
   useEffect(() => {
     loadUsers();
@@ -52,14 +61,14 @@ function PermissionManagement() {
         setUsers(response.data);
       } else {
         Toast.show({
-          content: '获取用户列表失败',
+          content: t('getUserListFailed', language),
           icon: 'fail',
         });
       }
     } catch (error) {
       console.error('获取用户列表失败:', error);
       Toast.show({
-        content: error.message || '获取用户列表失败',
+        content: error.message || t('getUserListFailed', language),
         icon: 'fail',
       });
     } finally {
@@ -90,7 +99,7 @@ function PermissionManagement() {
       
       if (response.success) {
         Toast.show({
-          content: '角色修改成功',
+          content: t('roleUpdateSuccess', language),
           icon: 'success',
         });
         
@@ -102,14 +111,14 @@ function PermissionManagement() {
         ));
       } else {
         Toast.show({
-          content: response.message || '角色修改失败',
+          content: response.message || t('roleUpdateFailed', language),
           icon: 'fail',
         });
       }
     } catch (error) {
       console.error('角色修改失败:', error);
       Toast.show({
-        content: error.message || '角色修改失败',
+        content: error.message || t('roleUpdateFailed', language),
         icon: 'fail',
       });
     } finally {
@@ -132,26 +141,26 @@ function PermissionManagement() {
   return (
     <div className="permission-management">
       <NavBar onBack={() => navigate('/merchant')}>
-        权限管理
+        {t('permissionManagement', language)}
       </NavBar>
 
       <div className="permission-content">
         {loading ? (
           <div className="loading-container">
             <DotLoading color="primary" />
-            <div>加载中...</div>
+            <div>{t('loading', language)}</div>
           </div>
         ) : users.length === 0 ? (
-          <Empty description="暂无用户数据" />
+          <Empty description={t('noUserData', language)} />
         ) : (
-          <List header="用户列表">
+          <List header={t('userList', language)}>
             {users.map(user => (
               <List.Item
                 key={user.id}
                 description={
                   <div className="user-info">
-                    <div>注册时间：{formatDate(user.createdAt)}</div>
-                    <div>更新时间：{formatDate(user.updatedAt)}</div>
+                    <div>{t('registrationTime', language)}{formatDate(user.createdAt)}</div>
+                    <div>{t('lastUpdateTime', language)}{formatDate(user.updatedAt)}</div>
                   </div>
                 }
                 extra={
@@ -160,7 +169,7 @@ function PermissionManagement() {
                     onClick={() => handleRoleChange(user)}
                     style={{ cursor: 'pointer' }}
                   >
-                    {roleLabels[user.role]}
+                    {getRoleLabel(user.role)}
                   </Tag>
                 }
               >
@@ -180,7 +189,7 @@ function PermissionManagement() {
         }}
         onConfirm={confirmRoleChange}
         value={selectedUser ? [selectedUser.role] : []}
-        title="选择角色"
+        title={t('selectRole', language)}
       />
     </div>
   );

@@ -7,7 +7,7 @@ class PipeManager {
     this.groundHeight = groundHeight;
     this.pipes = [];
     this.spawnTimer = 0;
-    this.spawnInterval = 90; // frames between pipe spawns
+    this.spawnInterval = 100; // 增加管道生成间隔，从90帧增加到110帧，让管道更稀疏
     this.gapHeight = 150;
   }
 

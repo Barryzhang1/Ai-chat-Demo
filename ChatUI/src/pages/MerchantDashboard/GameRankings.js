@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { NavBar, List, Tabs, Toast, Empty, Card, PullToRefresh, Tag } from 'antd-mobile';
 import { StarFill, FireFill } from 'antd-mobile-icons';
 import { gameScoreApi } from '../../api/gameScoreApi';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import './MerchantDashboard.css';
 
 function GameRankings() {
@@ -11,6 +13,7 @@ function GameRankings() {
   const [loading, setLoading] = useState(false);
   const [activePeriod, setActivePeriod] = useState('all');
   const navigate = useNavigate();
+  const { language } = useLanguage();
 
   // 获取排行榜数据
   const fetchLeaderboard = async (period = 'all') => {
@@ -28,14 +31,14 @@ function GameRankings() {
       } else {
         Toast.show({
           icon: 'fail',
-          content: '获取排行榜失败',
+          content: t('getRankingsFailed', language),
         });
       }
     } catch (error) {
       console.error('获取排行榜失败:', error);
       Toast.show({
         icon: 'fail',
-        content: '获取排行榜失败，请检查网络连接',
+        content: t('checkNetwork', language),
       });
     } finally {
       setLoading(false);
@@ -92,11 +95,11 @@ function GameRankings() {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return '刚刚';
-    if (minutes < 60) return `${minutes}分钟前`;
-    if (hours < 24) return `${hours}小时前`;
-    if (days < 7) return `${days}天前`;
-    return date.toLocaleDateString('zh-CN');
+    if (minutes < 1) return t('justNow', language);
+    if (minutes < 60) return t('minutesAgo', language, { n: minutes });
+    if (hours < 24) return t('hoursAgo', language, { n: hours });
+    if (days < 7) return t('daysAgo', language, { n: days });
+    return date.toLocaleDateString(language === 'en' ? 'en-US' : 'zh-CN');
   };
 
   return (
@@ -104,7 +107,7 @@ function GameRankings() {
       <NavBar onBack={() => navigate('/merchant')}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <FireFill fontSize={20} color="var(--adm-color-primary)" />
-          <span>游戏排行榜</span>
+          <span>{t('gameRankingsTitle', language)}</span>
         </div>
       </NavBar>
 
@@ -113,7 +116,7 @@ function GameRankings() {
           {/* 统计卡片 */}
           {stats && (
             <Card
-              title="游戏统计"
+              title={t('gameStats', language)}
               style={{ marginBottom: '16px' }}
             >
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -122,7 +125,7 @@ function GameRankings() {
                     {stats.totalPlays}
                   </div>
                   <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
-                    总游戏次数
+                    {t('totalGames', language)}
                   </div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
@@ -130,7 +133,7 @@ function GameRankings() {
                     {stats.uniquePlayers}
                   </div>
                   <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
-                    参与玩家
+                    {t('uniquePlayers', language)}
                   </div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
@@ -138,7 +141,7 @@ function GameRankings() {
                     {stats.highestScore}
                   </div>
                   <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
-                    最高分
+                    {t('highestScoreLabel', language)}
                   </div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
@@ -146,7 +149,7 @@ function GameRankings() {
                     {stats.averageScore}
                   </div>
                   <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
-                    平均分
+                    {t('averageScoreLabel', language)}
                   </div>
                 </div>
               </div>
@@ -159,20 +162,20 @@ function GameRankings() {
             onChange={setActivePeriod}
             style={{ marginBottom: '16px' }}
           >
-            <Tabs.Tab title="总榜" key="all" />
-            <Tabs.Tab title="日榜" key="today" />
-            <Tabs.Tab title="周榜" key="week" />
-            <Tabs.Tab title="月榜" key="month" />
+            <Tabs.Tab title={t('totalRankTab', language)} key="all" />
+            <Tabs.Tab title={t('dailyRankTab', language)} key="today" />
+            <Tabs.Tab title={t('weeklyRankTab', language)} key="week" />
+            <Tabs.Tab title={t('monthlyRankTab', language)} key="month" />
           </Tabs>
 
           {/* 排行榜列表 */}
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
-              加载中...
+              {t('loading', language)}
             </div>
           ) : leaderboard.length === 0 ? (
             <Empty
-              description="暂无排行数据"
+              description={t('noRankings', language)}
               style={{ padding: '40px 0' }}
             />
           ) : (
@@ -202,7 +205,7 @@ function GameRankings() {
                       {formatTime(item.createdAt)}
                       {item.playTime && (
                         <span style={{ marginLeft: '8px' }}>
-                          时长: {item.playTime}秒
+                          {t('duration', language)}: {item.playTime}{t('seconds', language)}
                         </span>
                       )}
                     </div>
@@ -216,7 +219,7 @@ function GameRankings() {
                       }}>
                         {item.score}
                       </div>
-                      <div style={{ fontSize: '12px', color: '#999' }}>分</div>
+                      <div style={{ fontSize: '12px', color: '#999' }}>{t('score', language)}</div>
                     </div>
                   }
                 >

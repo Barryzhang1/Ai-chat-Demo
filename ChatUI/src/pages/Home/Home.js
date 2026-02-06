@@ -12,6 +12,8 @@ import {
   DeleteOutline,
   MoreOutline,
 } from 'antd-mobile-icons';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import './Home.css';
 
 const INITIAL_CONVERSATIONS = [
@@ -49,6 +51,7 @@ const formatTimeAgo = (timestamp) => {
 
 const Home = () => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [conversations, setConversations] = useState(INITIAL_CONVERSATIONS);
 
   const handleNewChat = useCallback(() => {
@@ -69,7 +72,9 @@ const Home = () => {
   const handleDeleteConversation = useCallback((convId, event) => {
     event.stopPropagation();
     Dialog.confirm({
-      content: '确定要删除这个对话吗？',
+      content: t('confirmDeleteConversation', language),
+      confirmText: t('delete', language),
+      cancelText: t('cancel', language),
       onConfirm: () => {
         setConversations((prev) => prev.filter((c) => c.id !== convId));
       },

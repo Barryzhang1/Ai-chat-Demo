@@ -198,3 +198,112 @@
 - 渐变 `#a4e9c6 → #b3a0ff`
   - ✅ `ChatUI/src/pages/UserOrder/UserOrder.css`（用户消息气泡，唯一保留点）
   - ❌ `ChatUI/src/pages/Register/Register.css`（背景/按钮需要移除渐变）
+
+---
+
+## 9. 多语言布局稳定性规范（2026-02-06新增）
+
+### 9.1 核心原则
+确保中英文切换时UI布局保持稳定，避免因文本长度差异导致的布局混乱。
+
+### 9.2 文本截断策略
+```css
+/* 单行文本截断 */
+.text-single-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* 多行文本截断（标题、产品名称等） */
+.text-multi-line {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+```
+
+### 9.3 List.Item组件多语言优化
+**推荐做法：**
+```javascript
+// ✅ 使用div + CSS类控制布局，避免Space组件
+<List.Item
+  className="custom-list-item"
+  description={
+    <div className="item-description">
+      <div className="info-row">{t('label', language)}: {value}</div>
+      <div className="info-row time-row">{formatTime(timestamp)}</div>
+    </div>
+  }
+  extra={<div className="item-extra">{statusTag}</div>}
+>
+  <div className="item-title">{title}</div>
+</List.Item>
+```
+
+**对应CSS：**
+```css
+.item-description {
+  width: 100%;
+}
+
+.info-row {
+  display: flex;
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 4px;
+  min-height: 19.6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.time-row {
+  font-size: 12px;
+  color: #999;
+}
+
+.item-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  max-height: 41.6px;
+}
+```
+
+### 9.4 时间格式化统一标准
+```javascript
+const formatTime = (dateString) => {
+  const date = new Date(dateString);
+  const options = {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false // 避免AM/PM造成长度变化
+  };
+  
+  if (language === 'en') {
+    return date.toLocaleString('en-US', options).replace(',', '');
+  }
+  return date.toLocaleString('zh-CN', options);
+};
+```
+
+### 9.5 布局验证清单
+每次涉及文本显示的组件修改后必须验证：
+- [ ] 中英文切换时组件高度保持基本一致
+- [ ] 超长文本正确显示省略号
+- [ ] 时间/日期格式在两种语言下都不换行
+- [ ] 不同屏幕宽度(375px-414px)下布局稳定
+- [ ] 状态标签、按钮等元素位置保持对齐
+
+### 9.6 示例参考
+参考实现：`ChatUI/src/pages/InventoryManagement/InventoryList.js` 及其对应的CSS文件，展示了完整的多语言布局优化方案。

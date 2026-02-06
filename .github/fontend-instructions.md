@@ -77,6 +77,8 @@ ChatUI/
 │   │   ├── MessageBubble/
 │   │   │   ├── MessageBubble.js # Message bubble component
 │   │   │   └── MessageBubble.css
+│   │   ├── DishFormPopup.js    # Dish form popup (add/edit dish)
+│   │   ├── InventoryLossFormPopup.js # Inventory loss form popup (✨ NEW 2026-02-05)
 │   │   └── index.js            # Unified exports
 │   ├── config/                 # Configuration (NEW)
 │   │   └── index.js            # Environment variables config
@@ -145,7 +147,7 @@ Build artifacts are emitted to `ChatUI/dist`.
 2. **Page organiza✅ IMPLEMENTED - All backend APIs are encapsulated under `src/api/` (orderApi, dishApi, userApi)
 6. **Utils**: ✅ IMPLEMENTED - Common utilities in `src/utils/` (storage, validators)
 7. **Config**: ✅ IMPLEMENTED - Environment variables managed in `src/config/`
-8. **Component reusability**: ✅ IMPLEMENTED - Shared components in `src/components/` (DishCard, MessageBubble)
+8. **Component reusability**: ✅ IMPLEMENTED - Shared components in `src/components/` (DishCard, MessageBubble, DishFormPopup, InventoryLossFormPopup)
 9. **Naming conventions**: 
    - Components: PascalCase (e.g., `DishCard.js`)
    - Utils/APIs: camelCase (e.g., `orderApi.js`)
@@ -248,6 +250,156 @@ export const resourceApi = {
 };
 ```
 
+## 🌐 多语言布局最佳实践
+
+### 布局稳定性原则
+
+为确保中英文切换时布局保持稳定，请遵循以下规范：
+
+1. **文本截断策略**
+   ```css
+   .text-truncate-single {
+     white-space: nowrap;
+     overflow: hidden;
+     text-overflow: ellipsis;
+     max-width: 100%;
+   }
+   
+   .text-truncate-multi {
+     display: -webkit-box;
+     -webkit-line-clamp: 2;
+     -webkit-box-orient: vertical;
+     overflow: hidden;
+     text-overflow: ellipsis;
+     word-break: break-word;
+   }
+   ```
+
+2. **List.Item 组件使用规范**
+   - 避免使用 `Space` 组件作为描述区域的根容器，因为它可能影响布局计算
+   - 优先使用 `div` + CSS 类进行布局控制
+   - 为每行信息设置合理的最小高度，确保不同语言下对齐一致
+
+   ```javascript
+   // ✅ 推荐做法
+   <List.Item
+     className="custom-list-item"
+     description={
+       <div className="description-container">
+         <div className="info-row">{t('label', language)}: {value}</div>
+         <div className="time-row">{formatTime(timestamp)}</div>
+       </div>
+     }
+   >
+     <div className="item-title">{title}</div>
+   </List.Item>
+   
+   // ❌ 避免
+   <List.Item
+     description={
+       <Space direction="vertical" style={{ width: '100%' }}>
+         <div>{t('label', language)}: {value}</div>
+       </Space>
+     }
+   >
+   ```
+
+3. **时间格式化统一处理**
+   ```javascript
+   const formatTime = (dateString) => {
+     const date = new Date(dateString);
+     if (language === 'en') {
+       // 英文格式：MM/dd HH:mm（避免过长）
+       return date.toLocaleString('en-US', {
+         month: '2-digit',
+         day: '2-digit',
+         hour: '2-digit',
+         minute: '2-digit',
+         hour12: false
+       }).replace(',', '');
+     } else {
+       // 中文格式：MM/dd HH:mm
+       return date.toLocaleString('zh-CN', {
+         month: '2-digit',
+         day: '2-digit', 
+         hour: '2-digit',
+         minute: '2-digit'
+       });
+     }
+   };
+   ```
+
+4. **测试验证清单**
+   - [ ] 中英文切换后卡片高度保持一致
+   - [ ] 超长文本正确显示省略号
+   - [ ] 时间格式在两种语言下都不换行
+   - [ ] 不同屏幕宽度下布局稳定
+   - [ ] 状态标签位置保持对齐
+
+### 示例：库存列表布局修复
+参考 `ChatUI/src/pages/InventoryManagement/InventoryList.js` 和对应的CSS文件，这是一个多语言布局稳定性优化的完整示例。
+
+## 🔧 Dialog弹窗国际化规范
+
+### 正确的Dialog.confirm使用方式
+```javascript
+// ✅ 推荐做法
+const result = await Dialog.confirm({
+  content: t('confirmMessage', language),
+  confirmText: t('confirm', language),
+  cancelText: t('cancel', language),
+});
+
+if (result) {
+  // 确认操作
+}
+```
+
+### 正确的Dialog.alert使用方式  
+```javascript
+// ✅ 推荐做法
+Dialog.alert({
+  title: t('alertTitle', language),
+  content: t('alertContent', language),
+  confirmText: t('confirm', language),
+});
+```
+
+### 常见错误示例
+```javascript
+// ❌ 避免：缺少按钮国际化
+Dialog.confirm({
+  content: t('message', language), // 只有content国际化，按钮使用默认文本
+});
+
+// ❌ 避免：硬编码按钮文本
+Dialog.confirm({
+  content: t('message', language),
+  confirmText: '确认',  // 硬编码中文
+  cancelText: '取消',
+});
+
+// ❌ 避免：完全硬编码
+Dialog.confirm({
+  content: '确定要删除吗？',  // 完全硬编码
+});
+```
+
+### 必要的国际化键值
+项目中已包含以下通用键值，直接使用即可：
+- `confirm: '确认' / 'Confirm'`
+- `cancel: '取消' / 'Cancel'`  
+- `delete: '删除' / 'Delete'`
+- `submit: '提交' / 'Submit'`
+
+### Dialog弹窗检查清单
+在涉及Dialog的功能开发或修改中，必须验证：
+- [ ] Dialog.confirm 包含 confirmText 和 cancelText
+- [ ] Dialog.alert 包含 confirmText  
+- [ ] 所有文本都通过 t() 函数国际化
+- [ ] 在中英文环境下测试按钮显示正确
+- [ ] 按钮功能正常（确认/取消行为符合预期）
+
 ### Utils Pattern
 ```javascript
 // Utility functions with clear names
@@ -264,13 +416,37 @@ export const functionName = (param) => {
 - ✅ Menu refresh and regeneration
 - ✅ API layer structure (ready for backend integration)
 - ✅ Utility functions (storage, validators)
-- ✅ Reusable components (DishCard, MessageBubble)
+- ✅ Reusable components (DishCard, MessageBubble, DishFormPopup, InventoryLossFormPopup)
 - ✅ Environment variables configuration
 - ✅ Protected routes with authentication check
 - ✅ **Data Reports** - Real-time revenue and dish ranking display
   - Today's revenue with order count
   - Top 10 dish sales ranking with visual charts
   - API integration with backend reports endpoints
+- ✅ **Inventory Management** - Complete stock tracking system
+  - Real-time inventory monitoring with alerts
+  - Batch operations (add stock, record loss)
+  - History tracking with detailed change logs
+  - Integration with dish-ingredient binding system
+- ✅ **Permission Management** - Role-based access control
+  - BOSS/STAFF/USER role management
+  - Dynamic role assignment with real-time updates
+  - Secure role validation and UI adaptation
+- ✅ **Game Leaderboard** - Flappy Bird integration
+  - Real-time score display with ranking
+  - User achievements and statistics
+  - Seamless integration with main application
+- ✅ **Revenue Management** - Financial tracking system
+  - Revenue statistics with daily/monthly/total views
+  - Extra income/expense transaction management
+  - Batch transaction creation with validation
+  - Comprehensive financial reporting
+- ✅ **Internationalization (i18n)** - Multi-language support
+  - Complete Chinese/English language switching
+  - Revenue management module fully internationalized
+  - Layout stability across languages
+  - Context-based language persistence
+  - Dynamic parameter support in translations
 
 ### Mock Data
 Currently using mock data for:

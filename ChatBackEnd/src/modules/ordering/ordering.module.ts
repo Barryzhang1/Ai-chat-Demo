@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { OrderingController } from './ordering.controller';
 import { OrderingService } from './ordering.service';
+import { OrderGateway } from './order.gateway';
 import { Cart, CartSchema } from './schemas/cart.schema';
 import { Order, OrderSchema } from './schemas/order.schema';
 import { ChatHistory, ChatHistorySchema } from './schemas/chat-history.schema';
@@ -29,7 +30,7 @@ import { SeatModule } from '../seat/seat.module';
     SeatModule,
   ],
   controllers: [OrderingController],
-  providers: [OrderingService, DishService, InventoryService],
+  providers: [OrderingService, DishService, InventoryService, OrderGateway],
   exports: [OrderingService],
 })
 export class OrderingModule {}

@@ -17,12 +17,14 @@ import {
 } from 'antd-mobile';
 import { LeftOutline, AddOutline } from 'antd-mobile-icons';
 import { inventoryApi, inventoryLossApi } from '../../api/inventory';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import './InventoryManagement.css';
 
 const changeTypeConfig = {
-  purchase: { text: '进货入库', color: 'success' },
-  loss: { text: '损耗出库', color: 'danger' },
-  manual_adjust: { text: '手动调整', color: 'warning' },
+  purchase: { textKey: 'purchaseIn', color: 'success' },
+  loss: { textKey: 'lossOut', color: 'danger' },
+  manual_adjust: { textKey: 'manualAdjust', color: 'warning' },
 };
 
 function InventoryHistory() {
@@ -36,14 +38,15 @@ function InventoryHistory() {
   const [loading, setLoading] = useState(false);
   const [showLossPopup, setShowLossPopup] = useState(false);
   const [form] = Form.useForm();
+  const { language } = useLanguage();
 
   useEffect(() => {
     if (!inventoryId) {
-      Toast.show({ content: '缺少库存ID参数', icon: 'fail' });
+      Toast.show({ content: t('missingInventoryId', language), icon: 'fail' });
       navigate(-1);
       return;
     }
-  }, [inventoryId, navigate]);
+  }, [inventoryId, navigate, language]);
 
   const fetchHistory = async () => {
     if (!inventoryId) {
@@ -73,14 +76,14 @@ function InventoryHistory() {
         setHistory(response.data.list || []);
         console.log('历史记录数量:', response.data.list?.length || 0);
       } else if (response.code === 401) {
-        Toast.show({ content: '登录已过期，请重新登录', icon: 'fail' });
+        Toast.show({ content: t('loginExpired', language), icon: 'fail' });
         navigate('/');
       } else {
-        Toast.show({ content: response.message || '获取历史记录失败', icon: 'fail' });
+        Toast.show({ content: response.message || t('fetchHistoryFailed', language), icon: 'fail' });
       }
     } catch (error) {
       console.error('获取库存历史失败:', error);
-      Toast.show({ content: '获取库存历史失败', icon: 'fail' });
+      Toast.show({ content: t('fetchHistoryFailed', language), icon: 'fail' });
     } finally {
       setLoading(false);
     }
@@ -126,24 +129,24 @@ function InventoryHistory() {
       console.log('损耗录入响应:', response);
 
       if (response.code === 0) {
-        Toast.show({ content: '损耗录入成功', icon: 'success' });
+        Toast.show({ content: t('recordLossSuccess', language), icon: 'success' });
         setShowLossPopup(false);
         form.resetFields();
         fetchHistory();
       } else if (response.statusCode === 400 || response.statusCode === 401) {
         Toast.show({ 
-          content: response.message || '操作失败', 
+          content: response.message || t('operationFailed', language), 
           icon: 'fail' 
         });
       } else {
-        Toast.show({ content: response.message || '损耗录入失败', icon: 'fail' });
+        Toast.show({ content: response.message || t('recordLossFailed', language), icon: 'fail' });
       }
     } catch (error) {
       console.error('损耗录入失败:', error);
       if (error.errorFields) {
-        Toast.show({ content: '请填写必填项', icon: 'fail' });
+        Toast.show({ content: t('fillRequiredFields', language), icon: 'fail' });
       } else {
-        const message = error.response?.data?.message || error.message || '损耗录入失败';
+        const message = error.response?.data?.message || error.message || t('recordLossFailed', language);
         Toast.show({ content: message, icon: 'fail' });
       }
     }
@@ -155,7 +158,7 @@ function InventoryHistory() {
       description={
         <Space direction="vertical" style={{ width: '100%' }}>
           <div>
-            数量变动: 
+            {t('quantityChange', language)}: 
             <span style={{ 
               color: item.changeQuantity > 0 ? '#52c41a' : '#ff4d4f',
               fontWeight: 'bold',
@@ -164,28 +167,30 @@ function InventoryHistory() {
               {item.changeQuantity > 0 ? '+' : ''}{item.changeQuantity}
             </span>
           </div>
-          <div>单价: ¥{item.price?.toFixed(2)}</div>
+          <div>{t('unitPrice', language)}: ¥{item.price?.toFixed(2)}</div>
           <div>
-            库存: {item.quantityBefore} → {item.quantityAfter}
+            {t('inventory', language)}: {item.quantityBefore} 
+            
+            → {item.quantityAfter}
           </div>
           {item.relatedOrderNo && (
             <div style={{ fontSize: 12, color: '#1677ff' }}>
-              关联单号: {item.relatedOrderNo}
+              {t('relatedOrderNo', language)}: {item.relatedOrderNo}
             </div>
           )}
           {item.reason && (
             <div style={{ fontSize: 12, color: '#999' }}>
-              原因: {item.reason}
+              {t('reason', language)}: {item.reason}
             </div>
           )}
           <div style={{ fontSize: 12, color: '#999' }}>
-            时间: {new Date(item.createdAt).toLocaleString()}
+            {t('time', language)}: {new Date(item.createdAt).toLocaleString()}
           </div>
         </Space>
       }
       extra={
         <Tag color={changeTypeConfig[item.changeType]?.color}>
-          {changeTypeConfig[item.changeType]?.text}
+          {t(changeTypeConfig[item.changeType]?.textKey || 'unknown', language)}
         </Tag>
       }
     >
@@ -205,17 +210,17 @@ function InventoryHistory() {
             fill="none"
             onClick={handleAddLoss}
           >
-            <AddOutline /> 录入损耗
+            <AddOutline /> {t('recordLoss', language)}
           </Button>
         }
       >
-        {productName || '库存历史'}
+        {productName || t('inventoryHistory', language)}
       </NavBar>
 
       <Tabs activeKey={activeTab} onChange={handleTabChange}>
-        <Tabs.Tab title="全部记录" key="all" />
-        <Tabs.Tab title="进货记录" key="purchase" />
-        <Tabs.Tab title="损耗记录" key="loss" />
+        <Tabs.Tab title={t('allRecords', language)} key="all" />
+        <Tabs.Tab title={t('purchaseRecords', language)} key="purchase" />
+        <Tabs.Tab title={t('lossRecords', language)} key="loss" />
       </Tabs>
 
       <PullToRefresh onRefresh={handleRefresh}>
@@ -224,15 +229,15 @@ function InventoryHistory() {
             <Empty 
               description={
                 activeTab === 'all' 
-                  ? '暂无历史记录' 
+                  ? t('noHistory', language)
                   : activeTab === 'purchase'
-                  ? '暂无进货记录'
-                  : '暂无损耗记录'
+                  ? t('noPurchaseHistory', language)
+                  : t('noLossHistory', language)
               } 
             />
           ) : loading ? (
             <div style={{ padding: 20, textAlign: 'center', color: '#999' }}>
-              加载中...
+              {t('loading', language)}
             </div>
           ) : (
             <List>{history.map(renderHistoryItem)}</List>
@@ -247,45 +252,45 @@ function InventoryHistory() {
         bodyStyle={{ height: '60vh' }}
       >
         <div style={{ padding: 20 }}>
-          <h3>录入损耗</h3>
+          <h3>{t('recordLoss', language)}</h3>
           <Form form={form} layout="horizontal">
-            <Form.Item label="商品名称">
+            <Form.Item label={t('productName', language)}>
               <div>{productName}</div>
             </Form.Item>
             <Form.Item
               name="quantity"
-              label="损耗数量"
+              label={t('lossQuantity', language)}
               rules={[
-                { required: true, message: '请输入损耗数量' },
+                { required: true, message: t('enterLossQuantity', language) },
                 { 
                   validator: (_, value) => {
                     if (value && parseFloat(value) <= 0) {
-                      return Promise.reject(new Error('损耗数量必须大于0'));
+                      return Promise.reject(new Error(t('lossQuantityMustBePositive', language)));
                     }
                     return Promise.resolve();
                   }
                 },
               ]}
             >
-              <Input type="number" placeholder="请输入损耗数量" />
+              <Input type="number" placeholder={t('enterLossQuantity', language)} />
             </Form.Item>
             <Form.Item
               name="reason"
-              label="损耗原因"
-              rules={[{ required: true, message: '请输入损耗原因' }]}
+              label={t('lossReason', language)}
+              rules={[{ required: true, message: t('enterLossReason', language) }]}
             >
-              <Input placeholder="请输入损耗原因（如：过期、破损等）" />
+              <Input placeholder={t('lossReasonPlaceholder', language)} />
             </Form.Item>
-            <Form.Item name="remark" label="备注">
-              <TextArea placeholder="选填" rows={3} />
+            <Form.Item name="remark" label={t('remark', language)}>
+              <TextArea placeholder={t('optional', language)} rows={3} />
             </Form.Item>
           </Form>
           <Space style={{ marginTop: 20, width: '100%' }}>
             <Button block onClick={() => setShowLossPopup(false)}>
-              取消
+              {t('cancel', language)}
             </Button>
             <Button block color="primary" onClick={handleSubmitLoss}>
-              确认录入
+              {t('confirmRecordLoss', language)}
             </Button>
           </Space>
         </div>

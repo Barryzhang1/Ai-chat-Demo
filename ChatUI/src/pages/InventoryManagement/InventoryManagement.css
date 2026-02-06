@@ -98,6 +98,69 @@
   color: #1890ff;
 }
 
+/* 库存列表布局优化 - 修复中英文切换布局问题 */
+.inventory-list-item {
+  padding: 12px 16px;
+}
+
+.inventory-item-title {
+  font-weight: bold;
+  font-size: 16px;
+  line-height: 1.3;
+  /* 产品名称最多显示2行，超出显示省略号 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  max-height: 41.6px; /* 16px * 1.3 * 2 */
+}
+
+.inventory-item-description {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.inventory-item-info-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 4px;
+  min-height: 19.6px; /* 14px * 1.4 */
+  /* 确保每行信息不换行，超出截断 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.inventory-item-info-row:last-child {
+  margin-bottom: 0;
+}
+
+.inventory-item-time {
+  font-size: 12px;
+  color: #999;
+  line-height: 1.3;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.inventory-item-extra {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  min-width: 80px;
+  padding-left: 8px;
+}
+
 .status-completed {
   background: #f6ffed;
   color: #52c41a;

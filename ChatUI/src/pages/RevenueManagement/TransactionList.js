@@ -19,10 +19,13 @@ import {
 } from 'antd-mobile';
 import { AddOutline, DeleteOutline } from 'antd-mobile-icons';
 import { revenueApi } from '../../api/revenueApi';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import './TransactionList.css';
 
 const TransactionList = () => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState({
@@ -70,11 +73,11 @@ const TransactionList = () => {
         setTotal(res.data.total);
         setPage(currentPage);
       } else {
-        Toast.show({ content: res.message || '查询失败', icon: 'fail' });
+        Toast.show({ content: res.message || t('queryFailed', language), icon: 'fail' });
       }
     } catch (error) {
       console.error('加载额外收支列表失败:', error);
-      Toast.show({ content: '加载数据失败', icon: 'fail' });
+      Toast.show({ content: t('loadTransactionListFailed', language), icon: 'fail' });
     } finally {
       setLoading(false);
     }
@@ -126,23 +129,23 @@ const TransactionList = () => {
   // 删除记录
   const handleDelete = async (item) => {
     const result = await Dialog.confirm({
-      content: `确定要删除这条${item.type === 'income' ? '收入' : '支出'}记录吗？`,
-      confirmText: '删除',
-      cancelText: '取消',
+      content: t('confirmDeleteTransaction', language, { type: t(item.type === 'income' ? 'income' : 'expense', language) }),
+      confirmText: t('delete', language),
+      cancelText: t('cancel', language),
     });
 
     if (result) {
       try {
         const res = await revenueApi.deleteTransaction(item._id);
         if (res.code === 0) {
-          Toast.show({ content: '删除成功', icon: 'success' });
-          loadTransactions(page);
+          Toast.show({ content: t('deleteSuccess', language), icon: 'success' });
+          loadTransactions();
         } else {
-          Toast.show({ content: res.message || '删除失败', icon: 'fail' });
+          Toast.show({ content: res.message || t('deleteFailed', language), icon: 'fail' });
         }
       } catch (error) {
         console.error('删除记录失败:', error);
-        Toast.show({ content: '删除失败', icon: 'fail' });
+        Toast.show({ content: t('deleteFailed', language), icon: 'fail' });
       }
     }
   };
@@ -177,35 +180,35 @@ const TransactionList = () => {
       <NavBar
         onBack={() => navigate('/revenue')}
       >
-        额外收支管理
+        {t('extraRevenueManagement', language)}
       </NavBar>
 
       <Dropdown ref={dropdownRef}>
-        <Dropdown.Item key='type' title={filters.type === '' ? '类型' : (filters.type === 'income' ? '收入' : '支出')}>
+        <Dropdown.Item key='type' title={filters.type === '' ? t('type', language) : (filters.type === 'income' ? t('income', language) : t('expense', language))}>
           <div style={{ padding: 12 }}>
             <Radio.Group value={filters.type} onChange={handleTypeSelect}>
               <Space direction='vertical' block>
-                <Radio value=''>全部类型</Radio>
-                <Radio value='income'>收入</Radio>
-                <Radio value='expense'>支出</Radio>
+                <Radio value=''>{t('allType', language)}</Radio>
+                <Radio value='income'>{t('income', language)}</Radio>
+                <Radio value='expense'>{t('expense', language)}</Radio>
               </Space>
             </Radio.Group>
           </div>
         </Dropdown.Item>
         <Dropdown.Item key='date' title={
-          dateRangeType === 'all' ? '日期' : 
-          (dateRangeType === 'custom' ? '自定义' : 
-          (dateRangeType === 'today' ? '今天' : 
-          (dateRangeType === 'week' ? '近7天' : '本月')))
+          dateRangeType === 'all' ? t('date', language) : 
+          (dateRangeType === 'custom' ? t('custom', language) : 
+          (dateRangeType === 'today' ? t('today', language) : 
+          (dateRangeType === 'week' ? t('recent7days', language) : t('thisMonth', language))))
         }>
           <div style={{ padding: 12 }}>
             <Radio.Group value={dateRangeType} onChange={handleDateQuickSelect}>
               <Space direction='vertical' block>
-                <Radio value='all'>全部日期</Radio>
-                <Radio value='today'>今天</Radio>
-                <Radio value='week'>近7天</Radio>
-                <Radio value='month'>本月</Radio>
-                <Radio value='custom'>自定义范围</Radio>
+                <Radio value='all'>{t('allDate', language)}</Radio>
+                <Radio value='today'>{t('today', language)}</Radio>
+                <Radio value='week'>{t('recent7days', language)}</Radio>
+                <Radio value='month'>{t('thisMonth', language)}</Radio>
+                <Radio value='custom'>{t('customRange', language)}</Radio>
               </Space>
             </Radio.Group>
             
@@ -213,7 +216,7 @@ const TransactionList = () => {
               <div style={{ marginTop: 12, borderTop: '1px solid #eee', paddingTop: 12 }}>
                 <Space direction='vertical' block>
                   <div className="filter-item">
-                    <span className="filter-label">开始日期</span>
+                    <span className="filter-label">{t('startDate', language)}</span>
                     <DatePicker
                       value={filters.startDate ? new Date(filters.startDate) : null}
                       max={new Date()}
@@ -223,13 +226,13 @@ const TransactionList = () => {
                     >
                       {(value, { open }) => (
                         <Button size="small" onClick={open} block>
-                          {filters.startDate || '选择开始日期'}
+                          {filters.startDate || t('selectStartDate', language)}
                         </Button>
                       )}
                     </DatePicker>
                   </div>
                   <div className="filter-item">
-                    <span className="filter-label">结束日期</span>
+                    <span className="filter-label">{t('endDate', language)}</span>
                     <DatePicker
                       value={filters.endDate ? new Date(filters.endDate) : null}
                       max={new Date()}
@@ -239,12 +242,12 @@ const TransactionList = () => {
                     >
                       {(value, { open }) => (
                         <Button size="small" onClick={open} block>
-                          {filters.endDate || '选择结束日期'}
+                          {filters.endDate || t('selectEndDate', language)}
                         </Button>
                       )}
                     </DatePicker>
                   </div>
-                  <Button color='primary' block onClick={confirmCustomDate}>确认</Button>
+                  <Button color='primary' block onClick={confirmCustomDate}>{t('confirm', language)}</Button>
                 </Space>
               </div>
             )}
@@ -254,7 +257,7 @@ const TransactionList = () => {
 
       <div style={{ padding: '8px 12px', background: '#fff' }}>
         <SearchBar 
-          placeholder="搜索描述内容"
+          placeholder={t('searchDescription', language)}
           value={filters.keyword}
           onChange={(val) => setFilters(prev => ({ ...prev, keyword: val }))}
           onSearch={() => loadTransactions(1, filters)}
@@ -269,19 +272,19 @@ const TransactionList = () => {
         <Card className="summary-card">
           <div className="summary-grid">
             <div className="summary-item">
-              <span className="summary-label">收入总额</span>
+              <span className="summary-label">{t('totalIncome', language)}</span>
               <span className="summary-value income">
                 +¥{summary.totalIncome.toFixed(2)}
               </span>
             </div>
             <div className="summary-item">
-              <span className="summary-label">支出总额</span>
+              <span className="summary-label">{t('totalExpense', language)}</span>
               <span className="summary-value expense">
                 -¥{summary.totalExpense.toFixed(2)}
               </span>
             </div>
             <div className="summary-item">
-              <span className="summary-label">净额</span>
+              <span className="summary-label">{t('netAmount', language)}</span>
               <span className={`summary-value ${summary.netAmount >= 0 ? 'income' : 'expense'}`}>
                 {summary.netAmount >= 0 ? '+' : ''}¥{summary.netAmount.toFixed(2)}
               </span>
@@ -295,7 +298,7 @@ const TransactionList = () => {
             <DotLoading />
           </div>
         ) : transactions.length === 0 ? (
-          <Empty description="暂无记录" />
+          <Empty description={t('noRecords', language)} />
         ) : (
           <List>
             {transactions.map((item) => (
@@ -306,14 +309,14 @@ const TransactionList = () => {
                     color={item.type === 'income' ? 'success' : 'danger'}
                     style={{ borderRadius: 4 }}
                   >
-                    {item.type === 'income' ? '收入' : '支出'}
+                    {item.type === 'income' ? t('income', language) : t('expense', language)}
                   </Tag>
                 }
                 description={
                   <Space direction="vertical" style={{ width: '100%', fontSize: 12 }}>
                     {item.description && <div style={{ color: '#666' }}>{item.description}</div>}
                     <div style={{ color: '#999' }}>
-                      日期: {formatDate(item.transactionDate)}
+                      {t('date', language)}: {formatDate(item.transactionDate)}
                     </div>
                     <div style={{ color: '#999' }}>
                       记录时间: {formatDateTime(item.createdAt)}

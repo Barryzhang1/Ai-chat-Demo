@@ -4,8 +4,8 @@ class Bird {
     this.y = y;
     this.radius = 15;
     this.velocity = 0;
-    this.gravity = 0.5;
-    this.jumpForce = -9;
+    this.gravity = 0.3;  // 降低重力，从0.5减少到0.3，让下落更慢
+    this.jumpForce = -5; // 降低跳跃力度，从-9调整到-7，让跳跃更柔和
     this.rotation = 0;
     this.maxRotation = Math.PI / 4;
     this.minRotation = -Math.PI / 2;

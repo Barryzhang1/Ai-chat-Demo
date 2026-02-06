@@ -140,7 +140,7 @@ ChatBackEnd 采用 NestJS 框架，遵循模块化、分层架构设计，每个
 - ✅ 全局日志记录
 - ✅ MongoDB + Redis 双数据库支持
 - ✅ JWT 认证和授权
-- ✅ WebSocket 实时通信（准备中）
+- ✅ WebSocket 实时通信（座位管理 `/seat`、订单更新 `/order`）
 
 ## 🔌 API 接口列表
 
@@ -1081,6 +1081,83 @@ npm run random-assign-category
 ## 📝 开发规范
 
 项目严格遵循 NestJS 企业级开发规范，详见 [backend-code-specifications.md](./skills/bankend/SKILL.md)
+
+### WebSocket Gateway 实现规范
+
+当需要实时通知客户端时，使用 Socket.IO Gateway：
+
+**1. 创建独立的 Gateway 文件**
+```typescript
+// 示例：order.gateway.ts
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  ConnectedSocket,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { Logger } from '@nestjs/common';
+
+@WebSocketGateway({
+  cors: { origin: '*', credentials: true },
+  namespace: '/order',  // 使用独立的 namespace
+})
+export class OrderGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  @WebSocketServer()
+  server: Server;
+
+  private readonly logger = new Logger(OrderGateway.name);
+
+  handleConnection(@ConnectedSocket() client: Socket) {
+    this.logger.log(\`客户端连接: \${client.id}\`);
+  }
+
+  handleDisconnect(@ConnectedSocket() client: Socket) {
+    this.logger.log(\`客户端断开: \${client.id}\`);
+  }
+
+  // 广播方法供 Service 调用
+  notifyUpdate(event: string, data: any) {
+    this.server.emit('updated', { event, data, timestamp: new Date().toISOString() });
+  }
+}
+```
+
+**2. 在 Module 中注册 Gateway**
+```typescript
+@Module({
+  // ...
+  providers: [OrderingService, OrderGateway],
+})
+export class OrderingModule {}
+```
+
+**3. 在 Service 中注入并使用**
+```typescript
+@Injectable()
+export class OrderingService {
+  constructor(
+    private readonly orderGateway: OrderGateway,
+  ) {}
+
+  async createOrder(...) {
+    // 业务逻辑
+    const order = await this.orderModel.create({...});
+    
+    // 触发实时通知
+    this.orderGateway.notifyUpdate('created', order);
+    
+    return order;
+  }
+}
+```
+
+**4. Namespace 隔离原则**
+- `/seat` - 座位管理
+- `/order` - 订单更新
+- `/chat` - 聊天消息（预留）
+- 每个 namespace 互不干扰，独立连接管理
 
 **核心规范**：
 

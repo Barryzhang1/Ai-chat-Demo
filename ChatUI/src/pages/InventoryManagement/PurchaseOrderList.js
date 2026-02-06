@@ -19,17 +19,20 @@ import { AddOutline, LeftOutline } from 'antd-mobile-icons';
 import { purchaseOrderApi } from '../../api/inventory';
 import { authUtils } from '../../utils/auth';
 import { isBoss } from '../../utils/permission';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import './InventoryManagement.css';
 
-const statusConfig = {
-  pending: { text: '待审批', color: 'warning' },
-  approved: { text: '已审批', color: 'primary' },
-  completed: { text: '已完成', color: 'success' },
-  cancelled: { text: '已取消', color: 'default' },
-};
+const statusConfig = (language) => ({
+  pending: { text: t('purchaseStatusPending', language), color: 'warning' },
+  approved: { text: t('purchaseStatusApproved', language), color: 'primary' },
+  completed: { text: t('purchaseStatusCompleted', language), color: 'success' },
+  cancelled: { text: t('purchaseStatusCancelled', language), color: 'default' },
+});
 
 function PurchaseOrderList() {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState('all');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -64,7 +67,7 @@ function PurchaseOrderList() {
       }
     } catch (error) {
       console.error('获取进货单列表失败:', error);
-      Toast.show({ content: '获取进货单列表失败', icon: 'fail' });
+      Toast.show({ content: t('fetchPurchaseOrderListFailed', language) || t('operationFailedRetry', language), icon: 'fail' });
     } finally {
       setLoading(false);
     }
@@ -72,7 +75,7 @@ function PurchaseOrderList() {
 
   useEffect(() => {
     fetchOrders(1, activeTab);
-  }, [activeTab]);
+  }, [activeTab, language]);
 
   const handleTabChange = (key) => {
     setActiveTab(key);
@@ -92,19 +95,21 @@ function PurchaseOrderList() {
     setSelectedOrder(order);
     if (approve) {
       Dialog.confirm({
-        content: '确认批准该进货单？',
+        content: t('approvePurchaseOrderConfirm', language),
+        confirmText: t('confirm', language),
+        cancelText: t('cancel', language),
         onConfirm: async () => {
           try {
             const response = await purchaseOrderApi.approvePurchaseOrder(order._id, {
               approve: true,
-              remark: '同意采购',
+              remark: t('approveRemarkDefault', language) || '',
             });
             if (response.code === 0) {
-              Toast.show({ content: '审批成功', icon: 'success' });
+              Toast.show({ content: t('approveSuccess', language), icon: 'success' });
               fetchOrders(1, activeTab);
             }
           } catch (error) {
-            Toast.show({ content: '审批失败', icon: 'fail' });
+            Toast.show({ content: t('approveFailed', language), icon: 'fail' });
           }
         },
       });
@@ -115,7 +120,7 @@ function PurchaseOrderList() {
 
   const handleReject = async () => {
     if (!approveRemark.trim()) {
-      Toast.show({ content: '请填写拒绝原因', icon: 'fail' });
+      Toast.show({ content: t('enterRejectReason', language), icon: 'fail' });
       return;
     }
 
@@ -125,13 +130,13 @@ function PurchaseOrderList() {
         remark: approveRemark,
       });
       if (response.code === 0) {
-        Toast.show({ content: '已拒绝', icon: 'success' });
+        Toast.show({ content: t('rejected', language), icon: 'success' });
         setShowApprovePopup(false);
         setApproveRemark('');
         fetchOrders(1, activeTab);
       }
     } catch (error) {
-      Toast.show({ content: '操作失败', icon: 'fail' });
+      Toast.show({ content: t('operationFailedSimple', language), icon: 'fail' });
     }
   };
 
@@ -143,31 +148,32 @@ function PurchaseOrderList() {
   const handleConfirmReceive = async () => {
     try {
       const response = await purchaseOrderApi.receivePurchaseOrder(selectedOrder._id, {
-        remark: receiveRemark || '货物已清点入库',
+        remark: receiveRemark || t('receiveRemarkDefault', language) || '',
       });
       if (response.code === 0) {
-        Toast.show({ content: '入库成功', icon: 'success' });
+        Toast.show({ content: t('receiveSuccess', language), icon: 'success' });
         setShowReceivePopup(false);
         setReceiveRemark('');
         fetchOrders(1, activeTab);
       }
     } catch (error) {
-      Toast.show({ content: '入库失败', icon: 'fail' });
+      Toast.show({ content: t('receiveFailed', language), icon: 'fail' });
     }
   };
 
   const handleViewDetail = (order) => {
     Dialog.alert({
-      title: `进货单详情 - ${order.orderNo}`,
+      title: `${t('purchaseOrderDetails', language)} - ${order.orderNo}`,
+      confirmText: t('confirm', language),
       content: (
         <div style={{ textAlign: 'left' }}>
-          <p><strong>供应商:</strong> {order.supplierName}</p>
-          <p><strong>总金额:</strong> ¥{order.totalAmount.toFixed(2)}</p>
-          <p><strong>状态:</strong> {statusConfig[order.status]?.text}</p>
-          <p><strong>创建时间:</strong> {new Date(order.createdAt).toLocaleString()}</p>
+          <p><strong>{t('supplier', language)}:</strong> {order.supplierName}</p>
+          <p><strong>{t('totalAmountLabel', language)}:</strong> ¥{order.totalAmount.toFixed(2)}</p>
+          <p><strong>{t('statusLabel', language)}:</strong> {statusConfig(language)[order.status]?.text}</p>
+          <p><strong>{t('createdAtLabel', language)}:</strong> {new Date(order.createdAt).toLocaleString(language === 'en' ? 'en-US' : 'zh-CN')}</p>
           {order.items && order.items.length > 0 && (
             <>
-              <p><strong>采购明细:</strong></p>
+              <p><strong>{t('purchaseItems', language)}:</strong></p>
               <div style={{ marginLeft: 10, fontSize: 13 }}>
                 {order.items.map((item, index) => (
                   <div key={index} style={{ marginBottom: 8, lineHeight: '1.6' }}>
@@ -177,7 +183,7 @@ function PurchaseOrderList() {
               </div>
             </>
           )}
-          {order.remark && <p><strong>备注:</strong> {order.remark}</p>}
+          {order.remark && <p><strong>{t('remarkLabel', language)}:</strong> {order.remark}</p>}
         </div>
       ),
     });
@@ -189,20 +195,20 @@ function PurchaseOrderList() {
       onClick={() => handleViewDetail(order)}
       description={
         <Space direction="vertical" style={{ width: '100%' }}>
-          <div>供应商: {order.supplierName}</div>
-          <div>总金额: ¥{order.totalAmount.toFixed(2)}</div>
+          <div>{t('supplier', language)}: {order.supplierName}</div>
+          <div>{t('totalAmountLabel', language)}: ¥{order.totalAmount.toFixed(2)}</div>
           {order.items && order.items.length > 0 && (
             <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>商品明细：</div>
+              <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>{t('goodsDetails', language)}：</div>
               {order.items.map((item, index) => (
                 <div key={index} style={{ fontSize: 12, color: '#999', marginLeft: 8 }}>
-                  • {item.productName} - 数量: {item.quantity}，单价: ¥{item.price?.toFixed(2)}
+                  • {item.productName} - {t('quantityLabel', language)}: {item.quantity}，{t('unitPriceLabel', language)}: ¥{item.price?.toFixed(2)}
                 </div>
               ))}
             </div>
           )}
           <div style={{ fontSize: 12, color: '#999' }}>
-            创建时间: {new Date(order.createdAt).toLocaleString('zh-CN', { 
+            {t('createdAtLabel', language)}: {new Date(order.createdAt).toLocaleString(language === 'en' ? 'en-US' : 'zh-CN', { 
               year: 'numeric', 
               month: '2-digit', 
               day: '2-digit',
@@ -214,8 +220,8 @@ function PurchaseOrderList() {
       }
       extra={
         <Space direction="vertical" align="end">
-          <Tag color={statusConfig[order.status]?.color}>
-            {statusConfig[order.status]?.text}
+          <Tag color={statusConfig(language)[order.status]?.color}>
+            {statusConfig(language)[order.status]?.text}
           </Tag>
           {order.status === 'pending' && isBoss() && (
             <Space>
@@ -227,7 +233,7 @@ function PurchaseOrderList() {
                   handleApprove(order, true);
                 }}
               >
-                批准
+                {t('approve', language)}
               </Button>
               <Button
                 size="small"
@@ -236,7 +242,7 @@ function PurchaseOrderList() {
                   handleApprove(order, false);
                 }}
               >
-                拒绝
+                {t('reject', language)}
               </Button>
             </Space>
           )}
@@ -249,7 +255,7 @@ function PurchaseOrderList() {
                 handleReceive(order);
               }}
             >
-              入库
+              {t('receive', language)}
             </Button>
           )}
         </Space>
@@ -271,11 +277,11 @@ function PurchaseOrderList() {
             fill="none"
             onClick={() => navigate('/merchant/inventory/purchase-order/create')}
           >
-            <AddOutline /> 创建进货单
+            <AddOutline /> {t('createPurchaseOrder', language)}
           </Button>
         }
       >
-        进货管理
+        {t('purchaseManagementTitle', language)}
       </NavBar>
 
       <Tabs
@@ -283,17 +289,17 @@ function PurchaseOrderList() {
         onChange={handleTabChange}
         style={{ '--fixed-active-line-width': '20px' }}
       >
-        <Tabs.Tab title="全部" key="all" />
-        <Tabs.Tab title="待审批" key="pending" />
-        <Tabs.Tab title="已审批" key="approved" />
-        <Tabs.Tab title="已完成" key="completed" />
-        <Tabs.Tab title="已取消" key="cancelled" />
+        <Tabs.Tab title={t('all', language)} key="all" />
+        <Tabs.Tab title={t('purchaseStatusPending', language)} key="pending" />
+        <Tabs.Tab title={t('purchaseStatusApproved', language)} key="approved" />
+        <Tabs.Tab title={t('purchaseStatusCompleted', language)} key="completed" />
+        <Tabs.Tab title={t('purchaseStatusCancelled', language)} key="cancelled" />
       </Tabs>
 
       <PullToRefresh onRefresh={handleRefresh}>
         <div style={{ minHeight: '60vh' }}>
           {orders.length === 0 && !loading ? (
-            <Empty description="暂无进货单" />
+            <Empty description={t('noPurchaseOrders', language)} />
           ) : (
             <List>
               {orders.map(renderOrderItem)}
@@ -310,9 +316,9 @@ function PurchaseOrderList() {
         bodyStyle={{ height: '40vh' }}
       >
         <div style={{ padding: 20 }}>
-          <h3>拒绝原因</h3>
+          <h3>{t('rejectReasonTitle', language)}</h3>
           <TextArea
-            placeholder="请输入拒绝原因"
+            placeholder={t('approveRemarkPlaceholder', language)}
             value={approveRemark}
             onChange={setApproveRemark}
             rows={5}
@@ -321,10 +327,10 @@ function PurchaseOrderList() {
           />
           <Space style={{ marginTop: 20, width: '100%' }}>
             <Button block onClick={() => setShowApprovePopup(false)}>
-              取消
+              {t('cancel', language)}
             </Button>
             <Button block color="primary" onClick={handleReject}>
-              确认拒绝
+              {t('confirmReject', language)}
             </Button>
           </Space>
         </div>
@@ -337,9 +343,9 @@ function PurchaseOrderList() {
         bodyStyle={{ height: '40vh' }}
       >
         <div style={{ padding: 20 }}>
-          <h3>入库确认</h3>
+          <h3>{t('receiveConfirmTitle', language)}</h3>
           <TextArea
-            placeholder="请输入入库备注（可选）"
+            placeholder={t('receiveRemarkPlaceholder', language)}
             value={receiveRemark}
             onChange={setReceiveRemark}
             rows={5}
@@ -348,10 +354,10 @@ function PurchaseOrderList() {
           />
           <Space style={{ marginTop: 20, width: '100%' }}>
             <Button block onClick={() => setShowReceivePopup(false)}>
-              取消
+              {t('cancel', language)}
             </Button>
             <Button block color="success" onClick={handleConfirmReceive}>
-              确认入库
+              {t('confirmReceive', language)}
             </Button>
           </Space>
         </div>

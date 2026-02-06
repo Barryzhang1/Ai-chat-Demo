@@ -32,6 +32,7 @@ import { MongoLogger } from '../../common/utils/mongo-logger.util';
 import { DishService } from '../dish/dish.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { RedisService } from '../../redis/redis.service';
+import { OrderGateway } from './order.gateway';
 
 interface CacheEntry {
   response: string;
@@ -92,6 +93,7 @@ export class OrderingService {
     private readonly dishService: DishService,
     private readonly inventoryService: InventoryService,
     private readonly redisService: RedisService,
+    private readonly orderGateway: OrderGateway,
   ) {
     this.deepseekApiKey = process.env.DEEPSEEK_API_KEY || '';
     this.deepseekApiLog = process.env.DEEPSEEK_API_LOG === 'true';
@@ -353,6 +355,18 @@ export class OrderingService {
     cart.totalPrice = 0;
     cart.queries = [];
     await cart.save();
+
+    // 广播订单创建通知
+    this.orderGateway.notifyOrderUpdate('created', {
+      _id: order._id.toString(),
+      orderId: order.orderId,
+      userId: order.userId,
+      dishes: order.dishes,
+      totalPrice: order.totalPrice,
+      status: order.status,
+      note: order.note,
+      createdAt: order.createdAt,
+    });
 
     return {
       orderId: order.orderId,
@@ -741,6 +755,19 @@ export class OrderingService {
         `⚠️  Not deducting inventory. Old status: "${oldStatus}", New status: "${status}"`,
       );
     }
+
+    // 广播订单状态更新通知
+    this.orderGateway.notifyOrderUpdate('statusChanged', {
+      _id: order._id.toString(),
+      orderId: order.orderId,
+      userId: order.userId,
+      dishes: order.dishes,
+      totalPrice: order.totalPrice,
+      status: order.status,
+      note: order.note,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+    });
 
     return {
       orderId: order.orderId,

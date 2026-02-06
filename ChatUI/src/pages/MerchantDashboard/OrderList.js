@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavBar, List, Tabs, Tag, Toast, Empty, InfiniteScroll, PullToRefresh, Button, Dialog } from 'antd-mobile';
+import { io } from 'socket.io-client';
 import { orderApi } from '../../api/orderApi';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { t } from '../../i18n/translations';
+import { config } from '../../config';
 import './MerchantDashboard.css';
+
+let socket = null;
 
 function OrderList() {
   const navigate = useNavigate();
@@ -75,6 +79,60 @@ function OrderList() {
     loadOrders(true);
   }, [activeTab]);
 
+  // 初始化 Socket.IO 连接用于实时订单更新
+  useEffect(() => {
+    console.log('初始化订单 Socket 连接...');
+    
+    // 连接到订单 Socket namespace
+    socket = io(`${config.socketUrl}/order`, {
+      transports: ['websocket'],
+    });
+
+    socket.on('connect', () => {
+      console.log('订单 Socket 已连接:', socket.id);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('订单 Socket 已断开');
+    });
+
+    // 监听订单更新事件（创建或状态变更）
+    socket.on('orderUpdated', (data) => {
+      console.log('收到订单更新通知:', data);
+      const { event, order } = data;
+      
+      // 播放提示音（可选）
+      // new Audio('/notification.mp3').play().catch(e => console.log('无法播放提示音'));
+      
+      // 显示提示消息
+      if (event === 'created') {
+        Toast.show({
+          icon: 'success',
+          content: t('newOrder', language) || '新订单',
+          duration: 2000,
+        });
+      } else if (event === 'statusChanged') {
+        Toast.show({
+          icon: 'success',
+          content: t('orderUpdated', language) || '订单已更新',
+          duration: 1500,
+        });
+      }
+      
+      // 刷新订单列表
+      loadOrders(true);
+    });
+
+    // 清理函数：断开连接
+    return () => {
+      if (socket) {
+        console.log('清理订单 Socket 连接');
+        socket.disconnect();
+        socket = null;
+      }
+    };
+  }, [language]); // 依赖 language 以便在切换语言时重新设置提示消息
+
   // 格式化时间
   const formatTime = (dateStr) => {
     const date = new Date(dateStr);
@@ -95,6 +153,8 @@ function OrderList() {
   const handleUpdateStatus = async (orderId, currentStatus, newStatus, statusText) => {
     const result = await Dialog.confirm({
       content: t('confirmStatusChange', language, { status: statusText }),
+      confirmText: t('confirm', language),
+      cancelText: t('cancel', language),
     });
 
     if (result) {
