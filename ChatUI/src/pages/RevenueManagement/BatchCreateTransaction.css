@@ -24,12 +24,39 @@
   margin-bottom: 16px;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 0 !important;
+}
+
+.transaction-form-card .adm-form {
+  padding-right: 8px;
+}
+
+.transaction-form-card .adm-card-header
+ {
+  background-color: #ffffff;
+  border-bottom: 0;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.transaction-form-card .adm-card-body
+ {
+  background-color: #ffffff;
+  border-bottom: 0;
+  padding: 0;
+}
+
+.transaction-form-card .adm-form
+ {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 
 .transaction-form-card .adm-card-header-title {
   font-size: 15px;
   font-weight: 600;
   color: #333;
+  padding-left: 8px;
 }
 
 .submit-actions {

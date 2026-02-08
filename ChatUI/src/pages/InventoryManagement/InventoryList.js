@@ -79,6 +79,13 @@ function InventoryList() {
     }
   }, [activeTab, searchText]);
 
+  const getLocalizedApiMessage = (message, fallbackKey) => {
+    if (language === 'zh' && message) {
+      return message;
+    }
+    return t(fallbackKey, language);
+  };
+
   const handleTabChange = (key) => {
     setActiveTab(key);
   };
@@ -195,28 +202,34 @@ function InventoryList() {
         lossForm.resetFields();
         fetchInventory(); // 刷新库存列表
       } else if (response.statusCode === 400 || response.statusCode === 401) {
-        Toast.show({ 
-          content: response.message || t('operationFailedSimple', language), 
-          icon: 'fail' 
+        Toast.show({
+          content: getLocalizedApiMessage(response.message, 'operationFailedSimple'),
+          icon: 'fail'
         });
       } else {
-        Toast.show({ content: response.message || t('recordLossFailed', language), icon: 'fail' });
+        Toast.show({
+          content: getLocalizedApiMessage(response.message, 'recordLossFailed'),
+          icon: 'fail'
+        });
       }
     } catch (error) {
       console.error('损耗录入失败:', error);
       if (error.errorFields) {
         Toast.show({ content: t('fillRequiredFields', language), icon: 'fail' });
       } else {
-        const message = error.response?.data?.message || error.message || t('recordLossFailed', language);
+        const message = getLocalizedApiMessage(
+          error.response?.data?.message || error.message,
+          'recordLossFailed'
+        );
         Toast.show({ content: message, icon: 'fail' });
       }
     }
   };
 
   const actionSheetActions = [
-    { text: '录入损耗', key: 'addLoss', danger: true },
-    { text: '查看变更历史', key: 'history' },
-    { text: '编辑库存信息', key: 'edit' },
+    { text: t('recordLoss', language), key: 'addLoss', danger: true },
+    { text: t('viewChangeHistory', language), key: 'history' },
+    { text: t('editInventoryItem', language), key: 'edit' },
   ];
 
   const handleActionSheetAction = (action) => {
@@ -314,7 +327,7 @@ function InventoryList() {
   const stats = calculateStats();
 
   return (
-    <div className="page-container">
+    <div className="page-container inventory-page">
       <NavBar backArrow={<LeftOutline />} onBack={() => navigate('/merchant')}>
         {t('inventoryListTitle', language)}
       </NavBar>
@@ -356,15 +369,17 @@ function InventoryList() {
         />
       </Tabs>
 
-      <PullToRefresh onRefresh={handleRefresh}>
-        <div style={{ minHeight: '50vh' }}>
-          {inventory.length === 0 && !loading ? (
-            <Empty description={t('noInventoryData', language)} />
-          ) : (
-            <List>{inventory.map(renderInventoryItem)}</List>
-          )}
-        </div>
-      </PullToRefresh>
+      <div className="list-scroll-area">
+        <PullToRefresh onRefresh={handleRefresh}>
+          <div style={{ minHeight: '50vh' }}>
+            {inventory.length === 0 && !loading ? (
+              <Empty description={t('noInventoryData', language)} />
+            ) : (
+              <List>{inventory.map(renderInventoryItem)}</List>
+            )}
+          </div>
+        </PullToRefresh>
+      </div>
 
       {/* 编辑弹窗 */}
       <Popup

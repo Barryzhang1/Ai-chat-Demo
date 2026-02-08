@@ -481,7 +481,7 @@ function UserOrder() {
       setSeatInfo(null);
       Toast.show({
         icon: 'fail',
-        content: t('hallClosedQueue', language, { message: data.message, position: data.position }),
+        content: t('hallClosedQueue', language, { position: data.position }),
         duration: 3000,
       });
     });
@@ -987,7 +987,7 @@ function UserOrder() {
              ...prev,
              {
                role: 'assistant',
-               content: message || '已为您重新推荐以下菜品：',
+               content: message || t('refreshedMenu', language),
                menu: menu,
                totalPrice: totalPrice,
                timestamp: new Date(),
@@ -1161,7 +1161,7 @@ function UserOrder() {
                   <div className="menu-header">
                     <div className="restaurant-info">
                       <span className="restaurant-icon">🍜</span>
-                      <span className="restaurant-name">渝味鲜烤 · 烤串（高新店）</span>
+                      <span className="restaurant-name">Global Payment Global Food Center</span>
                     </div>
                   </div>
                   

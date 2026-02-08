@@ -258,7 +258,7 @@ export class RevenueService {
     };
 
     this.logger.log(
-      `📊 当日收入统计: ${result.date}, 收入=¥${result.revenue}, 成本=¥${result.materialCost}, 毛利率=${result.grossMarginRate}%, 净利润=¥${result.netProfit}, 订单=${result.orderCount}`,
+      `📊 当日收入统计: ${result.date}, 收入=$${result.revenue}, 成本=¥${result.materialCost}, 毛利率=${result.grossMarginRate}%, 净利润=¥${result.netProfit}, 订单=${result.orderCount}`,
     );
 
     return result;

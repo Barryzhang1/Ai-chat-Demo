@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dialog, Input, Toast } from 'antd-mobile';
+import { Button, Input, Toast } from 'antd-mobile';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { t } from '../../i18n/translations';
 import { userApi } from '../../api/userApi';
 import { authUtils } from '../../utils/auth';
 import './Register.css';
 
 function Register() {
   const [name, setName] = useState('');
-  const [visible, setVisible] = useState(true);
   const navigate = useNavigate();
+  const { language, toggleLanguage, isEn } = useLanguage();
 
   // 检查是否已经登录
   useEffect(() => {
@@ -21,7 +23,7 @@ function Register() {
   const handleRegister = async () => {
     if (!name.trim()) {
       Toast.show({
-        content: '请输入您的名字',
+        content: t('pleaseEnterName', language),
         position: 'center',
       });
       return;
@@ -44,7 +46,7 @@ function Register() {
         
         Toast.show({
           icon: 'success',
-          content: '登录成功！',
+          content: t('loginSuccess', language),
           position: 'center',
         });
 
@@ -55,7 +57,7 @@ function Register() {
       } else {
         Toast.show({
           icon: 'fail',
-          content: response.message || '登录失败',
+          content: response.message || t('loginFailed', language),
           position: 'center',
         });
       }
@@ -63,7 +65,7 @@ function Register() {
       console.error('Register/Login failed:', error);
       Toast.show({
         icon: 'fail',
-        content: '登录出错，请重试',
+        content: t('loginError', language),
         position: 'center',
       });
     }
@@ -72,19 +74,36 @@ function Register() {
   return (
     <div className="register-container">
       <div className="register-bg-anim" aria-hidden="true"></div>
+      <div className="register-topbar">
+        <Button
+          className="register-lang-btn"
+          fill="outline"
+          size="small"
+          onClick={toggleLanguage}
+          aria-label={isEn ? '切换语言到中文' : 'Switch language to English'}
+        >
+          {isEn ? '中文' : 'EN'}
+        </Button>
+      </div>
       <div className="register-dialog">
-        <h2>欢迎使用点餐系统</h2>
+        <h2>{t('welcome', language)}</h2>
+        <p className="register-subtitle">{t('enterName', language)}</p>
         <div className="register-input-area">
           <Input
-            placeholder="请输入您的名字"
+            placeholder={t('namePlaceholder', language)}
             value={name}
             onChange={setName}
             clearable
             className="register-input"
+            data-testid="register-name-input"
           />
         </div>
-        <button className="register-btn" onClick={handleRegister}>
-          开始使用
+        <button
+          className="register-btn"
+          onClick={handleRegister}
+          data-testid="register-submit"
+        >
+          {t('startUsing', language)}
         </button>
       </div>
     </div>

@@ -3,6 +3,20 @@
   background-color: #f5f5f5;
 }
 
+.inventory-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 100dvh;
+}
+
+.list-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+}
+
 .inventory-stats {
   padding: 16px;
   background: #fff;

@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import { Form, Input, Button, TextArea } from 'antd-mobile';
+import { useLanguage } from '../contexts/LanguageContext';
+import { t } from '../i18n/translations';
 
 /**
  * 库存损耗录入表单弹窗组件
@@ -11,6 +13,7 @@ import { Form, Input, Button, TextArea } from 'antd-mobile';
  * @param {Object} inventoryItem - 当前操作的库存项（包含productName、quantity等信息）
  */
 function InventoryLossFormPopup({ form, onFinish, onCancel, inventoryItem = {} }) {
+  const { language } = useLanguage();
   
   // 每次打开弹窗时重置表单
   useEffect(() => {
@@ -20,10 +23,12 @@ function InventoryLossFormPopup({ form, onFinish, onCancel, inventoryItem = {} }
   // 自定义验证器：损耗数量必须大于0且不超过当前库存
   const validateQuantity = (_, value) => {
     if (!value || parseFloat(value) <= 0) {
-      return Promise.reject(new Error('损耗数量必须大于0'));
+      return Promise.reject(new Error(t('lossQuantityMustBePositive', language)));
     }
     if (inventoryItem.quantity && parseFloat(value) > inventoryItem.quantity) {
-      return Promise.reject(new Error(`损耗数量不能超过当前库存 ${inventoryItem.quantity}`));
+      return Promise.reject(
+        new Error(t('lossQuantityExceedStock', language, { quantity: inventoryItem.quantity }))
+      );
     }
     return Promise.resolve();
   };
@@ -48,7 +53,7 @@ function InventoryLossFormPopup({ form, onFinish, onCancel, inventoryItem = {} }
         zIndex: 10,
         borderBottom: '1px solid #f0f0f0'
       }}>
-        录入损耗
+        {t('recordLoss', language)}
       </div>
 
       {/* 表单区 - 可滚动 */}
@@ -79,7 +84,7 @@ function InventoryLossFormPopup({ form, onFinish, onCancel, inventoryItem = {} }
               display: 'flex',
               justifyContent: 'space-between'
             }}>
-              <span>商品名称</span>
+              <span>{t('productName', language)}</span>
               <span style={{ fontWeight: 'bold', color: '#262626' }}>
                 {inventoryItem.productName || '-'}
               </span>
@@ -91,7 +96,7 @@ function InventoryLossFormPopup({ form, onFinish, onCancel, inventoryItem = {} }
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
-              <span>当前库存</span>
+              <span>{t('currentStock', language)}</span>
               <span style={{ 
                 fontSize: '20px',
                 fontWeight: 'bold', 
@@ -105,16 +110,16 @@ function InventoryLossFormPopup({ form, onFinish, onCancel, inventoryItem = {} }
           {/* 损耗数量 */}
           <Form.Item
             name="quantity"
-            label="损耗数量"
+            label={t('lossQuantity', language)}
             rules={[
-              { required: true, message: '请输入损耗数量' },
+              { required: true, message: t('enterLossQuantity', language) },
               { validator: validateQuantity }
             ]}
-            help="请输入本次损耗的数量"
+            help={t('lossQuantityHelp', language)}
           >
             <Input 
               type="number" 
-              placeholder="请输入损耗数量" 
+              placeholder={t('enterLossQuantity', language)}
               clearable
               step="0.01"
               min="0"
@@ -124,15 +129,15 @@ function InventoryLossFormPopup({ form, onFinish, onCancel, inventoryItem = {} }
           {/* 损耗原因 */}
           <Form.Item
             name="reason"
-            label="损耗原因"
+            label={t('lossReason', language)}
             rules={[
-              { required: true, message: '请输入损耗原因' },
-              { max: 100, message: '损耗原因不能超过100字符' }
+              { required: true, message: t('enterLossReason', language) },
+              { max: 100, message: t('lossReasonTooLong', language) }
             ]}
-            help="如：过期、破损、变质等"
+            help={t('lossReasonHelp', language)}
           >
             <Input 
-              placeholder="请输入损耗原因（例如：过期、破损、变质等）" 
+              placeholder={t('lossReasonPlaceholder', language)}
               clearable
             />
           </Form.Item>
@@ -140,11 +145,11 @@ function InventoryLossFormPopup({ form, onFinish, onCancel, inventoryItem = {} }
           {/* 备注 */}
           <Form.Item
             name="remark"
-            label="备注说明"
-            help="选填：可补充详细说明"
+            label={t('remarkDetail', language)}
+            help={t('remarkHelp', language)}
           >
             <TextArea 
-              placeholder="选填：补充详细说明" 
+              placeholder={t('remarkPlaceholder', language)}
               rows={3}
               maxLength={200}
               showCount
@@ -172,7 +177,7 @@ function InventoryLossFormPopup({ form, onFinish, onCancel, inventoryItem = {} }
             fontSize: '16px'
           }}
         >
-          取消
+          {t('cancel', language)}
         </Button>
         <Button 
           block 
@@ -184,7 +189,7 @@ function InventoryLossFormPopup({ form, onFinish, onCancel, inventoryItem = {} }
             fontSize: '16px'
           }}
         >
-          确认录入
+          {t('confirmRecordLoss', language)}
         </Button>
       </div>
     </div>

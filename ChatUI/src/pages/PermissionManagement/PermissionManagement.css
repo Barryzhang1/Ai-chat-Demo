@@ -7,6 +7,10 @@
   padding: 16px 0;
 }
 
+.permission-content .adm-list-body-inner {
+  padding: 0 8px 0 8px;
+}
+
 .loading-container {
   display: flex;
   flex-direction: column;

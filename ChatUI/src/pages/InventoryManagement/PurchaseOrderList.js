@@ -266,7 +266,7 @@ function PurchaseOrderList() {
   );
 
   return (
-    <div className="page-container">
+    <div className="page-container inventory-page">
       <NavBar
         backArrow={<LeftOutline />}
         onBack={() => navigate('/merchant')}
@@ -296,18 +296,20 @@ function PurchaseOrderList() {
         <Tabs.Tab title={t('purchaseStatusCancelled', language)} key="cancelled" />
       </Tabs>
 
-      <PullToRefresh onRefresh={handleRefresh}>
-        <div style={{ minHeight: '60vh' }}>
-          {orders.length === 0 && !loading ? (
-            <Empty description={t('noPurchaseOrders', language)} />
-          ) : (
-            <List>
-              {orders.map(renderOrderItem)}
-            </List>
-          )}
-          <InfiniteScroll loadMore={loadMore} hasMore={hasMore} />
-        </div>
-      </PullToRefresh>
+      <div className="list-scroll-area">
+        <PullToRefresh onRefresh={handleRefresh}>
+          <div style={{ minHeight: '60vh' }}>
+            {orders.length === 0 && !loading ? (
+              <Empty description={t('noPurchaseOrders', language)} />
+            ) : (
+              <List>
+                {orders.map(renderOrderItem)}
+              </List>
+            )}
+            <InfiniteScroll loadMore={loadMore} hasMore={hasMore} />
+          </div>
+        </PullToRefresh>
+      </div>
 
       {/* 拒绝原因弹窗 */}
       <Popup

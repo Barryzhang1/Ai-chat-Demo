@@ -2,12 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Form, Input, Button, Picker, Selector, Tag, Space, Toast } from 'antd-mobile';
 import { CloseOutline } from 'antd-mobile-icons';
 import inventoryApi from '../api/inventory/inventoryApi';
+import { useLanguage } from '../contexts/LanguageContext';
+import { t } from '../i18n/translations';
 
 function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValues = {}, categories = [] }) {
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
   const [availableIngredients, setAvailableIngredients] = useState([]);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
+  const { language } = useLanguage();
 
   // 获取库存食材列表
   useEffect(() => {
@@ -49,7 +52,7 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
         console.error('获取库存食材失败:', error);
         Toast.show({
           icon: 'fail',
-          content: '加载食材列表失败',
+          content: t('dishFormLoadIngredientsFailed', language),
         });
       }
     };
@@ -141,7 +144,7 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
         top: 0,
         zIndex: 10
       }}>
-        {editMode ? '编辑菜品' : '新品上架'}
+        {editMode ? t('dishFormTitleEdit', language) : t('dishFormTitleAdd', language)}
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
         <Form
@@ -151,24 +154,24 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
         >
           <Form.Item
             name="name"
-          label="菜品名称"
-          rules={[{ required: true, message: '请输入菜品名称' }]}
+          label={t('dishName', language)}
+          rules={[{ required: true, message: t('enterDishName', language) }]}
         >
-          <Input placeholder="请输入菜品名称" clearable />
+          <Input placeholder={t('enterDishName', language)} clearable />
         </Form.Item>
 
         <Form.Item
           name="price"
-          label="价格"
-          rules={[{ required: true, message: '请输入价格' }]}
+          label={t('price', language)}
+          rules={[{ required: true, message: t('enterPrice', language) }]}
         >
-          <Input type="number" placeholder="请输入价格" clearable />
+          <Input type="number" placeholder={t('enterPrice', language)} clearable />
         </Form.Item>
 
         <Form.Item
           name="categoryId"
-          label="分类"
-          rules={[{ required: true, message: '请选择分类' }]}
+          label={t('category', language)}
+          rules={[{ required: true, message: t('selectCategory', language) }]}
         >
           <Selector
             columns={2}
@@ -178,14 +181,14 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
 
         <Form.Item
           name="description"
-          label="描述"
+          label={t('description', language)}
         >
-          <Input placeholder="请输入菜品描述" clearable />
+          <Input placeholder={t('enterDescription', language)} clearable />
         </Form.Item>
 
         <Form.Item
           name="tags"
-          label="标签"
+          label={t('dishFormTagsLabel', language)}
         >
           <div>
             <div style={{ marginBottom: '8px' }}>
@@ -217,7 +220,7 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
               <Input
                 value={tagInput}
                 onChange={setTagInput}
-                placeholder="输入标签名称"
+                placeholder={t('dishFormTagPlaceholder', language)}
                 style={{ flex: 1 }}
               />
               <Button
@@ -226,7 +229,7 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
                 onClick={handleAddTag}
                 disabled={!tagInput.trim()}
               >
-                添加
+                {t('dishFormTagAdd', language)}
               </Button>
             </div>
           </div>
@@ -234,8 +237,8 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
 
         <Form.Item
           name="ingredients"
-          label="绑定食材"
-          help="选择制作此菜品所需的库存食材（可多选）"
+          label={t('dishFormIngredientsLabel', language)}
+          help={t('dishFormIngredientsHelp', language)}
         >
           <div>
             <div style={{ marginBottom: '8px' }}>
@@ -274,7 +277,7 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
                   availableIngredients
                     .filter(item => !selectedIngredients.includes(item._id))
                     .map(item => ({
-                      label: `${item.productName} (库存: ${item.quantity || 0})`,
+                      label: `${item.productName} (${t('stock', language)}: ${item.quantity || 0})`,
                       value: item._id
                     }))
                 ]}
@@ -293,13 +296,13 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
                     onClick={actions.open}
                     block
                   >
-                    请选择食材
+                    {t('dishFormSelectIngredient', language)}
                   </Button>
                 )}
               </Picker>
             ) : (
               <div style={{ color: '#999', padding: '12px 0' }}>
-                暂无库存食材，请先添加食材库存
+                {t('dishFormNoIngredients', language)}
               </div>
             )}
           </div>
@@ -317,10 +320,10 @@ function DishFormPopup({ form, onFinish, onCancel, editMode = false, initialValu
           block
           onClick={onCancel}
         >
-          取消
+          {t('cancel', language)}
         </Button>
         <Button block color="primary" onClick={() => form.submit()}>
-          {editMode ? '确认修改' : '确认上新'}
+          {editMode ? t('dishFormConfirmEdit', language) : t('dishFormConfirmAdd', language)}
         </Button>
       </div>
     </div>

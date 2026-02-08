@@ -63,6 +63,7 @@ function RoleSelect() {
               fill="outline"
               size="small"
               color="danger"
+              data-testid="role-logout"
               onClick={() => {
                 authUtils.removeToken();
                 navigate('/');
@@ -84,7 +85,11 @@ function RoleSelect() {
         </div>
 
         <div className="role-buttons">
-          <div className="role-card user-card" onClick={handleUserRole}>
+          <div
+            className="role-card user-card"
+            onClick={handleUserRole}
+            data-testid="role-user"
+          >
             <div className="role-icon">
               <UserOutline fontSize={48} />
             </div>
@@ -95,6 +100,7 @@ function RoleSelect() {
           <div 
             className={`role-card merchant-card ${!canAccessMerchant() ? 'disabled' : ''}`}
             onClick={handleMerchantRole}
+            data-testid="role-merchant"
             style={{ 
               opacity: !canAccessMerchant() ? 0.5 : 1,
               cursor: !canAccessMerchant() ? 'not-allowed' : 'pointer'

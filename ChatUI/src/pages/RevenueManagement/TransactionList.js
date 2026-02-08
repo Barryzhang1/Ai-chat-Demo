@@ -165,14 +165,30 @@ const TransactionList = () => {
 
   // 格式化时间
   const formatDateTime = (dateStr) => {
+    if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    if (Number.isNaN(date.getTime())) return '';
+
+    if (language === 'en') {
+      const datePart = new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+      }).format(date);
+      const timePart = new Intl.DateTimeFormat('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).format(date);
+      return `${datePart} ${timePart}`;
+    }
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hour}:${minute}`;
   };
 
   return (
@@ -319,7 +335,7 @@ const TransactionList = () => {
                       {t('date', language)}: {formatDate(item.transactionDate)}
                     </div>
                     <div style={{ color: '#999' }}>
-                      记录时间: {formatDateTime(item.createdAt)}
+                      {t('entryTime', language)}: {formatDateTime(item.createdAt)}
                     </div>
                   </Space>
                 }
@@ -350,7 +366,11 @@ const TransactionList = () => {
         {/* 分页信息 */}
         {total > 0 && (
           <div className="pagination-info">
-            共 {total} 条记录，第 {page} / {Math.ceil(total / pageSize)} 页
+            {t('paginationInfo', language, {
+              total,
+              page,
+              totalPages: Math.ceil(total / pageSize),
+            })}
           </div>
         )}
 
@@ -358,7 +378,7 @@ const TransactionList = () => {
         {total > page * pageSize && (
           <div style={{ padding: '16px', textAlign: 'center' }}>
             <Button onClick={() => loadTransactions(page + 1)}>
-              加载更多
+              {t('loadMore', language)}
             </Button>
           </div>
         )}

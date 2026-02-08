@@ -193,7 +193,9 @@ const BatchCreateTransaction = () => {
           >
             <AddOutline /> {t('addRow', language)}
           </Button>
-          <span className="count-info">共 {transactions.length} 条</span>
+          <span className="count-info">
+            {t('totalRecordsCount', language, { count: transactions.length })}
+          </span>
         </div>
 
         {transactions.map((item, index) => (

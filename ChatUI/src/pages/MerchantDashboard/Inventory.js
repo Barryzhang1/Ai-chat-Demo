@@ -101,7 +101,7 @@ function Inventory() {
       })
     } catch (error) {
       // 显示后端返回的具体错误信息
-      const errorMessage = error.response?.data?.message || error.message || '操作失败';
+      const errorMessage = error.response?.data?.message || error.message || t('operationFailedSimple', language);
       Toast.show({
         content: errorMessage,
         position: 'top',
@@ -127,18 +127,18 @@ function Inventory() {
         // 更新逻辑
         const updatedDish = await dishApi.updateDish(editingDish._id, values);
         setInventory(inventory.map(item => item._id === editingDish._id ? updatedDish : item));
-        Toast.show({ icon: 'success', content: '修改成功！' });
+        Toast.show({ icon: 'success', content: t('updateSuccess', language) });
       } else {
         // 新增逻辑
         await dishApi.createDish(values);
-        Toast.show({ icon: 'success', content: '上新成功！' });
+        Toast.show({ icon: 'success', content: t('addDishSuccess', language) });
         fetchDishes(); // 刷新列表
       }
       form.resetFields();
       setShowEditPopup(false);
       setEditingDish(null);
     } catch (error) {
-      Toast.show({ icon: 'fail', content: '操作失败，请重试' });
+      Toast.show({ icon: 'fail', content: t('operationFailedRetry', language) });
     }
   };
 

@@ -35,7 +35,6 @@
 
 .adm-list-body {
   background-color: transparent;
-  padding: 8px var(--padding-right) 8px var(--padding-left);
 }
 
 /* 表单中的列表项样式 */

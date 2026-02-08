@@ -64,6 +64,20 @@
   overflow: hidden;
 }
 
+.register-topbar {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 12px);
+  right: 16px;
+  z-index: 2;
+}
+
+.register-lang-btn {
+  border-radius: 999px;
+  padding: 0 10px;
+  height: 28px;
+  font-weight: 600;
+}
+
 .register-dialog {
   position: relative;
   z-index: 1;

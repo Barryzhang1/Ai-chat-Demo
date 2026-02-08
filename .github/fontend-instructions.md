@@ -155,7 +155,8 @@ Build artifacts are emitted to `ChatUI/dist`.
 10. **Code organization**: Use index.js for unified exports in each modulefeature/page with clear naming
 4. **Routing**: Maintain routes centrally in `src/App.js`; add a Route when introducing a new page
 5. **API layer**: When integrating backend APIs, encapsulate them under `src/api/` instead of scattering calls across pages
-6. **Internationalization**: Supports Chinese and English language options
+6. **Internationalization**: All user-visible strings (including count badges/totals) must use `t()` for Chinese/English support
+7. **Date/Time formatting**: Use language-aware formatting for time fields in list/detail views
 
 
 ## 🔧 Key Configuration

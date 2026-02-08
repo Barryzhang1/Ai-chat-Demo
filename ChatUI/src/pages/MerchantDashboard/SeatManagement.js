@@ -29,6 +29,13 @@ const SeatManagement = () => {
   const [activeTab, setActiveTab] = useState('seats');
   const { language } = useLanguage();
 
+  const getLocalizedApiMessage = (message, fallbackKey) => {
+    if (language === 'zh' && message) {
+      return message;
+    }
+    return t(fallbackKey, language);
+  };
+
   useEffect(() => {
     // 初始化 Socket.IO 连接
     socket = io(`${config.socketUrl}/seat`, {
@@ -78,7 +85,10 @@ const SeatManagement = () => {
       console.log('Hall status changed:', data);
       Toast.show({
         icon: data.status === 'open' ? 'success' : 'fail',
-        content: data.message,
+        content: getLocalizedApiMessage(
+          data.message,
+          data.status === 'open' ? 'hallOpenedMsg' : 'hallClosedMsg'
+        ),
       });
       fetchStatistics();
     });
@@ -150,7 +160,7 @@ const SeatManagement = () => {
           const data = await response.json();
           Toast.show({
             icon: 'success',
-            content: data.message || t('hallClosedMsg', language),
+            content: getLocalizedApiMessage(data.message, 'hallClosedMsg'),
           });
           await fetchSeats();
           await fetchStatistics();
@@ -162,7 +172,7 @@ const SeatManagement = () => {
           const error = await response.json();
           Toast.show({
             icon: 'fail',
-            content: error.message || t('closeFailed', language),
+            content: getLocalizedApiMessage(error.message, 'closeFailed'),
           });
         }
       } catch (error) {
@@ -195,7 +205,7 @@ const SeatManagement = () => {
           const data = await response.json();
           Toast.show({
             icon: 'success',
-            content: data.message || t('hallOpenedMsg', language),
+            content: getLocalizedApiMessage(data.message, 'hallOpenedMsg'),
           });
           await fetchSeats();
           await fetchStatistics();
@@ -207,7 +217,7 @@ const SeatManagement = () => {
           const error = await response.json();
           Toast.show({
             icon: 'fail',
-            content: error.message || t('openFailed', language),
+            content: getLocalizedApiMessage(error.message, 'openFailed'),
           });
         }
       } catch (error) {
